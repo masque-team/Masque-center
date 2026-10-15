@@ -1,0 +1,22 @@
+import { MOCK_RANKINGS } from '../data/mockRankings';
+import type { GameId, PlayerState, RankingEntry, RankingPeriod } from '../types';
+
+export function getGameRanking(
+  gameId: GameId,
+  period: RankingPeriod,
+  player: PlayerState,
+  currentScore: number,
+): RankingEntry[] {
+  const multiplier = period === 'allTime' ? 3 : 1;
+  const entries = MOCK_RANKINGS[gameId].map((entry) => ({
+    ...entry,
+    score: entry.score * multiplier,
+  }));
+  entries.push({
+    playerId: player.id,
+    displayName: player.displayName,
+    score: currentScore * multiplier,
+    isCurrentPlayer: true,
+  });
+  return entries.sort((left, right) => right.score - left.score);
+}

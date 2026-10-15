@@ -1,0 +1,68 @@
+import type { Game } from '../types';
+
+const GAME_ORIGIN = 'https://masque-lab.adldigitalservice.com';
+
+export const GAMES: Game[] = [
+  {
+    id: 'bird',
+    name: 'สัตว์บินถลาลม',
+    description: 'บินฝ่าอุปสรรค ทำคะแนนให้สูงที่สุด',
+    genre: 'Arcade',
+    badge: 'ใหม่',
+    url: `${GAME_ORIGIN}/myroom/bird/`,
+    cover: 'bird.png',
+    fallbackCover: `${GAME_ORIGIN}/game-center/bird.png`,
+  },
+  {
+    id: 'mole',
+    name: 'ตีไอต้าวตุ่นเด้ง',
+    description: 'ตีตุ่นให้ไว เก็บคะแนนแข่งกัน',
+    genre: 'Reaction',
+    badge: 'ฮิต',
+    url: `${GAME_ORIGIN}/myroom/mole-v3/`,
+    cover: 'mole.png',
+    fallbackCover: `${GAME_ORIGIN}/game-center/mole.png`,
+  },
+  {
+    id: 'run',
+    name: 'สัตว์วิ่งตะลุยเมือง',
+    description: 'วิ่งหลบสิ่งกีดขวางให้ได้ไกล',
+    genre: 'Runner',
+    badge: 'ท้าทาย',
+    url: `${GAME_ORIGIN}/myroom/game/run/`,
+    cover: 'run.png',
+    fallbackCover: `${GAME_ORIGIN}/game-center/run.png`,
+  },
+  {
+    id: 'fruit',
+    name: 'ฟันผลไม้เปรี้ยง',
+    description: 'ฟันผลไม้ ทำคอมโบให้ต่อเนื่อง',
+    genre: 'Action',
+    badge: 'สายแอ็กชัน',
+    url: `${GAME_ORIGIN}/myroom/fruitninja/`,
+    cover: 'ninja.png',
+    fallbackCover: `${GAME_ORIGIN}/game-center/fn.png`,
+  },
+  {
+    id: 'timber',
+    name: 'สัตว์ชนพุ่งปังปัง',
+    description: 'เกมสไตล์ Timberman เปลี่ยนตัวละครเป็นกวาง',
+    genre: 'Arcade',
+    badge: 'เล่นเพลิน',
+    url: `${GAME_ORIGIN}/myroom/game/timberdear/`,
+    cover: 'timber.png',
+    fallbackCover: `${GAME_ORIGIN}/game-center/tbd.png`,
+  },
+  {
+    id: 'duck',
+    name: 'ล่าฝุงเป็ดป่วน',
+    description: 'เล็งเป็ดให้แม่น ทำคะแนนให้สูง',
+    genre: 'Shooter',
+    badge: 'เล็งให้แม่น',
+    url: `${GAME_ORIGIN}/myroom/shooting-duck/`,
+    cover: 'duck.png',
+    fallbackCover: `${GAME_ORIGIN}/game-center/sd.png`,
+  },
+];
+
+export const GAME_BY_ID = Object.fromEntries(GAMES.map((game) => [game.id, game])) as Record<Game['id'], Game>;
