@@ -22,7 +22,7 @@
   type ModalState = { kind: 'purchase'; packageId: PassPackage['id'] } | { kind: 'success' } | null;
 
   const MOCK_PLAYER_SCORES: Record<GameId, number> = {
-    bird: 47, mole: 1250, run: 640, fruit: 780, timber: 320, duck: 520,
+    bird: 47, mole: 1250, run: 640, fruit: 780, timber: 320, duck: 520, memory: 8,
   };
 
   let player = $state<PlayerState>(loadPlayer(new URLSearchParams(window.location.search).get('name')));
@@ -183,11 +183,11 @@
         {#if page === 'home'}
           <section class="home-hero">
             <div class="hero-stars"><Sparkles size={19} /><Star size={12} /><Sparkles size={13} /></div>
-            <div class="hero-copy"><p class="eyebrow">WELCOME TO MASQUEGAME</p><h1>{passActive ? 'พร้อมลุยแรงก์แล้ว!' : 'เลือกเกมที่ชอบ'}</h1><p>{passActive ? 'สิทธิ์พรีเมียมพร้อมแล้ว เล่นได้ทุกเกมไม่จำกัด' : '6 เกมสนุก พร้อมท้าคะแนนและปลดล็อกอันดับ'}</p><span class="hero-player"><span class="hero-level">LV.{player.level}</span>{player.displayName}<span class="hero-id">{player.id}</span></span></div>
+            <div class="hero-copy"><p class="eyebrow">WELCOME TO MASQUEGAME</p><h1>{passActive ? 'พร้อมลุยแรงก์แล้ว!' : 'เลือกเกมที่ชอบ'}</h1><p>{passActive ? 'สิทธิ์พรีเมียมพร้อมแล้ว เล่นได้ทุกเกมไม่จำกัด' : `${GAMES.length} เกมสนุก พร้อมท้าคะแนนและปลดล็อกอันดับ`}</p><span class="hero-player"><span class="hero-level">LV.{player.level}</span>{player.displayName}<span class="hero-id">{player.id}</span></span></div>
             <div class="hero-art"><Trophy size={74} strokeWidth={1.6} /></div><span class="hero-orbit orbit-one"></span><span class="hero-orbit orbit-two"></span>
           </section>
           <PassStatus {player} active={passActive} remaining={passRemaining} freeMinutes={Math.ceil(freeLeft / 60)} onUpgrade={() => navigate('pass')} />
-          <section class="content-section games-section"><div class="section-heading"><div><p class="eyebrow">PICK YOUR GAME</p><h2><Gamepad2 size={20} />เกมทั้งหมด</h2></div><span class="count-chip">06 GAMES</span></div><div class="game-grid">{#each GAMES as game, index (game.id)}<GameCard {game} {index} passActive={passActive} onclick={() => navigate(`game/${game.id}`)} />{/each}</div></section>
+          <section class="content-section games-section"><div class="section-heading"><div><p class="eyebrow">PICK YOUR GAME</p><h2><Gamepad2 size={20} />เกมทั้งหมด</h2></div><span class="count-chip">{String(GAMES.length).padStart(2, '0')} GAMES</span></div><div class="game-grid">{#each GAMES as game, index (game.id)}<GameCard {game} {index} passActive={passActive} onclick={() => navigate(`game/${game.id}`)} />{/each}</div></section>
           <section class="content-section home-ranking-section"><div class="section-heading"><div><p class="eyebrow">GAME BY GAME</p><h2><Trophy size={20} />Leaderboard</h2></div><a class="text-link" href="#ranking">ดูทั้งหมด <ArrowRight size={15} /></a></div><div class="home-ranking-grid"><Leaderboard bind:gameId={rankingGameId} bind:period={rankingPeriod} {player} currentScore={MOCK_PLAYER_SCORES[rankingGameId]} compact /><aside class="ranking-promo"><div class="promo-crown"><Crown size={23} fill="currentColor" /></div><strong>{passActive ? 'พร้อมไต่แรงก์!' : 'ปลดล็อก Ranked Play'}</strong><p>{passActive ? 'Pass ของคุณเปิดสิทธิ์เข้าร่วม Ranking แล้ว' : 'มี Masque Pass เพื่อร่วม Ranking และเล่นได้ไม่จำกัด'}</p><a class="button promo-button" href={passActive ? '#ranking' : '#pass'}>{passActive ? 'ดูอันดับ' : 'ดู Masque Pass'}<ArrowRight size={15} /></a></aside></div></section>
           <p class="prototype-note">คะแนน, AIS Points และสิทธิ์ Pass เป็นข้อมูลจำลองในอุปกรณ์นี้</p>
         {:else if page === 'pass'}

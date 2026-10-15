@@ -1,6 +1,6 @@
 # MasqueGame
 
-เกมมือถือสำหรับ myAIS WebView รวม 6 เกม เล่นฟรีหรืออัปเกรดเป็น Masque Pass เพื่อเล่นไม่จำกัดและปลดล็อกสิทธิ์เข้าร่วม Ranking
+เกมมือถือสำหรับ myAIS WebView รวม 7 เกม เล่นฟรีหรืออัปเกรดเป็น Masque Pass เพื่อเล่นไม่จำกัดและปลดล็อกสิทธิ์เข้าร่วม Ranking
 
 <p align="center">
 	<img src="public/images/bird.png" alt="ภาพปกเกมสัตว์บินถลาลม" width="420" />
@@ -15,8 +15,12 @@
 | <img src="public/images/bird.png" alt="สัตว์บินถลาลม" width="180" /><br /><strong>สัตว์บินถลาลม</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/bird/) | <img src="public/images/mole.png" alt="ตีไอต้าวตุ่นเด้ง" width="180" /><br /><strong>ตีไอต้าวตุ่นเด้ง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/mole-v3/) | <img src="public/images/run.png" alt="สัตว์วิ่งตะลุยเมือง" width="180" /><br /><strong>สัตว์วิ่งตะลุยเมือง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/game/run/) |
 | **ACTION** | **ARCADE · DEER EDITION** | **SHOOTER** |
 | <img src="public/images/ninja.png" alt="ฟันผลไม้เปรี้ยง" width="180" /><br /><strong>ฟันผลไม้เปรี้ยง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/fruitninja/) | <img src="public/images/timber.png" alt="สัตว์ชนพุ่งปังปัง" width="180" /><br /><strong>สัตว์ชนพุ่งปังปัง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/game/timberdear/) | <img src="public/images/duck.png" alt="ล่าฝุงเป็ดป่วน" width="180" /><br /><strong>ล่าฝุงเป็ดป่วน</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/shooting-duck/) |
+| **MEMORY** |  |  |
+| **สัตว์จับคู่สู้สุดใจ**<br />จับคู่ภาพสัตว์ให้ครบทุกคู่<br />[เล่นเกม](https://masque-lab.adldigitalservice.com/mygame/memonrycard/) |  |  |
 
 > ภาพปกอ้างอิงจาก `public/images/` และเกม Timber เป็นเกมสไตล์ Timberman ที่เปลี่ยนตัวละครเป็นกวาง
+>
+> เกมสัตว์จับคู่สู้สุดใจยังไม่มีภาพปกใน assets จึงใช้ไอคอนการ์ดจับคู่แทน
 
 ## ฟีเจอร์
 

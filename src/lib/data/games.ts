@@ -63,6 +63,14 @@ export const GAMES: Game[] = [
     cover: 'duck.png',
     fallbackCover: `${GAME_ORIGIN}/game-center/sd.png`,
   },
+  {
+    id: 'memory',
+    name: 'สัตว์จับคู่สู้สุดใจ',
+    description: 'จับคู่ภาพสัตว์ที่เหมือนกันให้ครบทุกคู่',
+    genre: 'Memory',
+    badge: 'เกมใหม่',
+    url: `${GAME_ORIGIN}/mygame/memonrycard/`,
+  },
 ];
 
 export const GAME_BY_ID = Object.fromEntries(GAMES.map((game) => [game.id, game])) as Record<Game['id'], Game>;

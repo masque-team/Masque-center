@@ -1,4 +1,4 @@
-export type GameId = 'bird' | 'mole' | 'run' | 'fruit' | 'timber' | 'duck';
+export type GameId = 'bird' | 'mole' | 'run' | 'fruit' | 'timber' | 'duck' | 'memory';
 
 export interface Game {
   id: GameId;
@@ -7,8 +7,8 @@ export interface Game {
   genre: string;
   badge: string;
   url: string;
-  cover: string;
-  fallbackCover: string;
+  cover?: string;
+  fallbackCover?: string;
 }
 
 export interface Player {

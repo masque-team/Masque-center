@@ -43,4 +43,11 @@ export const MOCK_RANKINGS: Record<GameId, RankingEntry[]> = {
     { playerId: 'MG36590', displayName: 'MaliMali', score: 2440 },
     { playerId: 'MG98211', displayName: 'Chaiyo', score: 2110 },
   ],
+  memory: [
+    { playerId: 'MG73820', displayName: 'MaliMatch', score: 18 },
+    { playerId: 'MG46015', displayName: 'NongNok', score: 16 },
+    { playerId: 'MG29176', displayName: 'PloyPloy', score: 14 },
+    { playerId: 'MG85042', displayName: 'Khanom', score: 12 },
+    { playerId: 'MG14793', displayName: 'MookMik', score: 10 },
+  ],
 };

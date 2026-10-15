@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowUpRight, Crown, Play, Sparkles } from '@lucide/svelte';
+  import { ArrowUpRight, Copy, Crown, Play, Sparkles } from '@lucide/svelte';
   import type { Game } from '../types';
 
   let { game, passActive, index, onclick }: {
@@ -12,7 +12,7 @@
   function useFallback(event: Event): void {
     const image = event.currentTarget;
     if (!(image instanceof HTMLImageElement)) return;
-    if (image.dataset.fallbackTried !== 'true') {
+    if (game.fallbackCover && image.dataset.fallbackTried !== 'true') {
       image.dataset.fallbackTried = 'true';
       image.src = game.fallbackCover;
     } else {
@@ -23,7 +23,11 @@
 
 <button class:rank-card={passActive} class="game-card" style={`--card-index:${index}`} onclick={onclick} aria-label={`เล่นเกม ${game.name}`}>
   <span class="cover-wrap">
-    <img src={`images/${game.cover}`} alt={`ภาพปกเกม ${game.name}`} loading="lazy" onerror={useFallback} />
+    {#if game.cover}
+      <img src={`images/${game.cover}`} alt={`ภาพปกเกม ${game.name}`} loading="lazy" onerror={useFallback} />
+    {:else}
+      <span class="cover-placeholder" aria-hidden="true"><Copy size={31} strokeWidth={1.8} /><span>จับคู่ภาพสัตว์</span></span>
+    {/if}
     <span class="cover-shade"></span>
     <span class="game-badge"><Sparkles size={11} fill="currentColor" />{game.badge}</span>
     {#if passActive}<span class="rank-tag"><Crown size={11} fill="currentColor" />RANK ON</span>{:else}<span class="free-tag">FREE PLAY</span>{/if}
