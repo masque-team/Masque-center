@@ -1,6 +1,6 @@
 # MasqueGame
 
-เกมมือถือสำหรับ myAIS WebView รวม 7 เกม เล่นฟรีหรืออัปเกรดเป็น Masque Pass เพื่อเล่นไม่จำกัดและปลดล็อกสิทธิ์เข้าร่วม Ranking
+เกมมือถือสำหรับ myAIS WebView รวม 7 เกม เล่นฟรีด้วย Energy หรือปลดล็อก VIP Benefits, Battle Pass rewards, Masque Points และ Avatar & Pets
 
 <p align="center">
 	<img src="public/images/bird.png" alt="ภาพปกเกมสัตว์บินถลาลม" width="420" />
@@ -24,11 +24,14 @@
 
 ## ฟีเจอร์
 
-- **Game Center** แสดงสถานะ Free Play หรือ Pass Active, Player ID, Level, AIS Points จำลอง และการ์ดเกม
-- **Masque Pass** มี Daily Pass (1 Point / 1 วัน) และ Weekly Pass (5 Points / 7 วัน) พร้อมต่ออายุจากเวลาหมดอายุเดิม
-- **Leaderboard** เลือกเกมและช่วงเวลาได้ ข้อมูลจัดอันดับแยกตามเกม
-- **Game Player** เปิดเกมผ่าน iframe มี loading state, ทางเลือกเปิดแท็บใหม่ และปุ่มกลับหน้า Home
-- **Free Play** นับเวลาเล่นรวมทุกเกมวันละ 60 นาที และหยุดนับเมื่อออกจากเกมหรือซ่อนหน้าเว็บ
+- **Energy** เริ่มต้น 12 หน่วย ใช้ 1 หน่วยต่อการเข้าเกม และฟื้น 1 หน่วยทุก 30 นาที
+- **VIP Pass** มีแพ็กเกจ Mock 5 และ 7 วัน ซื้อด้วย Masque Points พร้อม Energy ไม่จำกัดและ VIP Benefits
+- **Battle Pass** มี Free/VIP reward tracks, missions, XP progression และ reward claims แบบจำลอง
+- **Shop** แลก 1 AIS Point เป็น 10 Masque Points และเติม Energy หรือซื้อ VIP ด้วย Masque Points
+- **Avatar & Pets** เลือกตัวละครทั้งตัว, pet collection, equip และ pet gacha แบบ Mock
+- **Ranking** แยกตาม Game ID พร้อมตัวเลือก Weekly/All-Time; Free และ VIP จัดอันดับได้เท่ากัน
+- **Friends Room** สร้างห้อง/ใส่รหัส/เริ่มเกมเป็น UI Mock ไม่มี multiplayer backend
+- **Game Player** เปิดเกมผ่าน iframe มี loading state, fallback, ทางเลือกเปิดแท็บใหม่ และปุ่มกลับหน้า Home
 - **Mobile-first** รองรับหน้าจอ 320–430px, safe area, bottom navigation และหน้าจอแนวนอน
 
 ## เริ่มพัฒนา
@@ -69,4 +72,4 @@ public/images/        # ภาพปกเกม
 
 ## ขอบเขต Prototype
 
-ชื่อผู้เล่น, Player ID, AIS Points, Pass expiration และเวลาเล่นฟรีเก็บใน `localStorage` บน browser เท่านั้น Ranking เป็น mock data ส่วนคะแนนไม่ได้รับหรือยืนยันจาก iframe และไม่มีการเชื่อมต่อ AIS จริง ดังนั้นข้อมูลเหล่านี้ใช้ทดสอบ UI/UX เท่านั้น ไม่สามารถยืนยันสิทธิ์ ป้องกันการแก้ไขข้อมูล หรือทำธุรกรรมจริงได้
+ชื่อผู้เล่น, Player ID, Level, AIS Points, Masque Points, Energy, VIP expiration, rewards, Avatar และ Pet เก็บใน `localStorage` key `masquegame_center_v2` เท่านั้น State จากระบบเดิมจะไม่ถูกนำเข้ามาปะปน Ranking, missions, XP, check-in, gacha, exchange และ VIP transactions เป็น Mock ทั้งหมด คะแนนไม่ได้รับหรือยืนยันจาก iframe และไม่มีการเชื่อมต่อ AIS จริง จึงใช้ทดสอบ UI/UX เท่านั้น ไม่สามารถยืนยันสิทธิ์หรือทำธุรกรรมจริงได้

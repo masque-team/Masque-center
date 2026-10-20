@@ -15,21 +15,31 @@ export interface Player {
   id: string;
   displayName: string;
   level: number;
-  aisPoints: number;
-  passExpiredAt: number | null;
 }
 
 export interface PlayerState extends Player {
-  freeDate: string;
-  freeUsedSeconds: number;
+  aisPoints: number;
+  masquePoints: number;
+  energy: number;
+  energyUpdatedAt: number;
+  vipExpiresAt: number | null;
+  battlePassXp: number;
+  claimedRewards: string[];
+  claimedMissions: string[];
+  checkinDates: string[];
+  gachaTickets: number;
+  avatarId: string;
+  ownedAvatarIds: string[];
+  petId: string | null;
+  ownedPetIds: string[];
 }
 
-export interface PassPackage {
-  id: 'daily' | 'weekly';
+export interface VipPackage {
+  id: 'five-day' | 'seven-day';
   label: string;
   durationDays: number;
   cost: number;
-  bestValue?: boolean;
+  reward: string;
 }
 
 export interface RankingEntry {
@@ -40,3 +50,5 @@ export interface RankingEntry {
 }
 
 export type RankingPeriod = 'weekly' | 'allTime';
+
+export type Page = 'home' | 'shop' | 'rewards' | 'avatar' | 'ranking' | 'room' | 'game';

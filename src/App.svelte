@@ -1,30 +1,38 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import {
-    ArrowLeft, ArrowRight, Check, CircleAlert, Clock3, Crown, ExternalLink,
-    Gamepad2, LoaderCircle, RotateCcw, Sparkles, Star, Ticket, Trophy, X,
+    ArrowLeft, ArrowRight, Check, CheckCircle2, Clock3, Coins, Copy, Crown,
+    CircleAlert, ExternalLink, Gamepad2, Gift, Heart, LoaderCircle, Lock, Medal, Play,
+    RotateCcw, ShoppingBag, Sparkles, Star, Ticket, Trophy, UsersRound, X, Zap,
   } from '@lucide/svelte';
   import AppHeader from './lib/components/AppHeader.svelte';
   import BottomNav from './lib/components/BottomNav.svelte';
   import GameCard from './lib/components/GameCard.svelte';
   import Leaderboard from './lib/components/Leaderboard.svelte';
-  import PassStatus from './lib/components/PassStatus.svelte';
+  import { AVATARS, BATTLE_PASS, ENERGY_CONFIG, PETS, PET_GACHA_COST, VIP_PACKAGES } from './lib/data/config';
   import { GAMES, GAME_BY_ID } from './lib/data/games';
-  import {
-    DAILY_FREE_SECONDS, extendPass, formatDuration, formatPassRemaining, freeSecondsRemaining,
-    isPassActive, PASS_PACKAGES,
-  } from './lib/services/passService';
-  import { currentDayKey, loadPlayer, savePlayer } from './lib/services/playerService';
-  import type { GameId, PassPackage, PlayerState, RankingPeriod } from './lib/types';
+  import { battlePassLevel } from './lib/services/battlePassService';
+  import { selectAvatar } from './lib/services/avatarService';
+  import { isVip, nextRefillIn, refreshEnergy, refillEnergy, spendGameEnergy } from './lib/services/energyService';
+  import { purchaseVip } from './lib/services/passService';
+  import { drawPet, equipPet } from './lib/services/petService';
+  import { loadPlayer, savePlayer } from './lib/services/playerService';
+  import { addMockMissionXp, claimBattlePassReward } from './lib/services/rewardService';
+  import { createRoomCode } from './lib/services/roomService';
+  import { exchangeAisPoints } from './lib/services/walletService';
+  import type { GameId, Page, PlayerState, RankingPeriod, VipPackage } from './lib/types';
   import './app.css';
 
-  type Page = 'home' | 'pass' | 'ranking' | 'game';
-  type ModalState = { kind: 'purchase'; packageId: PassPackage['id'] } | { kind: 'success' } | null;
+  type ModalState =
+    | { kind: 'notice'; title: string; message: string }
+    | { kind: 'vip-confirm'; packageId: VipPackage['id'] }
+    | { kind: 'refill-confirm'; refillId: string }
+    | { kind: 'exchange-confirm' }
+    | { kind: 'gacha-result'; petId: string; duplicate: boolean }
+    | { kind: 'checkin-success' }
+    | null;
 
-  const MOCK_PLAYER_SCORES: Record<GameId, number> = {
-    bird: 47, mole: 1250, run: 640, fruit: 780, timber: 320, duck: 520, memory: 8,
-  };
-
+  const mockScores: Record<GameId, number> = { bird: 47, mole: 1250, run: 640, fruit: 780, timber: 320, duck: 520, memory: 18 };
   let player = $state<PlayerState>(loadPlayer(new URLSearchParams(window.location.search).get('name')));
   let page = $state<Page>('home');
   let gameId = $state<GameId>('bird');
@@ -35,48 +43,53 @@
   let gameLoading = $state(true);
   let gameFallback = $state(false);
   let iframeVersion = $state(0);
-  let pendingPackage = $derived.by(() => {
-    const activeModal = modal;
-    if (!activeModal || activeModal.kind !== 'purchase') return null;
-    return PASS_PACKAGES.find((item) => item.id === activeModal.packageId) ?? null;
-  });
-  let passActive = $derived(isPassActive(player.passExpiredAt, now));
-  let freeLeft = $derived(freeSecondsRemaining(player, new Date(now)));
-  let passRemaining = $derived(player.passExpiredAt ? formatPassRemaining(player.passExpiredAt, now) : '');
-  let currentGame = $derived(GAME_BY_ID[gameId]);
   let iframeTimeout: ReturnType<typeof setTimeout> | undefined;
+  let shopTab = $state<'exchange' | 'vip'>('exchange');
+  let exchangeAmount = $state(1);
+  let selectedAvatar = $state('mali');
+  let selectedRefill = $state('small');
+  let roomCode = $state('');
+  let joinCode = $state('');
+  let roomCreated = $state(false);
+  let gachaBusy = $state(false);
+  let pendingEnergyEntry = $state(false);
+  let toast = $state('');
+  let currentGame = $derived(GAME_BY_ID[gameId]);
+  let vipActive = $derived(isVip(player, now));
+  let passLevel = $derived(battlePassLevel(player));
+  let passXp = $derived(player.battlePassXp % BATTLE_PASS.xpPerLevel);
+  let refillCountdown = $derived(nextRefillIn(player, now));
+  let pendingVip = $derived.by(() => {
+    const currentModal = modal;
+    if (currentModal?.kind !== 'vip-confirm') return null;
+    return VIP_PACKAGES.find((pack) => pack.id === currentModal.packageId) ?? null;
+  });
+  let pendingRefill = $derived.by(() => {
+    const currentModal = modal;
+    if (currentModal?.kind !== 'refill-confirm') return null;
+    return ENERGY_CONFIG.refillPacks.find((pack) => pack.id === currentModal.refillId) ?? null;
+  });
+  let gachaPet = $derived.by(() => {
+    const currentModal = modal;
+    if (currentModal?.kind !== 'gacha-result') return null;
+    return PETS.find((pet) => pet.id === currentModal.petId) ?? null;
+  });
+  let previewAvatar = $derived(AVATARS.find((avatar) => avatar.id === selectedAvatar) ?? AVATARS[0]);
 
-  function persist(): void {
+  function persist(next = player): void {
+    player = next;
     savePlayer(player);
   }
 
-  function clearIframeTimeout(): void {
-    if (iframeTimeout) clearTimeout(iframeTimeout);
-    iframeTimeout = undefined;
+  function todayKey(date = new Date()): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
 
-  function handleRoute(): void {
-    persist();
-    clearIframeTimeout();
-    const [route, requestedGame] = window.location.hash.replace(/^#/, '').split('/');
-    if (route === 'pass' || route === 'ranking') {
-      page = route;
-      return;
-    }
-    if (route === 'game' && requestedGame in GAME_BY_ID) {
-      page = 'game';
-      gameId = requestedGame as GameId;
-      gameLoading = true;
-      gameFallback = false;
-      iframeVersion += 1;
-      if (passActive || freeLeft > 0) {
-        iframeTimeout = setTimeout(() => {
-          if (gameLoading) gameFallback = true;
-        }, 15_000);
-      }
-      return;
-    }
-    page = 'home';
+  function checkinKeyForDay(index: number): string {
+    const date = new Date(now);
+    const mondayOffset = (date.getDay() + 6) % 7;
+    date.setDate(date.getDate() - mondayOffset + index);
+    return todayKey(date);
   }
 
   function navigate(route: string): void {
@@ -85,19 +98,131 @@
     else window.location.hash = destination;
   }
 
-  function openPurchase(packageInfo: PassPackage): void {
-    modal = { kind: 'purchase', packageId: packageInfo.id };
+  function handleRoute(): void {
+    clearIframeTimeout();
+    const [routePath, hashQuery = ''] = window.location.hash.replace(/^#/, '').split('?');
+    const [route, requestedGame] = routePath.split('/');
+    const routes: Page[] = ['home', 'shop', 'rewards', 'avatar', 'ranking', 'room'];
+    if (route === 'game' && requestedGame && requestedGame in GAME_BY_ID) {
+      if (!pendingEnergyEntry) {
+        const next = spendGameEnergy(player, now);
+        if (!next) {
+          page = 'home';
+          modal = { kind: 'notice', title: 'Energy หมดแล้ว', message: 'รอให้ Energy ฟื้น เติมด้วย Masque Points หรือปลดล็อก VIP เพื่อเล่นต่อได้เลย' };
+          return;
+        }
+        persist(next);
+      }
+      pendingEnergyEntry = false;
+      page = 'game';
+      gameId = requestedGame as GameId;
+      gameLoading = true;
+      gameFallback = false;
+      iframeVersion += 1;
+      iframeTimeout = window.setTimeout(() => {
+        if (gameLoading) gameFallback = true;
+      }, 15_000);
+      return;
+    }
+    pendingEnergyEntry = false;
+    const inviteCode = new URLSearchParams(hashQuery).get('code');
+    if (route === 'room' && inviteCode) joinCode = inviteCode.toUpperCase();
+    page = routes.includes(route as Page) ? route as Page : 'home';
   }
 
-  function confirmPurchase(): void {
-    const activeModal = modal;
-    if (!activeModal || activeModal.kind !== 'purchase') return;
-    const packageInfo = PASS_PACKAGES.find((item) => item.id === activeModal.packageId);
-    if (!packageInfo || player.aisPoints < packageInfo.cost) return;
-    player = extendPass(player, packageInfo, now);
-    persist();
-    modal = { kind: 'success' };
-    if (page !== 'home') navigate('home');
+  function enterGame(id: GameId): void {
+    const next = spendGameEnergy(player, now);
+    if (!next) {
+      modal = { kind: 'notice', title: 'Energy หมดแล้ว', message: 'รอให้ Energy ฟื้น เติมด้วย Masque Points หรือปลดล็อก VIP เพื่อเล่นต่อได้เลย' };
+      return;
+    }
+    persist(next);
+    pendingEnergyEntry = true;
+    navigate(`game/${id}`);
+  }
+
+  function claimCheckin(): void {
+    if (player.checkinDates.includes(todayKey())) return;
+    persist({ ...player, checkinDates: [...player.checkinDates, todayKey()], masquePoints: player.masquePoints + 35 });
+    modal = { kind: 'checkin-success' };
+  }
+
+  function confirmVip(): void {
+    if (modal?.kind !== 'vip-confirm') return;
+    const next = purchaseVip(player, modal.packageId, now);
+    if (!next) return;
+    persist(next);
+    modal = { kind: 'notice', title: 'VIP เปิดใช้งานแล้ว!', message: 'Energy ไม่จำกัด พร้อมปลดล็อกรางวัลและภารกิจ VIP' };
+  }
+
+  function confirmRefill(): void {
+    if (!pendingRefill) return;
+    const next = refillEnergy(player, pendingRefill.energy, pendingRefill.cost);
+    if (!next) {
+      modal = { kind: 'notice', title: 'เติม Energy ไม่สำเร็จ', message: 'ตรวจสอบยอด Masque Points หรือ Energy ปัจจุบันของคุณ' };
+      return;
+    }
+    persist(next);
+    modal = { kind: 'notice', title: 'เติม Energy สำเร็จ!', message: `ได้รับ Energy +${pendingRefill.energy}` };
+  }
+
+  function confirmExchange(): void {
+    const next = exchangeAisPoints(player, exchangeAmount);
+    if (!next) return;
+    persist(next);
+    modal = { kind: 'notice', title: 'แลกสำเร็จ!', message: `ได้รับ ${exchangeAmount * 10} Masque Points` };
+  }
+
+  function claimReward(index: number, track: 'free' | 'vip'): void {
+    if (track === 'vip' && !vipActive) return;
+    const next = claimBattlePassReward(player, track, index);
+    if (!next) return;
+    persist(next);
+    showToast(`${track === 'vip' ? BATTLE_PASS.vipRewards[index].title : BATTLE_PASS.freeRewards[index].title} รับแล้ว`);
+  }
+
+  function claimMission(kind: 'daily' | 'vip'): void {
+    const missionId = `${kind}-${todayKey()}`;
+    if (player.claimedMissions.includes(missionId)) return;
+    persist({ ...addMockMissionXp(player, kind === 'vip' ? 100 : 50), claimedMissions: [...player.claimedMissions, missionId] });
+    showToast(`รับ ${kind === 'vip' ? 100 : 50} XP แล้ว`);
+  }
+
+  function startGacha(): void {
+    if (gachaBusy) return;
+    if (player.masquePoints < PET_GACHA_COST) {
+      modal = { kind: 'notice', title: 'Masque Points ไม่พอ', message: 'แลก AIS Points ใน Shop เพื่อสุ่ม Pet ได้เลย' };
+      return;
+    }
+    gachaBusy = true;
+    window.setTimeout(() => {
+      const result = drawPet(player);
+      gachaBusy = false;
+      if (!result) return;
+      persist(result.player);
+      modal = { kind: 'gacha-result', petId: result.petId, duplicate: result.duplicate };
+    }, 900);
+  }
+
+  function showToast(message: string): void {
+    toast = message;
+    window.setTimeout(() => (toast = ''), 1800);
+  }
+
+  function makeRoom(): void {
+    if (!vipActive) {
+      modal = { kind: 'notice', title: 'สร้างห้องสำหรับ VIP', message: 'VIP Pass ปลดล็อกการสร้างห้องเล่นกับเพื่อน' };
+      return;
+    }
+    roomCode = createRoomCode();
+    roomCreated = true;
+  }
+
+  function formatCountdown(milliseconds: number): string {
+    const totalSeconds = Math.ceil(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 
   function onIframeLoad(): void {
@@ -106,46 +231,40 @@
     clearIframeTimeout();
   }
 
+  function clearIframeTimeout(): void {
+    if (iframeTimeout) window.clearTimeout(iframeTimeout);
+    iframeTimeout = undefined;
+  }
+
   function reloadGame(): void {
     gameLoading = true;
     gameFallback = false;
     iframeVersion += 1;
     clearIframeTimeout();
-    iframeTimeout = setTimeout(() => {
+    iframeTimeout = window.setTimeout(() => {
       if (gameLoading) gameFallback = true;
     }, 15_000);
   }
 
   onMount(() => {
-    player = loadPlayer(new URLSearchParams(window.location.search).get('name'));
-    const syncRoute = (): void => handleRoute();
-    const persistOnHide = (): void => { if (document.hidden) persist(); };
-    const dismissOnEscape = (event: KeyboardEvent): void => { if (event.key === 'Escape') modal = null; };
-    window.addEventListener('hashchange', syncRoute);
-    window.addEventListener('beforeunload', persist);
-    document.addEventListener('visibilitychange', persistOnHide);
-    document.addEventListener('keydown', dismissOnEscape);
-    if (window.location.hash) handleRoute();
-    else window.location.hash = '#home';
-
+    selectedAvatar = player.avatarId;
+    const routeChanged = (): void => handleRoute();
+    const persistOnUnload = (): void => savePlayer(player);
     const timer = window.setInterval(() => {
       now = Date.now();
-      if (page !== 'game' || document.hidden || passActive || freeLeft <= 0) return;
-      if (player.freeDate !== currentDayKey(new Date(now))) {
-        player.freeDate = currentDayKey(new Date(now));
-        player.freeUsedSeconds = 0;
-      }
-      player.freeUsedSeconds = Math.min(DAILY_FREE_SECONDS, player.freeUsedSeconds + 1);
-      if (player.freeUsedSeconds % 5 === 0 || player.freeUsedSeconds >= DAILY_FREE_SECONDS) persist();
+      const refreshed = refreshEnergy(player, now);
+      if (refreshed !== player) persist(refreshed);
     }, 1000);
-
+    window.addEventListener('hashchange', routeChanged);
+    window.addEventListener('beforeunload', persistOnUnload);
+    if (window.location.hash) handleRoute();
+    else window.location.hash = '#home';
+    persist(refreshEnergy(player, now));
     return () => {
       window.clearInterval(timer);
       clearIframeTimeout();
-      window.removeEventListener('hashchange', syncRoute);
-      window.removeEventListener('beforeunload', persist);
-      document.removeEventListener('visibilitychange', persistOnHide);
-      document.removeEventListener('keydown', dismissOnEscape);
+      window.removeEventListener('hashchange', routeChanged);
+      window.removeEventListener('beforeunload', persistOnUnload);
     };
   });
 </script>
@@ -154,50 +273,85 @@
   {#if page === 'game'}
     <main class="game-screen">
       <header class="game-topbar">
-        <button class="back-button" onclick={() => navigate('home')} aria-label="กลับหน้าเกม"><ArrowLeft size={18} /><span>กลับ</span></button>
+        <button class="back-button" onclick={() => navigate('home')} aria-label="กลับหน้าเกม"><ArrowLeft size={19} /></button>
         <div class="game-top-copy"><strong>{currentGame.name}</strong><small>{player.id} · LV.{player.level}</small></div>
-        <div class="game-best"><small>BEST SCORE</small><b>{MOCK_PLAYER_SCORES[gameId].toLocaleString('en-US')}</b></div>
+        <div class="game-energy-chip">{vipActive ? '∞ VIP' : `${player.energy}/${ENERGY_CONFIG.max} ⚡`}</div>
       </header>
-      <div class="game-info-bar">
-        <span class:pass-indicator={passActive} class="eligibility"><span class="eligibility-dot"></span>{passActive ? 'PASS ACTIVE · RANK ELIGIBLE' : 'FREE PLAY · UNRANKED'}</span>
-        <strong class="free-clock">{passActive ? `Pass เหลือ ${passRemaining}` : `${formatDuration(freeLeft)} เหลือ`}</strong>
-        <a class="external-game" href={currentGame.url} target="_blank" rel="noopener noreferrer" aria-label="เปิดเกมในแท็บใหม่"><ExternalLink size={17} /></a>
-      </div>
+      <div class="game-info-bar"><span>{vipActive ? 'VIP ENERGY UNLIMITED' : 'ใช้ 1 Energy ต่อการเข้าเล่น'}</span><a href={currentGame.url} target="_blank" rel="noopener noreferrer" aria-label="เปิดเกมในแท็บใหม่"><ExternalLink size={17} /></a></div>
       <section class="game-stage" aria-label={`เกม ${currentGame.name}`}>
-        {#if !passActive && freeLeft <= 0}
-          <div class="quota-screen"><div class="quota-icon"><Clock3 size={32} /></div><p class="eyebrow">FREE PLAY COMPLETE</p><h1>วันนี้เล่นครบแล้ว</h1><p>อัปเกรดเป็น Masque Pass เพื่อเล่นต่อได้ไม่จำกัดและมีสิทธิ์เข้าร่วม Ranking</p><button class="button gold-button" onclick={() => navigate('pass')}>ดูแพ็กเกจ Pass <ArrowRight size={17} /></button></div>
-        {:else}
-          {#key iframeVersion}
-            <iframe src={currentGame.url} title={currentGame.name} allow="autoplay; fullscreen; gamepad" loading="eager" referrerpolicy="strict-origin-when-cross-origin" onload={onIframeLoad} onerror={() => (gameFallback = true)}></iframe>
-          {/key}
-          {#if gameLoading && !gameFallback}<div class="game-loading"><LoaderCircle size={30} /><strong>กำลังเปิดเกม</strong><span>{currentGame.name}</span></div>{/if}
-          {#if gameFallback}<div class="game-fallback"><CircleAlert size={25} /><strong>เกมอาจไม่รองรับการเปิดในหน้าต่างนี้</strong><p>ลองเปิดเกมแยก หรือโหลดใหม่อีกครั้ง</p><div><a class="button primary-button" href={currentGame.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />เปิดเกมแยก</a><button class="button light-button" onclick={reloadGame}><RotateCcw size={16} />โหลดใหม่</button></div></div>{/if}
-        {/if}
+        {#key iframeVersion}<iframe src={currentGame.url} title={currentGame.name} allow="autoplay; fullscreen; gamepad" loading="eager" referrerpolicy="strict-origin-when-cross-origin" onload={onIframeLoad} onerror={() => (gameFallback = true)}></iframe>{/key}
+        {#if gameLoading && !gameFallback}<div class="game-loading"><LoaderCircle size={30} /><strong>กำลังเปิดเกม</strong><span>{currentGame.name}</span></div>{/if}
+        {#if gameFallback}<div class="game-fallback"><CircleAlert size={25} /><strong>เกมอาจไม่รองรับการเปิดในหน้าต่างนี้</strong><p>ลองเปิดเกมแยก หรือโหลดใหม่อีกครั้ง</p><div><a class="button primary-button" href={currentGame.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />เปิดเกมแยก</a><button class="button light-button" onclick={reloadGame}><RotateCcw size={16} />โหลดใหม่</button></div></div>{/if}
       </section>
-      <p class="game-footnote">คะแนนและอันดับในต้นแบบเป็นข้อมูลจำลอง ยังไม่มีการรับคะแนนจากเกม</p>
     </main>
   {:else}
     <main class="app-main">
       <div class="page-shell">
-        <AppHeader {player} />
+        <AppHeader {player} onShop={() => navigate('shop')} />
         {#if page === 'home'}
-          <section class="home-hero">
-            <div class="hero-stars"><Sparkles size={19} /><Star size={12} /><Sparkles size={13} /></div>
-            <div class="hero-copy"><p class="eyebrow">WELCOME TO MASQUEGAME</p><h1>{passActive ? 'พร้อมลุยแรงก์แล้ว!' : 'เลือกเกมที่ชอบ'}</h1><p>{passActive ? 'สิทธิ์พรีเมียมพร้อมแล้ว เล่นได้ทุกเกมไม่จำกัด' : `${GAMES.length} เกมสนุก พร้อมท้าคะแนนและปลดล็อกอันดับ`}</p><span class="hero-player"><span class="hero-level">LV.{player.level}</span>{player.displayName}<span class="hero-id">{player.id}</span></span></div>
-            <div class="hero-art"><Trophy size={74} strokeWidth={1.6} /></div><span class="hero-orbit orbit-one"></span><span class="hero-orbit orbit-two"></span>
+          <section class="welcome-panel">
+            <div class="welcome-copy"><p class="eyebrow">MASQUE GAME CENTER</p><h1>วันนี้อยากเล่นอะไร?</h1><p>สะสมพลัง รับรางวัล แล้วออกไปสนุกกัน</p></div>
+            <div class="welcome-sticker" aria-hidden="true">🎮</div>
+            <span class="welcome-sparkle sparkle-a">✦</span><span class="welcome-sparkle sparkle-b">✧</span>
           </section>
-          <PassStatus {player} active={passActive} remaining={passRemaining} freeMinutes={Math.ceil(freeLeft / 60)} onUpgrade={() => navigate('pass')} />
-          <section class="content-section games-section"><div class="section-heading"><div><p class="eyebrow">PICK YOUR GAME</p><h2><Gamepad2 size={20} />เกมทั้งหมด</h2></div><span class="count-chip">{String(GAMES.length).padStart(2, '0')} GAMES</span></div><div class="game-grid">{#each GAMES as game, index (game.id)}<GameCard {game} {index} passActive={passActive} onclick={() => navigate(`game/${game.id}`)} />{/each}</div></section>
-          <section class="content-section home-ranking-section"><div class="section-heading"><div><p class="eyebrow">GAME BY GAME</p><h2><Trophy size={20} />Leaderboard</h2></div><a class="text-link" href="#ranking">ดูทั้งหมด <ArrowRight size={15} /></a></div><div class="home-ranking-grid"><Leaderboard bind:gameId={rankingGameId} bind:period={rankingPeriod} {player} currentScore={MOCK_PLAYER_SCORES[rankingGameId]} compact /><aside class="ranking-promo"><div class="promo-crown"><Crown size={23} fill="currentColor" /></div><strong>{passActive ? 'พร้อมไต่แรงก์!' : 'ปลดล็อก Ranked Play'}</strong><p>{passActive ? 'Pass ของคุณเปิดสิทธิ์เข้าร่วม Ranking แล้ว' : 'มี Masque Pass เพื่อร่วม Ranking และเล่นได้ไม่จำกัด'}</p><a class="button promo-button" href={passActive ? '#ranking' : '#pass'}>{passActive ? 'ดูอันดับ' : 'ดู Masque Pass'}<ArrowRight size={15} /></a></aside></div></section>
-          <p class="prototype-note">คะแนน, AIS Points และสิทธิ์ Pass เป็นข้อมูลจำลองในอุปกรณ์นี้</p>
-        {:else if page === 'pass'}
-          <section class="pass-page-intro"><div class="pass-crown"><Crown size={34} fill="currentColor" /></div><p class="eyebrow">MASQUE PASS</p><h1>เล่นเต็มที่<br />ลุยได้ทุกอันดับ</h1><p>เลือกแพ็กเกจด้วย AIS Points จำลอง เล่นได้ทุกเกมแบบไม่จำกัดเวลา</p>{#if passActive}<span class="active-until"><Check size={14} />Pass ใช้งานได้ถึง {new Date(player.passExpiredAt ?? now).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>{/if}</section>
-          <section class="package-list" aria-label="แพ็กเกจ Masque Pass">{#each PASS_PACKAGES as packageInfo (packageInfo.id)}<article class:weekly-package={packageInfo.bestValue} class="package-card">{#if packageInfo.bestValue}<span class="best-value"><Sparkles size={12} />BEST VALUE</span>{/if}<p class="package-eyebrow">{packageInfo.id === 'daily' ? 'PLAY TODAY' : 'PLAY ALL WEEK'}</p><h2>{packageInfo.label}</h2><div class="package-price"><strong>{packageInfo.cost}</strong><span>AIS {packageInfo.cost === 1 ? 'Point' : 'Points'}</span></div><p class="package-duration">ใช้งานได้ {packageInfo.durationDays} วัน</p><ul><li><Check size={15} />เล่นทุกเกมไม่จำกัดเวลา</li><li><Check size={15} />มีสิทธิ์เข้าร่วม Ranking</li><li><Check size={15} />ต่ออายุจาก Pass เดิมได้</li></ul><button class:gold-button={packageInfo.bestValue} class="button package-button" onclick={() => openPurchase(packageInfo)}>เลือก {packageInfo.label}<ArrowRight size={16} /></button></article>{/each}</section>
-          <section class="free-plan-note"><div><strong>ยังไม่พร้อมอัปเกรด?</strong><p>เล่นฟรีรวมทุกเกมได้วันละ 60 นาที แต่ไม่มีสิทธิ์เข้าร่วม Ranking</p></div><a href="#home" class="button light-button">กลับไปเล่น <ArrowRight size={15} /></a></section><p class="prototype-note">การใช้ AIS Points และการเปิดสิทธิ์ Pass เป็นการจำลอง ไม่ได้เชื่อมต่อระบบ AIS</p>
-        {:else}
-          <section class="ranking-page-intro"><div class="ranking-intro-icon"><Trophy size={25} /></div><div><p class="eyebrow">SCORE BY GAME</p><h1>Leaderboard</h1><p>อันดับแยกตามเกม · Mock Data</p></div></section>
-          <Leaderboard bind:gameId={rankingGameId} bind:period={rankingPeriod} {player} currentScore={MOCK_PLAYER_SCORES[rankingGameId]} />
-          <aside class="rank-eligibility-note"><span class:eligible={passActive}>{#if passActive}<Check size={17} />{:else}<Crown size={17} />{/if}</span><div><strong>{passActive ? 'คุณมีสิทธิ์เข้าร่วม Ranking' : 'Ranking สำหรับสมาชิก Masque Pass'}</strong><p>{passActive ? 'คะแนนด้านบนเป็นตัวอย่าง เมื่อเชื่อมต่อระบบจริงจะอัปเดตตามคะแนนเกม' : 'คะแนนของ Free Play จะไม่ถูกส่งเข้า Ranking ซื้อ Pass เพื่อเปิดสิทธิ์จัดอันดับ'}</p></div>{#if !passActive}<a href="#pass" aria-label="ดูแพ็กเกจ Pass"><ArrowRight size={18} /></a>{/if}</aside>
+
+          <section class="checkin-row" aria-label="Daily check-in">
+            <div class="checkin-icon"><Gift size={20} /></div><div class="checkin-copy"><strong>เช็กอินประจำวัน</strong><small>รับ 35 Masque Points</small></div>
+            <div class="checkin-days" aria-label="ประวัติเช็กอินสัปดาห์นี้">{#each ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as day, i}<span class:checked={player.checkinDates.includes(checkinKeyForDay(i))}>{#if player.checkinDates.includes(checkinKeyForDay(i))}<Check size={10} />{:else}{day}{/if}</span>{/each}</div>
+            <button class="mini-claim" disabled={player.checkinDates.includes(todayKey())} onclick={claimCheckin}>{player.checkinDates.includes(todayKey()) ? 'รับแล้ว' : 'รับ'}</button>
+          </section>
+
+          <section class:vip-energy={vipActive} class="energy-panel">
+            <div class="energy-top"><div><p class="eyebrow">YOUR ENERGY</p><h2>{vipActive ? 'พลังงานไม่จำกัด' : 'Energy'}</h2></div>{#if vipActive}<span class="vip-badge"><Crown size={13} fill="currentColor" />VIP</span>{:else}<span class="energy-number">{player.energy}<small>/{ENERGY_CONFIG.max}</small></span>{/if}</div>
+            {#if vipActive}
+              <div class="unlimited-state"><span>∞</span><div><strong>เล่นได้ไม่จำกัด</strong><small>VIP ถึง {new Date(player.vipExpiresAt ?? now).toLocaleDateString('th-TH')}</small></div></div>
+            {:else}
+              <div class="energy-track" role="progressbar" aria-valuenow={player.energy} aria-valuemin="0" aria-valuemax={ENERGY_CONFIG.max}><span style={`width:${player.energy / ENERGY_CONFIG.max * 100}%`}></span></div>
+              <div class="energy-bottom"><span><Clock3 size={13} />ฟื้น 1 หน่วยใน {player.energy >= ENERGY_CONFIG.max ? 'พลังเต็มแล้ว' : formatCountdown(refillCountdown)}</span><button class="text-button" onclick={() => { selectedRefill = 'small'; modal = { kind: 'refill-confirm', refillId: selectedRefill }; }}><Zap size={14} />เติม Energy</button></div>
+            {/if}
+          </section>
+
+          <section class="battle-preview">
+            <div class="battle-top"><div><p class="eyebrow">SEASON 01 · DREAM ISLAND</p><h2><Ticket size={18} />Battle Pass</h2></div><span class="track-tag">{vipActive ? 'VIP TRACK OPEN' : 'FREE TRACK'}</span></div>
+            <div class="battle-progress"><div class="level-orb">{passLevel}</div><div class="progress-copy"><div><strong>Level {passLevel}</strong><span>{passXp}/100 XP</span></div><div class="xp-track"><span style={`width:${passXp}%`}></span></div></div></div>
+            <div class="battle-actions"><button class="button light-button" onclick={() => navigate('rewards')}><Gift size={15} />ภารกิจ / รางวัล</button>{#if !vipActive}<button class="button gold-button" onclick={() => navigate('shop')}><Crown size={15} />ซื้อ VIP Pass</button>{:else}<span class="vip-open"><CheckCircle2 size={15} />VIP Rewards เปิดแล้ว</span>{/if}</div>
+          </section>
+
+          <section class="content-section games-section"><div class="section-heading"><div><p class="eyebrow">PLAY & COLLECT</p><h2><Gamepad2 size={19} />เกมทั้งหมด</h2></div><span class="count-chip">{GAMES.length} เกม</span></div><div class="game-grid">{#each GAMES as game, index (game.id)}<GameCard {game} {index} vipActive={vipActive} energy={player.energy} onclick={() => enterGame(game.id)} />{/each}</div></section>
+          <section class="quick-links"><button onclick={() => navigate('ranking')}><Trophy size={17} />อันดับเกม<ArrowRight size={15} /></button><button onclick={() => navigate('avatar')}><Heart size={17} />Avatar & Pets<ArrowRight size={15} /></button></section>
+        {:else if page === 'shop'}
+          <section class="page-heading"><p class="eyebrow">GAME ECONOMY</p><h1><ShoppingBag size={23} />Shop</h1><p>แลกสกุลเงินหรือเปิด VIP Benefits</p></section>
+          <div class="wallet-strip"><span><b>AIS Points</b><strong>{player.aisPoints}</strong></span><ArrowRight size={17} /><span><b>Masque Points</b><strong>{player.masquePoints.toLocaleString()}</strong></span></div>
+          <div class="segmented"><button class:active={shopTab === 'exchange'} onclick={() => (shopTab = 'exchange')}>แลก Points</button><button class:active={shopTab === 'vip'} onclick={() => (shopTab = 'vip')}>VIP Pass</button></div>
+          {#if shopTab === 'exchange'}
+            <section class="shop-panel"><div class="shop-panel-title"><div class="round-icon green"><Coins size={20} /></div><div><h2>AIS Points Exchange</h2><p>1 AIS Point = 10 Masque Points</p></div></div><label class="field-label" for="ais-amount">จำนวน AIS Points</label><div class="amount-field"><button aria-label="ลดจำนวน" onclick={() => (exchangeAmount = Math.max(1, exchangeAmount - 1))}>−</button><input id="ais-amount" type="number" min="1" max={player.aisPoints} bind:value={exchangeAmount} /><button aria-label="เพิ่มจำนวน" onclick={() => (exchangeAmount = Math.min(player.aisPoints, exchangeAmount + 1))}>+</button></div><div class="exchange-preview"><span>คุณจะได้รับ</span><strong>{Math.max(0, Number(exchangeAmount) || 0) * 10} <small>Masque Points</small></strong></div><button class="button primary-button full-button" disabled={Number(exchangeAmount) < 1 || Number(exchangeAmount) > player.aisPoints} onclick={() => (modal = { kind: 'exchange-confirm' })}>ยืนยันการแลก <ArrowRight size={16} /></button><p class="mock-caption">Mock transaction · ไม่มีการเชื่อมต่อ AIS Points จริง</p></section>
+          {:else}
+            <section class="benefit-banner"><Crown size={24} fill="currentColor" /><div><strong>VIP คือสิทธิพิเศษ</strong><p>ทุกคนเข้าเล่นเกมได้ด้วย Energy ไม่มีการเพิ่มคะแนน Ranking</p></div></section>
+            {#if vipActive}<section class="vip-active-card"><span class="vip-badge"><Crown size={13} fill="currentColor" />ACTIVE</span><h2>VIP พร้อมใช้งาน</h2><p>เหลือเวลา {Math.max(0, Math.ceil(((player.vipExpiresAt ?? now) - now) / 86_400_000))} วัน</p><div>Energy ∞ · VIP Rewards · VIP Missions · Friends Room</div></section>{/if}
+            <div class="vip-packages">{#each VIP_PACKAGES as pack (pack.id)}<article class="vip-package"><div class="vip-package-head"><div><p class="eyebrow">{pack.durationDays} DAYS OF PERKS</p><h2>{pack.label}</h2></div><span class="package-crown"><Crown size={20} fill="currentColor" /></span></div><ul><li><Check size={14} />Energy ไม่จำกัด</li><li><Check size={14} />VIP Battle Pass + Missions</li><li><Check size={14} />สร้างห้องเล่นกับเพื่อน</li><li><Gift size={14} />{pack.reward}</li></ul><div class="package-footer"><strong>{pack.cost} <small>Masque Points</small></strong><button class="button gold-button" disabled={player.masquePoints < pack.cost} onclick={() => (modal = { kind: 'vip-confirm', packageId: pack.id })}>ซื้อแพ็กเกจ <ArrowRight size={15} /></button></div><p class="mock-caption">ราคา Mock สำหรับทดสอบ ไม่ใช่ราคาจริง</p></article>{/each}</div>
+          {/if}
+        {:else if page === 'rewards'}
+          <section class="page-heading"><p class="eyebrow">SEASON 01 · DREAM ISLAND</p><h1><Gift size={23} />Battle Pass</h1><p>สะสม XP และรับรางวัลในทุก Season</p></section>
+          <section class="pass-level-card"><div class="level-orb large">{passLevel}</div><div><span class="eyebrow">CURRENT LEVEL</span><h2>Level {passLevel} <small>· {vipActive ? 'VIP TRACK' : 'FREE TRACK'}</small></h2><div class="xp-track"><span style={`width:${passXp}%`}></span></div><small>{passXp}/100 XP สู่เลเวลถัดไป</small></div><Sparkles size={24} /></section>
+          <div class="mission-strip"><div><Zap size={17} /><span><strong>ภารกิจประจำวัน</strong><small>เล่นเกม 1 ครั้ง · +50 XP</small></span><button disabled={player.claimedMissions.includes(`daily-${todayKey()}`)} onclick={() => claimMission('daily')}>{player.claimedMissions.includes(`daily-${todayKey()}`) ? 'รับแล้ว' : 'รับ XP'}</button></div>{#if vipActive}<div><Crown size={17} /><span><strong>VIP Mission</strong><small>ทำคะแนน Best Score · +100 XP</small></span><button disabled={player.claimedMissions.includes(`vip-${todayKey()}`)} onclick={() => claimMission('vip')}>{player.claimedMissions.includes(`vip-${todayKey()}`) ? 'รับแล้ว' : 'รับ XP'}</button></div>{/if}</div>
+          <div class="reward-track-title"><h2>Free Track</h2><span>เปิดสำหรับทุกคน</span></div>
+          <div class="reward-track">{#each BATTLE_PASS.freeRewards as reward, index (reward.title)}{@const rewardId = `free-${index + 1}`}<article class:claimed={player.claimedRewards.includes(rewardId)} class:available={passLevel >= index + 1 && !player.claimedRewards.includes(rewardId)} class="reward-tile"><span class="reward-step">LV.{index + 1}</span><span class="reward-art">{reward.type === 'energy' ? '⚡' : reward.type === 'avatar' ? '🧑' : reward.type === 'pet' ? '🐾' : '🪙'}</span><strong>{reward.title}</strong>{#if player.claimedRewards.includes(rewardId)}<span class="reward-state"><Check size={12} />รับแล้ว</span>{:else if passLevel >= index + 1}<button onclick={() => claimReward(index, 'free')}>รับรางวัล</button>{:else}<span class="reward-state locked"><Lock size={12} />ล็อก</span>{/if}</article>{/each}</div>
+          <div class="reward-track-title vip-track-title"><h2><Crown size={17} />VIP Track</h2><span>{vipActive ? 'ปลดล็อกแล้ว' : 'ต้องมี VIP Pass'}</span></div>
+          <div class="reward-track">{#each BATTLE_PASS.vipRewards as reward, index (reward.title)}{@const rewardId = `vip-${index + 1}`}<article class:claimed={player.claimedRewards.includes(rewardId)} class:available={vipActive && passLevel >= index + 1 && !player.claimedRewards.includes(rewardId)} class="reward-tile vip-reward"><span class="reward-step">LV.{index + 1}</span><span class="reward-art">{reward.type === 'energy' ? '⚡' : reward.type === 'avatar' ? '🧑' : reward.type === 'pet' ? '🐾' : '🪙'}</span><strong>{reward.title}</strong>{#if player.claimedRewards.includes(rewardId)}<span class="reward-state"><Check size={12} />รับแล้ว</span>{:else if !vipActive}<span class="reward-state locked"><Lock size={12} />VIP</span>{:else if passLevel >= index + 1}<button onclick={() => claimReward(index, 'vip')}>รับรางวัล</button>{:else}<span class="reward-state locked"><Lock size={12} />ล็อก</span>{/if}</article>{/each}</div>
+          {#if !vipActive}<button class="button gold-button full-button" onclick={() => { shopTab = 'vip'; navigate('shop'); }}>ปลดล็อก VIP Track <Crown size={15} /></button>{/if}
+        {:else if page === 'avatar'}
+          <section class="page-heading"><p class="eyebrow">YOUR COLLECTION</p><h1><Heart size={23} />Avatar & Pets</h1><p>เลือกตัวละครและคู่หูของคุณ</p></section>
+          <section class="character-stage"><span class="stage-sparkle stage-left">✦</span><div class="character-aura"></div><div class="character-figure" style={`--avatar-color:${previewAvatar.color}`}>🧑🏻‍🚀</div>{#if player.petId}<span class="stage-pet" style={`--pet-color:${PETS.find((pet) => pet.id === player.petId)?.color ?? '#f6ca72'}`}>🐣</span>{/if}<div class="stage-name"><strong>{previewAvatar.name}{player.avatarId === selectedAvatar ? '' : ' · Preview'}</strong><span>LV.{player.level} · {player.displayName}</span></div></section>
+          <div class="collection-heading"><h2>ตัวละคร</h2><span>เลือกได้ทั้งตัว</span></div><div class="avatar-grid">{#each AVATARS as avatar (avatar.id)}{@const owned = player.ownedAvatarIds.includes(avatar.id)}<button class:equipped={player.avatarId === avatar.id} class:previewed={selectedAvatar === avatar.id} class="avatar-tile" onclick={() => (selectedAvatar = avatar.id)}><span class="avatar-mini" style={`--avatar-color:${avatar.color}`}>🧑</span><strong>{avatar.name}</strong><small>{owned ? avatar.rarity : 'Locked'}</small>{#if !owned}<Lock size={13} class="tile-lock" />{:else if player.avatarId === avatar.id}<CheckCircle2 size={15} class="equipped-check" />{/if}</button>{/each}</div>{#if player.ownedAvatarIds.includes(selectedAvatar) && player.avatarId !== selectedAvatar}<button class="button primary-button full-button avatar-equip-button" onclick={() => { const next = selectAvatar(player, selectedAvatar); if (next) persist(next); }}>ใช้ตัวละครนี้ <Check size={14} /></button>{/if}
+          <div class="collection-heading pet-heading"><h2>Pet Collection</h2><button class="button light-button gacha-button" disabled={gachaBusy} onclick={startGacha}>{gachaBusy ? 'กำลังสุ่ม…' : player.gachaTickets ? `สุ่มฟรี · Ticket ${player.gachaTickets}` : `สุ่ม Pet · ${PET_GACHA_COST} MP`}<Sparkles size={14} /></button></div><div class="pet-grid">{#each PETS as pet (pet.id)}{@const owned = player.ownedPetIds.includes(pet.id)}<button class:equipped={player.petId === pet.id} class="pet-tile" disabled={!owned} onclick={() => { const next = equipPet(player, player.petId === pet.id ? null : pet.id); if (next) persist(next); }}><span class="pet-art" style={`--pet-color:${pet.color}`}>🐾</span><strong>{pet.name}</strong><small>{pet.rarity}</small><span class:owned={owned} class="ownership">{!owned ? 'Locked' : player.petId === pet.id ? 'Equipped' : 'Owned'}</span></button>{/each}</div><p class="mock-caption">Pet ซ้ำจะได้รับ Masque Points คืน 15 แต้ม</p>
+        {:else if page === 'ranking'}
+          <section class="page-heading"><p class="eyebrow">HIGH SCORE CHALLENGE</p><h1><Trophy size={23} />Game Ranking</h1><p>อันดับแยกตามเกม · Free และ VIP มีสิทธิ์เท่ากัน</p></section>
+          <div class="best-score-strip"><span>BEST SCORE · {GAME_BY_ID[rankingGameId].name}</span><strong>{mockScores[rankingGameId].toLocaleString('en-US')}</strong></div>
+          <Leaderboard bind:gameId={rankingGameId} bind:period={rankingPeriod} {player} currentScore={mockScores[rankingGameId]} />
+        {:else if page === 'room'}
+          <section class="page-heading"><p class="eyebrow">PLAY TOGETHER</p><h1><UsersRound size={23} />Friends Room</h1><p>สร้างห้องหรือเข้าร่วมด้วยรหัส · Mock UI</p></section>
+          <section class="room-create-panel"><div class="room-icon"><UsersRound size={25} /></div><h2>เล่นด้วยกันสนุกกว่า</h2><p>{vipActive ? 'VIP พร้อมสร้างห้องเล่นกับเพื่อน' : 'การสร้างห้องเป็นสิทธิพิเศษของ VIP'}</p><button class="button primary-button" onclick={makeRoom}><UsersRound size={16} />สร้างห้องใหม่</button>{#if roomCreated}<div class="room-code"><span>ROOM CODE</span><strong>{roomCode}</strong><button aria-label="คัดลอกรหัสห้อง" onclick={() => { void navigator.clipboard?.writeText(roomCode); showToast('คัดลอกรหัสห้องแล้ว'); }}><Copy size={16} /></button></div><div class="room-members"><strong>สมาชิกในห้อง <span>1/4</span></strong><div><span class="member-avatar">🧑🏻‍🚀</span><span>{player.displayName} <small>Host</small></span><button class="button light-button" onclick={() => enterGame('bird')}><Play size={14} />เริ่มเกม</button></div></div><button class="button light-button invite-button" onclick={() => { void navigator.clipboard?.writeText(`${window.location.origin}${window.location.pathname}#room?code=${roomCode}`); showToast('ลิงก์เชิญถูกคัดลอกแล้ว'); }}><UsersRound size={14} />เชิญเพื่อน</button>{/if}</section>
+          <section class="join-room-panel"><h2>มีรหัสห้องแล้ว?</h2><div class="join-room-row"><input aria-label="รหัสห้อง" maxlength="6" placeholder="ใส่รหัส 6 ตัว" bind:value={joinCode} /><button class="button light-button" disabled={joinCode.trim().length < 4} onclick={() => showToast(`จำลองการเข้าห้อง ${joinCode.toUpperCase()}`)}>เข้าร่วมห้อง <ArrowRight size={15} /></button></div><p>การเข้าร่วมและสมาชิกเป็นข้อมูลจำลอง ยังไม่มี Multiplayer</p></section>
         {/if}
       </div>
       <BottomNav {page} />
@@ -205,19 +359,25 @@
   {/if}
 </div>
 
-<div class="landscape-notice" role="status" aria-live="polite"><div class="rotate-device">↻</div><strong>กรุณาหมุนมือถือเป็นแนวตั้ง</strong><p>MasqueGame ออกแบบสำหรับใช้งานในแนวตั้ง</p></div>
+{#if page !== 'game'}<div class="landscape-notice" role="status"><strong>กรุณาหมุนมือถือเป็นแนวตั้ง</strong></div>{/if}
+{#if toast}<div class="toast-message" role="status"><CheckCircle2 size={16} />{toast}</div>{/if}
 
 {#if modal}
   <div class="modal-backdrop" role="presentation" onclick={() => (modal = null)}>
-    <div class="dialog-card" role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="dialog-title" onclick={(event) => event.stopPropagation()} onkeydown={(event) => event.stopPropagation()}>
+    <div class="dialog-card" role="dialog" tabindex="-1" aria-modal="true" onclick={(event) => event.stopPropagation()} onkeydown={(event) => event.stopPropagation()}>
       <button class="dialog-close" aria-label="ปิดหน้าต่าง" onclick={() => (modal = null)}><X size={18} /></button>
-      {#if pendingPackage}
-        <div class="dialog-emblem"><Ticket size={30} /></div><p class="eyebrow">CONFIRM YOUR PASS</p><h2 id="dialog-title">ยืนยัน {pendingPackage.label}</h2><p class="dialog-summary">เล่นได้ทุกเกมไม่จำกัดเวลา พร้อมสิทธิ์เข้าร่วม Ranking</p>
-        <div class="purchase-receipt"><div><span>ระยะเวลา</span><b>{pendingPackage.durationDays} วัน</b></div><div><span>AIS Points ของคุณ</span><b>{player.aisPoints.toLocaleString('en-US')} Points</b></div><div class="receipt-total"><span>ใช้ Points</span><b>{pendingPackage.cost} Points</b></div></div>
-        {#if player.aisPoints < pendingPackage.cost}<div class="insufficient-notice"><CircleAlert size={16} />AIS Points ไม่เพียงพอสำหรับแพ็กเกจนี้</div>{:else}<p class="mock-notice">การแลก Pass นี้เป็นการจำลอง ไม่มีการตัด AIS Points จริง</p>{/if}
-        <div class="dialog-actions"><button class="button light-button" onclick={() => (modal = null)}>ยกเลิก</button><button class="button gold-button" disabled={player.aisPoints < pendingPackage.cost} onclick={confirmPurchase}>ยืนยันการแลก <ArrowRight size={16} /></button></div>
-      {:else}
-        <div class="success-confetti" aria-hidden="true">{#each Array.from({ length: 10 }) as _, index}<i style={`--confetti-index:${index}`}></i>{/each}</div><div class="dialog-emblem success-emblem"><Crown size={31} fill="currentColor" /></div><p class="eyebrow">WELCOME TO THE CLUB</p><h2 id="dialog-title">Masque Pass Active!</h2><p class="dialog-summary">สิทธิ์พรีเมียมพร้อมแล้ว เล่นได้ทุกเกมไม่จำกัดและมีสิทธิ์เข้าร่วม Ranking</p><button class="button gold-button success-button" onclick={() => (modal = null)}>ไปเล่นเกม <ArrowRight size={16} /></button>
+      {#if modal.kind === 'vip-confirm' && pendingVip}
+        <div class="dialog-emblem gold-emblem"><Crown size={27} fill="currentColor" /></div><p class="eyebrow">VIP PASS · MOCK PURCHASE</p><h2>ยืนยัน {pendingVip.label}</h2><p class="dialog-summary">ปลดล็อก Energy ไม่จำกัด, VIP Rewards, VIP Missions และ Friends Room</p><div class="purchase-receipt"><div><span>ระยะเวลา</span><b>{pendingVip.durationDays} วัน</b></div><div><span>สิทธิพิเศษ</span><b>{pendingVip.reward}</b></div><div class="receipt-total"><span>ใช้ Masque Points</span><b>{pendingVip.cost} MP</b></div></div><p class="mock-caption">ราคา Mock เท่านั้น ไม่มีการชำระเงินจริง</p><div class="dialog-actions"><button class="button light-button" onclick={() => (modal = null)}>ยกเลิก</button><button class="button gold-button" onclick={confirmVip}>ยืนยันซื้อ <ArrowRight size={15} /></button></div>
+      {:else if modal.kind === 'refill-confirm' && pendingRefill}
+        <div class="dialog-emblem"><Zap size={27} fill="currentColor" /></div><p class="eyebrow">ENERGY REFILL</p><h2>เลือกแพ็กเติม Energy</h2><p class="dialog-summary">ยอดปัจจุบัน {player.energy}/{ENERGY_CONFIG.max} Energy</p><div class="refill-options">{#each ENERGY_CONFIG.refillPacks as pack (pack.id)}<button class:selected={modal.refillId === pack.id} onclick={() => (modal = { kind: 'refill-confirm', refillId: pack.id })}><strong>+{pack.energy} ⚡</strong><small>{pack.cost} MP</small></button>{/each}</div><div class="purchase-receipt"><div><span>ค่าใช้จ่าย</span><b>{pendingRefill.cost} Masque Points</b></div><div><span>คงเหลือหลังเติม</span><b>{Math.min(ENERGY_CONFIG.max, player.energy + pendingRefill.energy)}/{ENERGY_CONFIG.max}</b></div></div><div class="dialog-actions"><button class="button light-button" onclick={() => (modal = null)}>ยกเลิก</button><button class="button primary-button" disabled={player.masquePoints < pendingRefill.cost} onclick={confirmRefill}>ยืนยันเติม <Zap size={15} /></button></div>
+      {:else if modal.kind === 'exchange-confirm'}
+        <div class="dialog-emblem green-emblem"><Coins size={27} /></div><p class="eyebrow">AIS POINTS EXCHANGE</p><h2>ยืนยันการแลก</h2><p class="dialog-summary">{exchangeAmount} AIS Points จะแลกเป็น {exchangeAmount * 10} Masque Points</p><div class="dialog-actions"><button class="button light-button" onclick={() => (modal = null)}>ยกเลิก</button><button class="button primary-button" onclick={confirmExchange}>ยืนยันแลก <ArrowRight size={15} /></button></div>
+      {:else if modal.kind === 'gacha-result'}
+        <div class="gacha-reveal"><span style={`--pet-color:${gachaPet?.color ?? '#f6ca72'}`}>🐾</span></div><p class="eyebrow">PET GACHA RESULT</p><h2>{gachaPet?.name ?? 'Mystery Pet'}!</h2><p class="dialog-summary">{modal.duplicate ? 'Pet ซ้ำ! ได้รับ Masque Points คืน 15 แต้ม' : 'เพิ่มเข้า Pet Collection และสวมใส่ให้อัตโนมัติ'}</p><button class="button gold-button full-button" onclick={() => (modal = null)}>เยี่ยมเลย <Sparkles size={15} /></button>
+      {:else if modal.kind === 'checkin-success'}
+        <div class="dialog-emblem green-emblem"><Gift size={27} /></div><p class="eyebrow">DAILY CHECK-IN</p><h2>รับรางวัลแล้ว!</h2><p class="dialog-summary">+35 Masque Points · กลับมาเช็กอินพรุ่งนี้นะ</p><button class="button primary-button full-button" onclick={() => (modal = null)}>รับทราบ <Check size={15} /></button>
+      {:else if modal.kind === 'notice'}
+        <div class="dialog-emblem"><Sparkles size={27} /></div><p class="eyebrow">MASQUE GAME</p><h2>{modal.title}</h2><p class="dialog-summary">{modal.message}</p>{#if modal.title === 'Energy หมดแล้ว'}<div class="energy-options"><button class="button light-button" onclick={() => { modal = null; navigate('home'); }}>รอ Energy ฟื้น <Clock3 size={14} /></button><button class="button primary-button" onclick={() => { modal = { kind: 'refill-confirm', refillId: 'small' }; }}>เติม Energy <Zap size={14} /></button><button class="button gold-button" onclick={() => { shopTab = 'vip'; modal = null; navigate('shop'); }}>ซื้อ VIP <Crown size={14} /></button></div>{:else}<button class="button primary-button full-button" onclick={() => (modal = null)}>ตกลง <Check size={15} /></button>{/if}
       {/if}
     </div>
   </div>

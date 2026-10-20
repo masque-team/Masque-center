@@ -1,81 +1,64 @@
 import type { PlayerState } from '../types';
+import { ENERGY_CONFIG } from '../data/config';
 
-const STORAGE_KEY = 'masquegame_player_v1';
-const LEGACY_STORAGE_KEY = 'masquegame_portal_demo_v1';
+const STORAGE_KEY = 'masquegame_center_v2';
 
-function todayKey(date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function createPlayerId(): string {
-  return `MG${crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`;
-}
-
-function createGuest(): PlayerState {
+function createPlayer(displayName: string | null): PlayerState {
   return {
-    id: createPlayerId(),
-    displayName: 'Guest Player',
+    id: `MG${crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`,
+    displayName: displayName?.trim().slice(0, 40) || 'Guest Player',
     level: 18,
-    aisPoints: 320,
-    passExpiredAt: null,
-    freeDate: todayKey(),
-    freeUsedSeconds: 0,
+    aisPoints: 24,
+    masquePoints: 320,
+    energy: ENERGY_CONFIG.max,
+    energyUpdatedAt: Date.now(),
+    vipExpiresAt: null,
+    battlePassXp: 230,
+    claimedRewards: [],
+    claimedMissions: [],
+    checkinDates: [],
+    gachaTickets: 0,
+    avatarId: 'mali',
+    ownedAvatarIds: ['mali'],
+    petId: null,
+    ownedPetIds: ['pudding', 'cloud'],
   };
 }
 
 function isPlayerState(value: unknown): value is PlayerState {
   if (typeof value !== 'object' || value === null) return false;
-  const candidate = value as Record<string, unknown>;
-  return typeof candidate.id === 'string'
-    && typeof candidate.displayName === 'string'
-    && typeof candidate.level === 'number'
-    && typeof candidate.aisPoints === 'number'
-    && (typeof candidate.passExpiredAt === 'number' || candidate.passExpiredAt === null)
-    && typeof candidate.freeDate === 'string'
-    && typeof candidate.freeUsedSeconds === 'number';
-}
-
-function loadStoredPlayer(): PlayerState | null {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed: unknown = JSON.parse(stored);
-      if (isPlayerState(parsed)) return parsed;
-    }
-
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (!legacy) return null;
-    const previous: unknown = JSON.parse(legacy);
-    if (typeof previous !== 'object' || previous === null) return null;
-    const old = previous as Record<string, unknown>;
-    const guest = createGuest();
-    return {
-      ...guest,
-      id: typeof old.playerId === 'string' ? old.playerId : guest.id,
-      displayName: typeof old.playerName === 'string' ? old.playerName : guest.displayName,
-      level: typeof old.level === 'number' ? old.level : guest.level,
-      aisPoints: typeof old.points === 'number' ? old.points : guest.aisPoints,
-      passExpiredAt: typeof old.passUntil === 'number' && old.passUntil > 0 ? old.passUntil : null,
-      freeDate: typeof old.freeDate === 'string' ? old.freeDate : guest.freeDate,
-      freeUsedSeconds: typeof old.freeUsed === 'number' ? old.freeUsed : guest.freeUsedSeconds,
-    };
-  } catch {
-    return null;
-  }
+  const player = value as Record<string, unknown>;
+  return typeof player.id === 'string'
+    && typeof player.displayName === 'string'
+    && typeof player.level === 'number'
+    && typeof player.aisPoints === 'number'
+    && typeof player.masquePoints === 'number'
+    && typeof player.energy === 'number'
+    && typeof player.energyUpdatedAt === 'number'
+    && (typeof player.vipExpiresAt === 'number' || player.vipExpiresAt === null)
+    && typeof player.battlePassXp === 'number'
+    && Array.isArray(player.claimedRewards)
+    && Array.isArray(player.claimedMissions)
+    && Array.isArray(player.checkinDates)
+    && typeof player.gachaTickets === 'number'
+    && typeof player.avatarId === 'string'
+    && Array.isArray(player.ownedAvatarIds)
+    && (typeof player.petId === 'string' || player.petId === null)
+    && Array.isArray(player.ownedPetIds);
 }
 
 export function loadPlayer(queryName: string | null): PlayerState {
-  const player = loadStoredPlayer() ?? createGuest();
-  if (queryName?.trim()) player.displayName = queryName.trim().slice(0, 40);
-  if (player.freeDate !== todayKey()) {
-    player.freeDate = todayKey();
-    player.freeUsedSeconds = 0;
+  let player: PlayerState | null = null;
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+    if (isPlayerState(stored)) player = stored;
+  } catch {
+    player = null;
   }
-  savePlayer(player);
-  return player;
+  const result = player ?? createPlayer(queryName);
+  if (queryName?.trim()) result.displayName = queryName.trim().slice(0, 40);
+  savePlayer(result);
+  return result;
 }
 
 export function savePlayer(player: PlayerState): void {
@@ -84,8 +67,4 @@ export function savePlayer(player: PlayerState): void {
   } catch {
     console.warn('MasqueGame mock player state could not be saved to localStorage.');
   }
-}
-
-export function currentDayKey(date = new Date()): string {
-  return todayKey(date);
 }

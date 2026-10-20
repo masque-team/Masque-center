@@ -1,42 +1,15 @@
-import type { PassPackage, PlayerState } from '../types';
-import { currentDayKey } from './playerService';
+import { VIP_PACKAGES } from '../data/config';
+import type { PlayerState, VipPackage } from '../types';
 
-export const DAILY_FREE_SECONDS = 60 * 60;
-export const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
-
-export const PASS_PACKAGES: PassPackage[] = [
-  { id: 'daily', label: 'Daily Pass', durationDays: 1, cost: 1 },
-  { id: 'weekly', label: 'Weekly Pass', durationDays: 7, cost: 5, bestValue: true },
-];
-
-export function isPassActive(expiredAt: number | null, now = Date.now()): boolean {
-  return expiredAt !== null && expiredAt > now;
-}
-
-export function freeSecondsRemaining(player: PlayerState, date = new Date()): number {
-  if (player.freeDate !== currentDayKey(date)) return DAILY_FREE_SECONDS;
-  return Math.max(0, DAILY_FREE_SECONDS - player.freeUsedSeconds);
-}
-
-export function extendPass(player: PlayerState, packageInfo: PassPackage, now = Date.now()): PlayerState {
-  const startAt = Math.max(now, player.passExpiredAt ?? 0);
+export function purchaseVip(player: PlayerState, packageId: VipPackage['id'], now = Date.now()): PlayerState | null {
+  const selected = VIP_PACKAGES.find((item) => item.id === packageId);
+  if (!selected || player.masquePoints < selected.cost) return null;
+  const vipExpiresAt = Math.max(now, player.vipExpiresAt ?? 0) + selected.durationDays * 24 * 60 * 60 * 1000;
   return {
     ...player,
-    aisPoints: player.aisPoints - packageInfo.cost,
-    passExpiredAt: startAt + packageInfo.durationDays * DAY_MILLISECONDS,
+    masquePoints: player.masquePoints - selected.cost + (selected.id === 'seven-day' ? 80 : 0),
+    gachaTickets: player.gachaTickets + (selected.id === 'five-day' ? 1 : 0),
+    vipExpiresAt,
+    energyUpdatedAt: Math.max(now, player.vipExpiresAt ?? 0),
   };
-}
-
-export function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
-}
-
-export function formatPassRemaining(expiredAt: number, now = Date.now()): string {
-  const remaining = Math.max(0, expiredAt - now);
-  const days = Math.floor(remaining / DAY_MILLISECONDS);
-  const hours = Math.floor((remaining % DAY_MILLISECONDS) / 3_600_000);
-  const minutes = Math.ceil((remaining % 3_600_000) / 60_000);
-  return days > 0 ? `${days} วัน ${hours} ชม.` : `${hours} ชม. ${minutes} นาที`;
 }

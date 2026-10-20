@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { ArrowUpRight, Copy, Crown, Play, Sparkles } from '@lucide/svelte';
+  import { ArrowUpRight, Copy, Crown, Play, Sparkles, Zap } from '@lucide/svelte';
   import type { Game } from '../types';
 
-  let { game, passActive, index, onclick }: {
+  let { game, vipActive, energy, index, onclick }: {
     game: Game;
-    passActive: boolean;
+    vipActive: boolean;
+    energy: number;
     index: number;
     onclick: () => void;
   } = $props();
@@ -21,7 +22,7 @@
   }
 </script>
 
-<button class:rank-card={passActive} class="game-card" style={`--card-index:${index}`} onclick={onclick} aria-label={`เล่นเกม ${game.name}`}>
+<button class:rank-card={vipActive} class="game-card" style={`--card-index:${index}`} onclick={onclick} aria-label={`เล่นเกม ${game.name}`}>
   <span class="cover-wrap">
     {#if game.cover}
       <img src={`images/${game.cover}`} alt={`ภาพปกเกม ${game.name}`} loading="lazy" onerror={useFallback} />
@@ -30,7 +31,7 @@
     {/if}
     <span class="cover-shade"></span>
     <span class="game-badge"><Sparkles size={11} fill="currentColor" />{game.badge}</span>
-    {#if passActive}<span class="rank-tag"><Crown size={11} fill="currentColor" />RANK ON</span>{:else}<span class="free-tag">FREE PLAY</span>{/if}
+    {#if vipActive}<span class="rank-tag"><Crown size={11} fill="currentColor" />VIP</span>{:else}<span class="free-tag"><Zap size={10} />{energy} ENERGY</span>{/if}
     <span class="play-fab"><Play size={17} fill="currentColor" /></span>
   </span>
   <span class="game-card-copy">
