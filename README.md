@@ -42,12 +42,7 @@
 
 ## Avatar & Pet Assets
 
-วางภาพตาม path ที่ประกาศใน `src/lib/data/config.ts`:
-
-- `public/assets/avatars/mali.png`, `nami.png`, `luna.png`, `mali-vip.png`
-- `public/assets/pets/pudding.png`, `cloud.png`, `mochi.png`, `sprout.png`
-
-ถ้ายังไม่มีไฟล์ UI จะแสดง placeholder อัตโนมัติ; Avatar Stage ใช้ `AssetPortrait` แยกจากโครงหน้าจอเพื่อรองรับการเปลี่ยน viewer ในอนาคต
+Avatar และ Pet ที่ใช้งานอยู่คือไฟล์ WebP ขนาด 640px ใน `public/assets/avatars/` และ `public/assets/pets/` ตั้งชื่อตาม id ของแต่ละตัวใน `src/lib/data/config.ts` (เช่น `mali.webp`, `pudding.webp`) ไฟล์ PNG ต้นฉบับเก็บใน `art-source/` (ไม่ถูก deploy) แล้วสร้างไฟล์เว็บด้วย `npm run art` หากเพิ่มภาพใหม่ให้วางต้นฉบับใน `art-source/` และเพิ่มลำดับไฟล์ใน `scripts/optimize-art.mjs` ถ้า asset ขาดหรือโหลดไม่ได้จะแสดง placeholder อัตโนมัติ Avatar Stage ใช้ `AssetPortrait` แยกจากโครงหน้าจอเพื่อรองรับการเปลี่ยน viewer ในอนาคต
 
 ## เริ่มพัฒนา
 
