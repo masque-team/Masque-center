@@ -354,6 +354,74 @@ button:disabled { opacity: .52; cursor: not-allowed; }
 .toast-message { position: fixed; z-index: 60; right: 50%; bottom: 76px; display: flex; align-items: center; gap: 6px; max-width: calc(100% - 24px); padding: 9px 12px; transform: translateX(50%); border: 1px solid #d0eadd; border-radius: 99px; color: #35775d; background: #f1fbf5; box-shadow: 0 7px 20px #283a5521; font-size: 9px; animation: rise-in .2s both; }
 .landscape-notice { display: none; }
 
+.asset-portrait { min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center; background: var(--avatar-color, var(--pet-color, #e8f1fb)); }
+.asset-portrait img { width: 100%; height: 100%; display: block; object-fit: contain; }
+.asset-placeholder { display: grid; width: 100%; height: 100%; place-items: center; font-size: 72%; line-height: 1; }
+.stage-portrait { width: 100%; height: 100%; border-radius: inherit; background: transparent; }
+.avatar-mini { overflow: hidden; }
+.avatar-mini img { object-fit: contain; }
+.pet-art { overflow: hidden; }
+.pet-art img { object-fit: contain; }
+.stage-pet { width: 54px; height: 54px; padding: 3px; }
+.gacha-pet-image { width: 82px; height: 82px; border-radius: 50%; background: transparent; }
+.gacha-pet-image .asset-placeholder { font-size: 55px; }
+.pass-completed .xp-track span { background: linear-gradient(90deg, #62bd91, #abd78e); }
+
+@media (max-width: 430px) {
+  .eyebrow { font-size: 10px; letter-spacing: 0; }
+  .welcome-panel { min-height: 104px; padding: 13px; }
+  .welcome-copy h1 { font-size: 20px; }
+  .welcome-copy > p:last-child { font-size: 11px; }
+  .welcome-sticker { width: 61px; height: 61px; right: 15px; bottom: 13px; font-size: 31px; }
+  .checkin-row { min-height: 66px; }
+  .checkin-copy strong { font-size: 12px; }
+  .checkin-copy small, .energy-bottom, .game-card-desc { font-size: 10px; }
+  .mini-claim { min-width: 44px; min-height: 44px; font-size: 11px; }
+  .energy-panel, .battle-preview { margin-top: 8px; }
+  .energy-bottom { min-height: 38px; }
+  .text-button { min-height: 44px; padding: 0 5px; font-size: 11px; }
+  .battle-actions .button, .button { min-height: 44px; font-size: 11px; }
+  .content-section { margin-top: 14px; }
+  .game-grid { gap: 10px; }
+  .game-card-title { font-size: 13px; }
+  .game-card-desc, .game-card-genre { font-size: 10px; }
+  .game-badge, .rank-tag, .free-tag { font-size: 9px; }
+  .shop-icon { width: 44px; height: 44px; }
+  .dialog-card { padding: 25px 18px 18px; border-radius: 22px; }
+  .dialog-close { width: 44px; height: 44px; }
+  .dialog-summary { font-size: 12px; }
+  .dialog-actions .button, .energy-options .button { min-height: 46px; font-size: 11px; }
+  .gacha-reveal { width: 122px; height: 122px; }
+  .gacha-pet-image { width: 100px; height: 100px; }
+  .gacha-pet-image .asset-placeholder { font-size: 68px; }
+  .mission-strip strong, .reward-track-title h2, .collection-heading h2 { font-size: 13px; }
+  .mission-strip small, .reward-track-title > span { font-size: 10px; }
+  .track-tag, .count-chip { font-size: 10px; }
+  .wallet-strip b, .field-label, .exchange-preview, .segmented button { font-size: 11px; }
+  .shop-panel-title p, .exchange-preview small, .vip-package li, .vip-active-card > div { font-size: 10px; }
+  .benefit-banner p, .vip-active-card p { font-size: 10px; }
+  .bottom-nav a { font-size: 10px; }
+  .reward-track { grid-template-columns: repeat(5, minmax(72px, 1fr)); gap: 6px; overflow-x: auto; padding: 2px 2px 8px; overscroll-behavior-x: contain; scrollbar-width: thin; }
+  .reward-tile { min-height: 130px; padding: 8px 5px; }
+  .reward-step, .reward-tile > strong, .reward-tile > button, .reward-state { font-size: 10px; }
+  .reward-tile > button, .reward-state { min-height: 32px; padding: 5px 6px; }
+  .game-info-bar, .game-top-copy small { font-size: 10px; }
+  .game-energy-chip { font-size: 10px; }
+  .dialog-card > .eyebrow { font-size: 10px; }
+  .purchase-receipt > div, .purchase-receipt b { font-size: 10px; }
+  .mock-caption { font-size: 9px; }
+  .ownership { font-size: 10px; }
+  .character-stage { height: 245px; }
+  .character-figure { width: 132px; height: 165px; }
+  .avatar-grid, .pet-grid { gap: 8px; }
+  .avatar-tile, .pet-tile { min-height: 120px; gap: 5px; padding: 9px 5px; }
+  .avatar-mini, .pet-art { width: 58px; height: 58px; }
+  .avatar-tile > strong, .pet-tile > strong { font-size: 11px; }
+  .avatar-tile > small, .pet-tile > small, .ownership { font-size: 10px; }
+  .gacha-button { min-height: 44px; font-size: 10px; }
+  .collection-heading { margin-top: 18px; }
+}
+
 @keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes card-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -5px; } }
@@ -366,17 +434,32 @@ button:disabled { opacity: .52; cursor: not-allowed; }
 
 @media (max-width: 360px) {
   .page-shell { padding-right: 11px; padding-left: 11px; }
-  .brand { gap: 4px; font-size: 13px; }
-  .brand-mark { width: 29px; height: 29px; }
-  .player-copy { max-width: 64px; }
+  .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 38px 36px; gap: 3px 6px; padding-bottom: 4px; }
+  .brand { grid-column: 1; grid-row: 1; gap: 4px; font-size: 14px; }
+  .brand-mark { width: 30px; height: 30px; }
+  .player-strip { grid-column: 1; grid-row: 2; margin-left: 0; }
+  .player-copy { max-width: 110px; }
+  .player-copy strong { font-size: 12px; }
+  .player-copy small { font-size: 10px; }
+  .account-strip { grid-column: 2; grid-row: 1; }
   .points-pill { padding-right: 6px; }
+  .points-pill { min-height: 38px; }
+  .points-pill small { font-size: 9px; }
+  .points-pill strong { font-size: 12px; }
+  .shop-icon { width: 40px; height: 40px; }
+  .welcome-panel { min-height: 90px; }
+  .welcome-copy > p:last-child { display: none; }
+  .welcome-sticker { width: 50px; height: 50px; right: 13px; bottom: 12px; font-size: 26px; }
   .checkin-row { gap: 5px; padding: 7px; }
   .checkin-days { gap: 2px; }
-  .checkin-days span { width: 16px; height: 16px; }
+  .checkin-days span { width: 15px; height: 18px; font-size: 8px; }
   .cover-wrap { height: 102px; }
   .vip-package ul { grid-template-columns: 1fr; }
   .reward-track { gap: 3px; }
   .reward-tile { padding-right: 2px; padding-left: 2px; }
+  .checkin-copy { max-width: 68px; }
+  .checkin-copy small { line-height: 1.2; }
+  .game-grid { gap: 7px; }
 }
 @media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) {
   .app-frame { display: none; }

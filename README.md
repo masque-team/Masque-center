@@ -34,6 +34,21 @@
 - **Game Player** เปิดเกมผ่าน iframe มี loading state, fallback, ทางเลือกเปิดแท็บใหม่ และปุ่มกลับหน้า Home
 - **Mobile-first** รองรับหน้าจอ 320–430px, safe area, bottom navigation และหน้าจอแนวนอน
 
+## Mock Testing
+
+- `?name=Mint` ตั้งชื่อผู้เล่น โดยไม่รีเซ็ตยอดที่บันทึกไว้
+- `?name=Somchai&aispoint=100` ใช้ AIS Points เป็น seed เฉพาะตอนสร้าง Mock Player ใหม่ (เพดาน 1,000,000)
+- `?name=Somchai&aispoint=100&resetMock=1` รีเซ็ต Mock Player และลบ `resetMock` ออกจาก URL โดยคง hash route ไว้
+
+## Avatar & Pet Assets
+
+วางภาพตาม path ที่ประกาศใน `src/lib/data/config.ts`:
+
+- `public/assets/avatars/mali.png`, `nami.png`, `luna.png`, `mali-vip.png`
+- `public/assets/pets/pudding.png`, `cloud.png`, `mochi.png`, `sprout.png`
+
+ถ้ายังไม่มีไฟล์ UI จะแสดง placeholder อัตโนมัติ; Avatar Stage ใช้ `AssetPortrait` แยกจากโครงหน้าจอเพื่อรองรับการเปลี่ยน viewer ในอนาคต
+
 ## เริ่มพัฒนา
 
 ต้องมี Node.js และ npm ติดตั้งไว้แล้ว
@@ -68,6 +83,8 @@ src/
 		├── services/     # Player, pass และ ranking logic
 		└── types/        # TypeScript models
 public/images/        # ภาพปกเกม
+public/assets/avatars/ # ภาพ Avatar (optional; placeholder หากไม่มีไฟล์)
+public/assets/pets/    # ภาพ Pet (optional; placeholder หากไม่มีไฟล์)
 ```
 
 ## ขอบเขต Prototype

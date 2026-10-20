@@ -10,6 +10,6 @@ export function purchaseVip(player: PlayerState, packageId: VipPackage['id'], no
     masquePoints: player.masquePoints - selected.cost + (selected.id === 'seven-day' ? 80 : 0),
     gachaTickets: player.gachaTickets + (selected.id === 'five-day' ? 1 : 0),
     vipExpiresAt,
-    energyUpdatedAt: Math.max(now, player.vipExpiresAt ?? 0),
+    energyUpdatedAt: vipExpiresAt,
   };
 }

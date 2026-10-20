@@ -6,6 +6,7 @@
     RotateCcw, ShoppingBag, Sparkles, Star, Ticket, Trophy, UsersRound, X, Zap,
   } from '@lucide/svelte';
   import AppHeader from './lib/components/AppHeader.svelte';
+  import AssetPortrait from './lib/components/AssetPortrait.svelte';
   import BottomNav from './lib/components/BottomNav.svelte';
   import GameCard from './lib/components/GameCard.svelte';
   import Leaderboard from './lib/components/Leaderboard.svelte';
@@ -16,7 +17,7 @@
   import { isVip, nextRefillIn, refreshEnergy, refillEnergy, spendGameEnergy } from './lib/services/energyService';
   import { purchaseVip } from './lib/services/passService';
   import { drawPet, equipPet } from './lib/services/petService';
-  import { loadPlayer, savePlayer } from './lib/services/playerService';
+  import { loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
   import { addMockMissionXp, claimBattlePassReward } from './lib/services/rewardService';
   import { createRoomCode } from './lib/services/roomService';
   import { exchangeAisPoints } from './lib/services/walletService';
@@ -33,7 +34,13 @@
     | null;
 
   const mockScores: Record<GameId, number> = { bird: 47, mole: 1250, run: 640, fruit: 780, timber: 320, duck: 520, memory: 18 };
-  let player = $state<PlayerState>(loadPlayer(new URLSearchParams(window.location.search).get('name')));
+  const initialQuery = new URLSearchParams(window.location.search);
+  const resetMockRequested = initialQuery.get('resetMock') === '1';
+  let player = $state<PlayerState>(loadPlayer(
+    initialQuery.get('name'),
+    parseAisPointSeed(initialQuery.get('aispoint')),
+    resetMockRequested,
+  ));
   let page = $state<Page>('home');
   let gameId = $state<GameId>('bird');
   let rankingGameId = $state<GameId>('bird');
@@ -57,7 +64,8 @@
   let currentGame = $derived(GAME_BY_ID[gameId]);
   let vipActive = $derived(isVip(player, now));
   let passLevel = $derived(battlePassLevel(player));
-  let passXp = $derived(player.battlePassXp % BATTLE_PASS.xpPerLevel);
+  let passCompleted = $derived(player.battlePassXp >= BATTLE_PASS.totalLevels * BATTLE_PASS.xpPerLevel);
+  let passXp = $derived(passCompleted ? BATTLE_PASS.xpPerLevel : player.battlePassXp % BATTLE_PASS.xpPerLevel);
   let refillCountdown = $derived(nextRefillIn(player, now));
   let pendingVip = $derived.by(() => {
     const currentModal = modal;
@@ -190,7 +198,7 @@
 
   function startGacha(): void {
     if (gachaBusy) return;
-    if (player.masquePoints < PET_GACHA_COST) {
+    if (player.gachaTickets <= 0 && player.masquePoints < PET_GACHA_COST) {
       modal = { kind: 'notice', title: 'Masque Points ไม่พอ', message: 'แลก AIS Points ใน Shop เพื่อสุ่ม Pet ได้เลย' };
       return;
     }
@@ -248,15 +256,18 @@
 
   onMount(() => {
     selectedAvatar = player.avatarId;
+    if (resetMockRequested) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('resetMock');
+      window.history.replaceState(window.history.state, '', `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+    }
     const routeChanged = (): void => handleRoute();
-    const persistOnUnload = (): void => savePlayer(player);
     const timer = window.setInterval(() => {
       now = Date.now();
       const refreshed = refreshEnergy(player, now);
       if (refreshed !== player) persist(refreshed);
     }, 1000);
     window.addEventListener('hashchange', routeChanged);
-    window.addEventListener('beforeunload', persistOnUnload);
     if (window.location.hash) handleRoute();
     else window.location.hash = '#home';
     persist(refreshEnergy(player, now));
@@ -264,7 +275,6 @@
       window.clearInterval(timer);
       clearIframeTimeout();
       window.removeEventListener('hashchange', routeChanged);
-      window.removeEventListener('beforeunload', persistOnUnload);
     };
   });
 </script>
@@ -295,12 +305,6 @@
             <span class="welcome-sparkle sparkle-a">✦</span><span class="welcome-sparkle sparkle-b">✧</span>
           </section>
 
-          <section class="checkin-row" aria-label="Daily check-in">
-            <div class="checkin-icon"><Gift size={20} /></div><div class="checkin-copy"><strong>เช็กอินประจำวัน</strong><small>รับ 35 Masque Points</small></div>
-            <div class="checkin-days" aria-label="ประวัติเช็กอินสัปดาห์นี้">{#each ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as day, i}<span class:checked={player.checkinDates.includes(checkinKeyForDay(i))}>{#if player.checkinDates.includes(checkinKeyForDay(i))}<Check size={10} />{:else}{day}{/if}</span>{/each}</div>
-            <button class="mini-claim" disabled={player.checkinDates.includes(todayKey())} onclick={claimCheckin}>{player.checkinDates.includes(todayKey()) ? 'รับแล้ว' : 'รับ'}</button>
-          </section>
-
           <section class:vip-energy={vipActive} class="energy-panel">
             <div class="energy-top"><div><p class="eyebrow">YOUR ENERGY</p><h2>{vipActive ? 'พลังงานไม่จำกัด' : 'Energy'}</h2></div>{#if vipActive}<span class="vip-badge"><Crown size={13} fill="currentColor" />VIP</span>{:else}<span class="energy-number">{player.energy}<small>/{ENERGY_CONFIG.max}</small></span>{/if}</div>
             {#if vipActive}
@@ -311,13 +315,18 @@
             {/if}
           </section>
 
-          <section class="battle-preview">
-            <div class="battle-top"><div><p class="eyebrow">SEASON 01 · DREAM ISLAND</p><h2><Ticket size={18} />Battle Pass</h2></div><span class="track-tag">{vipActive ? 'VIP TRACK OPEN' : 'FREE TRACK'}</span></div>
-            <div class="battle-progress"><div class="level-orb">{passLevel}</div><div class="progress-copy"><div><strong>Level {passLevel}</strong><span>{passXp}/100 XP</span></div><div class="xp-track"><span style={`width:${passXp}%`}></span></div></div></div>
-            <div class="battle-actions"><button class="button light-button" onclick={() => navigate('rewards')}><Gift size={15} />ภารกิจ / รางวัล</button>{#if !vipActive}<button class="button gold-button" onclick={() => navigate('shop')}><Crown size={15} />ซื้อ VIP Pass</button>{:else}<span class="vip-open"><CheckCircle2 size={15} />VIP Rewards เปิดแล้ว</span>{/if}</div>
+          <section class="content-section games-section"><div class="section-heading"><div><p class="eyebrow">PLAY & COLLECT</p><h2><Gamepad2 size={19} />เกมทั้งหมด</h2></div><span class="count-chip">{GAMES.length} เกม</span></div><div class="game-grid">{#each GAMES as game, index (game.id)}<GameCard {game} {index} vipActive={vipActive} energy={player.energy} onclick={() => enterGame(game.id)} />{/each}</div></section>
+          <section class="checkin-row" aria-label="Daily check-in">
+            <div class="checkin-icon"><Gift size={20} /></div><div class="checkin-copy"><strong>เช็กอินประจำวัน</strong><small>รับ 35 Masque Points</small></div>
+            <div class="checkin-days" aria-label="ประวัติเช็กอินสัปดาห์นี้">{#each ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as day, i}<span class:checked={player.checkinDates.includes(checkinKeyForDay(i))}>{#if player.checkinDates.includes(checkinKeyForDay(i))}<Check size={10} />{:else}{day}{/if}</span>{/each}</div>
+            <button class="mini-claim" disabled={player.checkinDates.includes(todayKey())} onclick={claimCheckin}>{player.checkinDates.includes(todayKey()) ? 'รับแล้ว' : 'รับ'}</button>
           </section>
 
-          <section class="content-section games-section"><div class="section-heading"><div><p class="eyebrow">PLAY & COLLECT</p><h2><Gamepad2 size={19} />เกมทั้งหมด</h2></div><span class="count-chip">{GAMES.length} เกม</span></div><div class="game-grid">{#each GAMES as game, index (game.id)}<GameCard {game} {index} vipActive={vipActive} energy={player.energy} onclick={() => enterGame(game.id)} />{/each}</div></section>
+          <section class="battle-preview">
+            <div class="battle-top"><div><p class="eyebrow">SEASON 01 · DREAM ISLAND</p><h2><Ticket size={18} />Battle Pass</h2></div><span class="track-tag">{vipActive ? 'VIP TRACK OPEN' : 'FREE TRACK'}</span></div>
+            <div class="battle-progress"><div class="level-orb">{passLevel}</div><div class="progress-copy"><div><strong>Level {passLevel}</strong><span>{passCompleted ? 'Completed' : `${passXp}/100 XP`}</span></div><div class="xp-track"><span style={`width:${passXp}%`}></span></div></div></div>
+            <div class="battle-actions"><button class="button light-button" onclick={() => navigate('rewards')}><Gift size={15} />ภารกิจ / รางวัล</button>{#if !vipActive}<button class="button gold-button" onclick={() => navigate('shop')}><Crown size={15} />ซื้อ VIP Pass</button>{:else}<span class="vip-open"><CheckCircle2 size={15} />VIP Rewards เปิดแล้ว</span>{/if}</div>
+          </section>
           <section class="quick-links"><button onclick={() => navigate('ranking')}><Trophy size={17} />อันดับเกม<ArrowRight size={15} /></button><button onclick={() => navigate('avatar')}><Heart size={17} />Avatar & Pets<ArrowRight size={15} /></button></section>
         {:else if page === 'shop'}
           <section class="page-heading"><p class="eyebrow">GAME ECONOMY</p><h1><ShoppingBag size={23} />Shop</h1><p>แลกสกุลเงินหรือเปิด VIP Benefits</p></section>
@@ -332,7 +341,7 @@
           {/if}
         {:else if page === 'rewards'}
           <section class="page-heading"><p class="eyebrow">SEASON 01 · DREAM ISLAND</p><h1><Gift size={23} />Battle Pass</h1><p>สะสม XP และรับรางวัลในทุก Season</p></section>
-          <section class="pass-level-card"><div class="level-orb large">{passLevel}</div><div><span class="eyebrow">CURRENT LEVEL</span><h2>Level {passLevel} <small>· {vipActive ? 'VIP TRACK' : 'FREE TRACK'}</small></h2><div class="xp-track"><span style={`width:${passXp}%`}></span></div><small>{passXp}/100 XP สู่เลเวลถัดไป</small></div><Sparkles size={24} /></section>
+          <section class:pass-completed={passCompleted} class="pass-level-card"><div class="level-orb large">{passLevel}</div><div><span class="eyebrow">CURRENT LEVEL</span><h2>Level {passLevel} <small>· {vipActive ? 'VIP TRACK' : 'FREE TRACK'}</small></h2><div class="xp-track"><span style={`width:${passXp}%`}></span></div><small>{passCompleted ? 'Season Completed' : `${passXp}/100 XP สู่เลเวลถัดไป`}</small></div><Sparkles size={24} /></section>
           <div class="mission-strip"><div><Zap size={17} /><span><strong>ภารกิจประจำวัน</strong><small>เล่นเกม 1 ครั้ง · +50 XP</small></span><button disabled={player.claimedMissions.includes(`daily-${todayKey()}`)} onclick={() => claimMission('daily')}>{player.claimedMissions.includes(`daily-${todayKey()}`) ? 'รับแล้ว' : 'รับ XP'}</button></div>{#if vipActive}<div><Crown size={17} /><span><strong>VIP Mission</strong><small>ทำคะแนน Best Score · +100 XP</small></span><button disabled={player.claimedMissions.includes(`vip-${todayKey()}`)} onclick={() => claimMission('vip')}>{player.claimedMissions.includes(`vip-${todayKey()}`) ? 'รับแล้ว' : 'รับ XP'}</button></div>{/if}</div>
           <div class="reward-track-title"><h2>Free Track</h2><span>เปิดสำหรับทุกคน</span></div>
           <div class="reward-track">{#each BATTLE_PASS.freeRewards as reward, index (reward.title)}{@const rewardId = `free-${index + 1}`}<article class:claimed={player.claimedRewards.includes(rewardId)} class:available={passLevel >= index + 1 && !player.claimedRewards.includes(rewardId)} class="reward-tile"><span class="reward-step">LV.{index + 1}</span><span class="reward-art">{reward.type === 'energy' ? '⚡' : reward.type === 'avatar' ? '🧑' : reward.type === 'pet' ? '🐾' : '🪙'}</span><strong>{reward.title}</strong>{#if player.claimedRewards.includes(rewardId)}<span class="reward-state"><Check size={12} />รับแล้ว</span>{:else if passLevel >= index + 1}<button onclick={() => claimReward(index, 'free')}>รับรางวัล</button>{:else}<span class="reward-state locked"><Lock size={12} />ล็อก</span>{/if}</article>{/each}</div>
@@ -341,9 +350,9 @@
           {#if !vipActive}<button class="button gold-button full-button" onclick={() => { shopTab = 'vip'; navigate('shop'); }}>ปลดล็อก VIP Track <Crown size={15} /></button>{/if}
         {:else if page === 'avatar'}
           <section class="page-heading"><p class="eyebrow">YOUR COLLECTION</p><h1><Heart size={23} />Avatar & Pets</h1><p>เลือกตัวละครและคู่หูของคุณ</p></section>
-          <section class="character-stage"><span class="stage-sparkle stage-left">✦</span><div class="character-aura"></div><div class="character-figure" style={`--avatar-color:${previewAvatar.color}`}>🧑🏻‍🚀</div>{#if player.petId}<span class="stage-pet" style={`--pet-color:${PETS.find((pet) => pet.id === player.petId)?.color ?? '#f6ca72'}`}>🐣</span>{/if}<div class="stage-name"><strong>{previewAvatar.name}{player.avatarId === selectedAvatar ? '' : ' · Preview'}</strong><span>LV.{player.level} · {player.displayName}</span></div></section>
-          <div class="collection-heading"><h2>ตัวละคร</h2><span>เลือกได้ทั้งตัว</span></div><div class="avatar-grid">{#each AVATARS as avatar (avatar.id)}{@const owned = player.ownedAvatarIds.includes(avatar.id)}<button class:equipped={player.avatarId === avatar.id} class:previewed={selectedAvatar === avatar.id} class="avatar-tile" onclick={() => (selectedAvatar = avatar.id)}><span class="avatar-mini" style={`--avatar-color:${avatar.color}`}>🧑</span><strong>{avatar.name}</strong><small>{owned ? avatar.rarity : 'Locked'}</small>{#if !owned}<Lock size={13} class="tile-lock" />{:else if player.avatarId === avatar.id}<CheckCircle2 size={15} class="equipped-check" />{/if}</button>{/each}</div>{#if player.ownedAvatarIds.includes(selectedAvatar) && player.avatarId !== selectedAvatar}<button class="button primary-button full-button avatar-equip-button" onclick={() => { const next = selectAvatar(player, selectedAvatar); if (next) persist(next); }}>ใช้ตัวละครนี้ <Check size={14} /></button>{/if}
-          <div class="collection-heading pet-heading"><h2>Pet Collection</h2><button class="button light-button gacha-button" disabled={gachaBusy} onclick={startGacha}>{gachaBusy ? 'กำลังสุ่ม…' : player.gachaTickets ? `สุ่มฟรี · Ticket ${player.gachaTickets}` : `สุ่ม Pet · ${PET_GACHA_COST} MP`}<Sparkles size={14} /></button></div><div class="pet-grid">{#each PETS as pet (pet.id)}{@const owned = player.ownedPetIds.includes(pet.id)}<button class:equipped={player.petId === pet.id} class="pet-tile" disabled={!owned} onclick={() => { const next = equipPet(player, player.petId === pet.id ? null : pet.id); if (next) persist(next); }}><span class="pet-art" style={`--pet-color:${pet.color}`}>🐾</span><strong>{pet.name}</strong><small>{pet.rarity}</small><span class:owned={owned} class="ownership">{!owned ? 'Locked' : player.petId === pet.id ? 'Equipped' : 'Owned'}</span></button>{/each}</div><p class="mock-caption">Pet ซ้ำจะได้รับ Masque Points คืน 15 แต้ม</p>
+          <section class="character-stage"><span class="stage-sparkle stage-left">✦</span><div class="character-aura"></div><div class="character-figure" style={`--avatar-color:${previewAvatar.color}`}><AssetPortrait src={previewAvatar.imagePath} alt={previewAvatar.name} placeholder={previewAvatar.placeholder} kind="avatar" className="stage-portrait" /></div>{#if player.petId}{@const stagePet = PETS.find((pet) => pet.id === player.petId)}{#if stagePet}<AssetPortrait src={stagePet.imagePath} alt={stagePet.name} placeholder={stagePet.placeholder} kind="pet" className="stage-pet" style={`--pet-color:${stagePet.color}`} />{/if}{/if}<div class="stage-name"><strong>{previewAvatar.name}{player.avatarId === selectedAvatar ? '' : ' · Preview'}</strong><span>LV.{player.level} · {player.displayName}</span></div></section>
+          <div class="collection-heading"><h2>ตัวละคร</h2><span>เลือกได้ทั้งตัว</span></div><div class="avatar-grid">{#each AVATARS as avatar (avatar.id)}{@const owned = player.ownedAvatarIds.includes(avatar.id)}<button class:equipped={player.avatarId === avatar.id} class:previewed={selectedAvatar === avatar.id} class="avatar-tile" onclick={() => (selectedAvatar = avatar.id)}><AssetPortrait src={avatar.imagePath} alt={avatar.name} placeholder={avatar.placeholder} kind="avatar" className="avatar-mini" style={`--avatar-color:${avatar.color}`} /><strong>{avatar.name}</strong><small>{avatar.rarity}{owned ? '' : ' · Locked'}</small>{#if !owned}<Lock size={13} class="tile-lock" />{:else if player.avatarId === avatar.id}<CheckCircle2 size={15} class="equipped-check" />{/if}</button>{/each}</div>{#if player.ownedAvatarIds.includes(selectedAvatar) && player.avatarId !== selectedAvatar}<button class="button primary-button full-button avatar-equip-button" onclick={() => { const next = selectAvatar(player, selectedAvatar); if (next) persist(next); }}>ใช้ตัวละครนี้ <Check size={14} /></button>{/if}
+          <div class="collection-heading pet-heading"><h2>Pet Collection</h2><button class="button light-button gacha-button" disabled={gachaBusy || (player.gachaTickets <= 0 && player.masquePoints < PET_GACHA_COST)} onclick={startGacha}>{gachaBusy ? 'กำลังสุ่ม…' : player.gachaTickets ? `สุ่มฟรี · Ticket ${player.gachaTickets}` : `สุ่ม Pet · ${PET_GACHA_COST} MP`}<Sparkles size={14} /></button></div><div class="pet-grid">{#each PETS as pet (pet.id)}{@const owned = player.ownedPetIds.includes(pet.id)}<button class:equipped={player.petId === pet.id} class="pet-tile" disabled={!owned} onclick={() => { const next = equipPet(player, player.petId === pet.id ? null : pet.id); if (next) persist(next); }}><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" className="pet-art" style={`--pet-color:${pet.color}`} /><strong>{pet.name}</strong><small>{pet.rarity}</small><span class:owned={owned} class="ownership">{!owned ? 'Locked' : player.petId === pet.id ? 'Equipped' : 'Owned'}</span></button>{/each}</div><p class="mock-caption">Pet ซ้ำจะได้รับ Masque Points คืน 15 แต้ม</p>
         {:else if page === 'ranking'}
           <section class="page-heading"><p class="eyebrow">HIGH SCORE CHALLENGE</p><h1><Trophy size={23} />Game Ranking</h1><p>อันดับแยกตามเกม · Free และ VIP มีสิทธิ์เท่ากัน</p></section>
           <div class="best-score-strip"><span>BEST SCORE · {GAME_BY_ID[rankingGameId].name}</span><strong>{mockScores[rankingGameId].toLocaleString('en-US')}</strong></div>
@@ -373,7 +382,7 @@
       {:else if modal.kind === 'exchange-confirm'}
         <div class="dialog-emblem green-emblem"><Coins size={27} /></div><p class="eyebrow">AIS POINTS EXCHANGE</p><h2>ยืนยันการแลก</h2><p class="dialog-summary">{exchangeAmount} AIS Points จะแลกเป็น {exchangeAmount * 10} Masque Points</p><div class="dialog-actions"><button class="button light-button" onclick={() => (modal = null)}>ยกเลิก</button><button class="button primary-button" onclick={confirmExchange}>ยืนยันแลก <ArrowRight size={15} /></button></div>
       {:else if modal.kind === 'gacha-result'}
-        <div class="gacha-reveal"><span style={`--pet-color:${gachaPet?.color ?? '#f6ca72'}`}>🐾</span></div><p class="eyebrow">PET GACHA RESULT</p><h2>{gachaPet?.name ?? 'Mystery Pet'}!</h2><p class="dialog-summary">{modal.duplicate ? 'Pet ซ้ำ! ได้รับ Masque Points คืน 15 แต้ม' : 'เพิ่มเข้า Pet Collection และสวมใส่ให้อัตโนมัติ'}</p><button class="button gold-button full-button" onclick={() => (modal = null)}>เยี่ยมเลย <Sparkles size={15} /></button>
+        <div class="gacha-reveal"><AssetPortrait src={gachaPet?.imagePath ?? ''} alt={gachaPet?.name ?? 'Mystery Pet'} placeholder={gachaPet?.placeholder ?? '🐾'} kind="pet" className="gacha-pet-image" style={`--pet-color:${gachaPet?.color ?? '#f6ca72'}`} /></div><p class="eyebrow">PET GACHA RESULT</p><h2>{gachaPet?.name ?? 'Mystery Pet'}!</h2><p class="dialog-summary">{modal.duplicate ? 'Pet ซ้ำ! ได้รับ Masque Points คืน 15 แต้ม' : 'เพิ่มเข้า Pet Collection และสวมใส่ให้อัตโนมัติ'}</p><button class="button gold-button full-button" onclick={() => (modal = null)}>เยี่ยมเลย <Sparkles size={15} /></button>
       {:else if modal.kind === 'checkin-success'}
         <div class="dialog-emblem green-emblem"><Gift size={27} /></div><p class="eyebrow">DAILY CHECK-IN</p><h2>รับรางวัลแล้ว!</h2><p class="dialog-summary">+35 Masque Points · กลับมาเช็กอินพรุ่งนี้นะ</p><button class="button primary-button full-button" onclick={() => (modal = null)}>รับทราบ <Check size={15} /></button>
       {:else if modal.kind === 'notice'}

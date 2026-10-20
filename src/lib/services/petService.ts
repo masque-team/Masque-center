@@ -6,10 +6,10 @@ export function equipPet(player: PlayerState, petId: string | null): PlayerState
   return { ...player, petId };
 }
 
-export function drawPet(player: PlayerState): { player: PlayerState; petId: string; duplicate: boolean } | null {
+export function drawPet(player: PlayerState, random = Math.random): { player: PlayerState; petId: string; duplicate: boolean } | null {
   const useTicket = player.gachaTickets > 0;
   if (!useTicket && player.masquePoints < PET_GACHA_COST) return null;
-  const pet = PETS[Math.floor(Math.random() * PETS.length)];
+  const pet = PETS[Math.min(PETS.length - 1, Math.floor(random() * PETS.length))];
   const duplicate = player.ownedPetIds.includes(pet.id);
   return {
     player: {

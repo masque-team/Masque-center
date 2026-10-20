@@ -10,6 +10,19 @@ export const ENERGY_CONFIG = {
   ],
 } as const;
 
+export const PLAYER_MOCK_CONFIG = {
+  level: 18,
+  aisPoints: 24,
+  maxTestAisPoints: 1_000_000,
+  masquePoints: 320,
+  battlePassXp: 230,
+  gachaTickets: 0,
+  avatarId: 'mali',
+  ownedAvatarIds: ['mali'],
+  petId: null,
+  ownedPetIds: ['pudding', 'cloud'],
+} as const;
+
 export const EXCHANGE_RATE = 10;
 
 export const VIP_PACKAGES: VipPackage[] = [
@@ -37,17 +50,17 @@ export const BATTLE_PASS = {
 };
 
 export const AVATARS = [
-  { id: 'mali', name: 'Mali', rarity: 'Common', owned: true, color: '#ffbf69' },
-  { id: 'nami', name: 'Nami', rarity: 'Rare', owned: false, color: '#77c8e8' },
-  { id: 'luna', name: 'Luna', rarity: 'Epic', owned: false, color: '#b09be9' },
-  { id: 'mali-vip', name: 'Mali VIP', rarity: 'VIP', owned: false, color: '#f1c75b' },
+  { id: 'mali', name: 'Mali', rarity: 'Common', imagePath: 'assets/avatars/mali.png', placeholder: '🧑🏻‍🚀', color: '#ffbf69' },
+  { id: 'nami', name: 'Nami', rarity: 'Rare', imagePath: 'assets/avatars/nami.png', placeholder: '🧑🏻', color: '#77c8e8' },
+  { id: 'luna', name: 'Luna', rarity: 'Epic', imagePath: 'assets/avatars/luna.png', placeholder: '🧑🏽‍🚀', color: '#b09be9' },
+  { id: 'mali-vip', name: 'Mali VIP', rarity: 'VIP', imagePath: 'assets/avatars/mali-vip.png', placeholder: '🧑🏼‍🚀', color: '#f1c75b' },
 ];
 
 export const PETS = [
-  { id: 'pudding', name: 'Pudding', rarity: 'Rare', owned: true, color: '#f6ca72' },
-  { id: 'cloud', name: 'Cloud', rarity: 'Common', owned: true, color: '#a7d9f3' },
-  { id: 'mochi', name: 'Mochi', rarity: 'Epic', owned: false, color: '#e99cc5' },
-  { id: 'sprout', name: 'Sprout', rarity: 'Rare', owned: false, color: '#8dcf98' },
+  { id: 'pudding', name: 'Pudding', rarity: 'Rare', imagePath: 'assets/pets/pudding.png', placeholder: '🐣', color: '#f6ca72' },
+  { id: 'cloud', name: 'Cloud', rarity: 'Common', imagePath: 'assets/pets/cloud.png', placeholder: '☁️', color: '#a7d9f3' },
+  { id: 'mochi', name: 'Mochi', rarity: 'Epic', imagePath: 'assets/pets/mochi.png', placeholder: '🐰', color: '#e99cc5' },
+  { id: 'sprout', name: 'Sprout', rarity: 'Rare', imagePath: 'assets/pets/sprout.png', placeholder: '🐸', color: '#8dcf98' },
 ];
 
 export const PET_GACHA_COST = 90;
