@@ -6,6 +6,7 @@ import { drawPet } from './petService';
 import { buyArenaTickets, equipWings, exchangeAisPoints, purchaseShopItem } from './walletService';
 import { getGameRanking } from './rankingService';
 import { purchaseVip } from './passService';
+import { equipOutfit } from './avatarService';
 import type { PlayerState } from '../types';
 
 beforeEach(() => {
@@ -23,6 +24,22 @@ function finishedSample(): PlayerState {
 }
 
 describe('shared demo economy', () => {
+  it('atomically equips owned outfit items without charging currency or changing inventory', () => {
+    const player = sample(); player.demo.wings = ['sky-feather'];
+    const next = equipOutfit(player, { avatarId: 'mali', petId: 'cloud', wingId: 'sky-feather' })!;
+    expect(next.petId).toBe('cloud'); expect(next.demo.wingId).toBe('sky-feather');
+    expect(next.masquePoints).toBe(player.masquePoints); expect(next.energy).toBe(player.energy);
+    expect(next.ownedPetIds).toEqual(player.ownedPetIds);
+    expect(player.petId).toBe('pudding'); expect(player.demo.wingId).toBeNull();
+  });
+  it('rejects unowned or nonexistent outfit pieces without partially applying other selections', () => {
+    const player = sample();
+    expect(equipOutfit(player, { avatarId: 'mali', petId: 'cloud', wingId: 'sky-feather' })).toBeNull();
+    expect(equipOutfit(player, { avatarId: 'nyx', petId: null, wingId: null })).toBeNull();
+    expect(equipOutfit({ ...player, ownedPetIds: ['missing'] }, { avatarId: 'mali', petId: 'missing', wingId: null })).toBeNull();
+    expect(player.petId).toBe('pudding');
+    expect(equipOutfit(player, { avatarId: 'mali', petId: null, wingId: null })?.petId).toBeNull();
+  });
   it('supports name and AIS test query inputs without persisting the login name', () => {
     expect(parseAisPointSeed('125')).toBe(125);
     expect(parseAisPointSeed('-1')).toBeNull();

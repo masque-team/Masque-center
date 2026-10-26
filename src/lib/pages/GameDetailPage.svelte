@@ -23,6 +23,7 @@
 <div class="page-stack">
   <div class="heading"><button title="กลับ" aria-label="กลับหน้าเกม" onclick={onBack}><ArrowLeft size={22} /></button><div><small>{game.genre}</small><h1>{game.name}</h1></div></div>
   {#if game.cover}<img class="cover" class:logo={game.id === 'memory'} src={`images/${game.cover}`} alt={game.name} />{:else}<div class="memory-cover"><span>?</span><span>♥</span><span>♥</span><span>?</span></div>{/if}
+  <div class="sticky top-2 z-10 rounded-lg bg-[#f5f8fc]/95 py-1 backdrop-blur-sm"><GameButton variant="purple" size="lg" block onclick={onPlay}><Play size={20} fill="currentColor" />เริ่มเล่น{unlimited ? '' : ` · ${player.demo.config.energyCost} Energy`}</GameButton></div>
   <div class="tabs" role="tablist" aria-label="ข้อมูลเกม">
     <button role="tab" aria-selected={tab === 'info'} class:on={tab === 'info'} onclick={() => tab = 'info'}><Info size={17} />ข้อมูลเกม</button>
     <button role="tab" aria-selected={tab === 'ranking'} class:on={tab === 'ranking'} onclick={() => tab = 'ranking'}><Trophy size={17} />อันดับ</button>
@@ -38,7 +39,6 @@
   {:else}
     <Leaderboard gameId={rankingGame} bind:period {player} currentScore={score} fixedGame />
   {/if}
-  <div class="play"><GameButton variant="purple" size="lg" block onclick={onPlay}><Play size={20} fill="currentColor" />เริ่มเล่น{unlimited ? '' : ` · ${player.demo.config.energyCost} Energy`}</GameButton></div>
 </div>
 
 <style>
@@ -64,5 +64,4 @@
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stats > span { display: grid; gap: 3px; padding: 12px; border-radius: 8px; background: #fff; color: #9382b0; font-size: 12px; }
   .stats b { color: var(--g-ink); font-size: 22px; }
-  .play { position: sticky; bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 4; }
 </style>

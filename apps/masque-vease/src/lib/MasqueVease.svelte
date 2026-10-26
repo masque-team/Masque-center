@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { ArrowLeft, ArrowUpRight, Compass, Footprints, Gamepad2, House, LoaderCircle, LocateFixed, Map, MessageCircle, PawPrint, RotateCw, Send, Shirt, Smile, UsersRound, X, ZoomIn, ZoomOut } from '@lucide/svelte';
-  import { AVATARS, PETS } from '../data/config';
-  import AssetPortrait from '../components/AssetPortrait.svelte';
-  import { MOCK_CITIZENS, TOWN_BUILDINGS, TOWN_MENUS } from '../world/town';
-  import type { VeaseController, WorldSnapshot } from '../world/veaseWorld';
-  import type { PlayerState } from '../types';
+  import { AVATARS, PETS } from './data/config';
+  import AssetPortrait from './AssetPortrait.svelte';
+  import { MOCK_CITIZENS, TOWN_BUILDINGS, TOWN_MENUS, townArrival } from './world/town';
+  import type { VeaseController, WorldSnapshot } from './world/veaseWorld';
+  import type { TownPlayer } from './embed/protocol';
 
-  let { player, vipActive = false, activeRoute = 'world', active = true, onEquipPet, onNavigate, onToast }: { player: PlayerState; vipActive?: boolean; activeRoute?: string; active?: boolean; onEquipPet: (id: string | null) => void; onNavigate: (route: string) => void; onToast: (message: string) => void } = $props();
+  let { player, vipActive = false, activeRoute = 'world', active = true, walkRequest, onArrived, onEquipPet, onNavigate, onToast }: { player: TownPlayer; vipActive?: boolean; activeRoute?: string; active?: boolean; walkRequest?: { id: string; destination: string }; onArrived?: (id: string, destination: string, cancelled: boolean) => void; onEquipPet: (id: string | null) => void; onNavigate: (route: string) => void; onToast: (message: string) => void } = $props();
   let host = $state<HTMLDivElement>();
   let dialog = $state<HTMLDialogElement>();
   let controller = $state<VeaseController | null>(null);
@@ -34,7 +34,7 @@
   let enabled = $derived(player.demo.config.worldEnabled);
 
   function closePanels() { panel = null; peerId = null; placeId = null; }
-  function stopMoving() { controller?.stopWalking(); }
+  function stopMoving() { controller?.stopWalking(); if (walkRequest) onArrived?.(walkRequest.id, walkRequest.destination, true); }
   function say(value: string) {
     speech = value.slice(0, 60); emotesOpen = false;
     if (speechTimer) clearTimeout(speechTimer);
@@ -56,12 +56,20 @@
     if (!enabled) return;
     try {
       await document.fonts.ready;
-      const { createVeaseWorld } = await import('../world/veaseWorld');
+      const { createVeaseWorld } = await import('./world/veaseWorld');
       if (!mounted || !host || version !== bootVersion) return;
       controller = createVeaseWorld(host, {
         appearance, theme: player.demo.config.worldTheme,
         onReady: () => { if (mounted && version === bootVersion) ready = true; },
-        onFrame: (next) => { if (mounted && version === bootVersion) snapshot = next; },
+        onFrame: (next) => {
+          if (!mounted || version !== bootVersion) return;
+          snapshot = next;
+          const building = TOWN_BUILDINGS.find((entry) => entry.id === walkRequest?.destination);
+          if (building && walkRequest) {
+            const target = townArrival(building);
+            if (Math.hypot(next.position.x - target.x, next.position.z - target.z) < 0.15) onArrived?.(walkRequest.id, building.id, false);
+          }
+        },
         onSelect: (kind, id) => { stopMoving(); closePanels(); if (kind === 'peer') peerId = id; else placeId = id; },
         onError: (reason) => { if (mounted && version === bootVersion) error = reason; },
       });
@@ -77,6 +85,9 @@
   $effect(() => { controller?.updateAppearance(appearance); });
   $effect(() => { controller?.updateTheme(player.demo.config.worldTheme); });
   $effect(() => { controller?.setActive(active); });
+  $effect(() => {
+    if (ready && controller && walkRequest && !controller.travel(walkRequest.destination, true)) onArrived?.(walkRequest.id, walkRequest.destination, true);
+  });
   $effect(() => { const route = activeRoute; closePanels(); controller?.guideTo(route); document.title = route === 'world' ? 'Masque Vease | MasqueGame' : 'MasqueGame'; });
   $effect(() => {
     const open = !!panel || !!peerId || !!placeId;

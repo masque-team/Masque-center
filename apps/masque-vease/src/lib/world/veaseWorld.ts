@@ -35,7 +35,7 @@ export interface VeaseController {
   zoom: (amount: number) => void;
   rotate: () => void;
   recenter: () => void;
-  travel: (id: string) => boolean;
+  travel: (id: string, cinematic?: boolean) => boolean;
   dispose: () => void;
 }
 interface TownActor {
@@ -702,9 +702,20 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
     zoom(amount) { zoom = THREE.MathUtils.clamp(zoom + amount, 0.65, 1.7); resize(); },
     rotate() { heading += Math.PI / 4; },
     recenter() { heading = Math.PI / 5; zoom = 1; cameraTarget.set(player.point.x, 0, player.point.z - 2); resize(); },
-    travel(id) {
+    travel(id, cinematic = false) {
       const building = TOWN_BUILDINGS.find((entry) => entry.id === id);
-      return building ? walkTo(townArrival(building)) : false;
+      if (!building) return false;
+      const arrival = townArrival(building);
+      stopWalking();
+      if (reducedMotion.matches) { player.point = arrival; return true; }
+      if (!walkTo(arrival)) return false;
+      if (cinematic) {
+        let previous = player.point;
+        let length = 0;
+        for (const point of walkPath) { length += Math.hypot(point.x - previous.x, point.z - previous.z); previous = point; }
+        travelSpeed = Math.max(5, length / 1.6);
+      }
+      return true;
     },
     dispose() {
       if (disposed) return;

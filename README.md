@@ -8,6 +8,18 @@
 
 <p align="center"><strong>Svelte 5 · TypeScript · Vite · Tailwind CSS 4</strong><br />Mobile-first · Static SPA · No backend</p>
 
+## Two Frontends, One Repository
+
+ใช้ Git/repo และ root `package-lock.json` เดียวกันผ่าน npm workspaces แต่ build/deploy แยกกัน:
+
+| ส่วน | ตำแหน่ง | หน้าที่ |
+| --- | --- | --- |
+| MGC | root `src/` | เกม, เงิน, บัตร, Inventory, Profile, กาชา และ save |
+| MV | `apps/masque-vease/` | มุมใกล้ Avatar/Pet, ห้องแต่งตัว และเมือง Three.js |
+| Protocol | `packages/vease-protocol/` | ชนิดข้อความและตัวตรวจ payload ของทั้งสอง FE |
+
+MGC เปิด MV ผ่าน iframe ไม่ import renderer ของ MV; MV ไม่อ่าน/เขียน save ของ MGC และไม่รับยอดเงิน/บัตร ใช้ `READY -> INIT -> ACK` ก่อนเริ่ม ส่ง state/โหมดด้วย `postMessage` และตรวจ origin, source window, version และ payload การเปลี่ยนชุดผ่าน ownership validation ของ MGC แบบทั้งชุด
+
 ## เกมในแคตตาล็อก
 
 | **ARCADE** | **REACTION** | **RUNNER** |
@@ -55,7 +67,7 @@ Avatar และ Pet ที่ใช้งานอยู่คือไฟล�
 
 ## เริ่มพัฒนา
 
-ต้องมี Node.js และ npm ติดตั้งไว้แล้ว
+ใช้ Node.js 22.12+ หรือ Node.js 24 และ npm ที่รองรับ workspaces รัน `npm install` จาก root ครั้งเดียว บน Windows ที่บล็อก npm.ps1 ใช้ `npm.cmd`
 
 ```sh
 npm install
@@ -65,7 +77,9 @@ npm test
 npm run build
 ```
 
-Vite dev server ใช้ base path `/maque-center/` เช่น `http://localhost:5173/maque-center/` เมื่อ build สำเร็จ ไฟล์สำหรับ deploy จะอยู่ใน `dist/`.
+เปิดอีก terminal แล้วรัน `npm run dev:mv` สำหรับ MV ที่ `http://localhost:5174/` ส่วน MGC อยู่ที่ `http://localhost:5173/maque-center/` ต้องเปิดทั้งสอง dev server เพื่อใช้งาน iframe; หาก MV ไม่พร้อมจะแสดง Retry โดยหน้าเกม/Shop ยังเปิดได้
+
+คำสั่ง MV จาก root: `npm run test:mv`, `npm run check:mv`, `npm run build:mv` ใช้ `VITE_VEASE_URL` ใน MGC เมื่อต้องเปลี่ยน URL/พอร์ต MV แล้ว restart dev server; production ที่ไม่ตั้งค่านี้ใช้ `/masque-vease/` บน origin เดียวกัน
 
 ## Deploy
 
@@ -74,6 +88,8 @@ Vite dev server ใช้ base path `/maque-center/` เช่น `http://localh
 **https://masque-lab.adldigitalservice.com/maque-center/**
 
 Build กำหนด asset base เป็น `/maque-center/` แล้ว และใช้ hash navigation เพื่อให้เปิดแต่ละหน้าใน static hosting ได้โดยไม่ต้องตั้ง backend routing
+
+MV build แยกด้วย `npm run build:mv`; นำเนื้อหา `apps/masque-vease/dist/` ไปวางที่ `/masque-vease/` ไม่ใช่ทับ `dist/` ของ MGC ถ้าโฮสต์ MV อีก origin ให้ตั้ง `VITE_VEASE_URL` ตอน build MGC และ `VITE_ALLOWED_PARENT_ORIGINS` ตอน build MV (origin คั่นด้วย comma ไม่มี path/trailing slash); `VITE_PUBLIC_BASE` เปลี่ยน asset base และ `VITE_GAME_CENTER_URL` ใช้กลับจาก MV แบบ standalone ตัวแปร VITE เป็น public config ไม่ใช่ที่เก็บ secret
 
 ## โครงสร้างหลัก
 
@@ -120,16 +136,18 @@ Season ที่เลือกใน Studio เป็น **Demo Preview Overrid
 
 ## Verification
 
-`npm test` ตรวจ Economy, Regen/Overflow, Ownership, VIP, Season Isolation, Duplicate Claims, Migration และ Room Persistence ส่วน `npm run check` / `npm run build` ตรวจ Svelte/TypeScript และ production bundle
+`npm test` ตรวจ MGC 24 tests รวม Economy, Ownership และการสวมชุดแบบ atomic ส่วน `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
 
 ## Masque Vease
 
-หลังกรอกชื่อ เมนูต่าง ๆ ใช้ฉาก Three.js ที่ lazy-load เพียงชุดเดียว Avatar เดินนำและกล้องเลื่อนไปยังอาคารของเมนูนั้น; `#world` เปิด HUD เมืองแบบเต็มหน้า ไม่มี backend หรือ multiplayer เพิ่มเข้ามา ไม่แก้หรือเชื่อม runtime ไปยัง Gatherfall
+MV อยู่ใน `apps/masque-vease` ของ repo เดิม ดู [MV README](apps/masque-vease/README.md) ไม่มี backend/multiplayer เพิ่ม และไม่แก้หรือเชื่อม runtime ไปยัง Gatherfall
 
-- `src/lib/pages/MasqueVease.svelte` แสดง HUD เฉพาะ World ไม่มีปุ่มลากเดิน; หน้าเมนูใช้ฉากเดียวกันเป็นแถบพื้นหลังเหนือเนื้อหา พักการวาดเมื่อฉากเลื่อนพ้นจอหรือแท็บ hidden และ dispose WebGL เมื่อเข้าเกม iframe รองรับ reduced motion และเปลี่ยนเมนูซ้ำโดยยกเลิกเส้นทางเดิม
-- `src/lib/world/veaseWorld.ts` สร้างฉากบ้าน 3D, คลอง/น้ำพุ, billboard characters, ป้ายชื่อ CanvasTexture ที่ติดกับตัวละคร, กล้อง และ mock citizens; ปิด preserveDrawingBuffer/real-time shadow บนมือถือและจำกัด pixel ratio
-- `src/lib/world/town.ts` เป็น layout/collision เดียวกันสำหรับบ้าน คลอง และสะพาน ใช้ PathFinding.js A* สำหรับเส้นทางแตะเดิน พร้อม tests สำหรับการอ้อมสิ่งกีดขวาง/ข้ามสะพาน/ทางเข้าทุกอาคาร
+- Home ใช้ `portrait` มุมใกล้ Avatar/Pet ไม่สร้างเมือง/NPC และให้เกมแนะนำอยู่ในจอแรก; Detail ซ่อน MV และวางปุ่มเริ่มเล่นใต้ภาพเกมทันที `#avatar` ใช้ `wardrobe` และ `#world` ใช้ `town`
+- `src/lib/components/VeaseFrame.svelte` เป็น iframe bridge ของ MGC ใช้ iframe เดิมเปลี่ยนโหมด พักการวาดเมื่อพ้นจอ/แท็บ hidden และถอด MV เมื่อเข้าเกมจริง; wardrobe ส่งขนาดเนื้อหากลับเพื่อลด scroll ซ้อน
+- `apps/masque-vease/src/lib/world/veaseWorld.ts` สร้างเมือง/ป้ายชื่อ CanvasTexture/NPC; `portraitScene.ts` แสดงตัวละครระยะใกล้ด้วย renderer เบา ไม่มี bloom; `town.ts` เป็น A*/collision/layout
+- `WALK_TO` สั่งเดินไป building ID คำสั่งใหม่ยกเลิกเส้นทางเก่าและตอบ `ARRIVED` พร้อมสถานะ cancelled เมื่อเดินถึงจึงเปิดเมนู MGC รองรับ reduced motion และ timeout
 - สร้าง artwork ใหม่ในเครื่องด้วย `npm run art:world` ผ่าน Sharp: facade/roof/paving WebP, ภาพบ้านสำหรับแผนที่ และภาพตัวละครที่ trim transparency จาก assets เดิม เก็บใน `public/assets/world/`; ไม่ใช่ภาพจาก AI image-generation service
+- ภาพที่ MV deploy อยู่ใน `apps/masque-vease/public/assets/` หลังเปลี่ยนภาพจาก art scripts ที่ root ให้คัดลอกไฟล์ที่เปลี่ยนไปยัง MV ด้วย แต่ละ FE มี assets ของตัวเอง ไม่โหลดข้าม dev server
 - ต้องรองรับ WebGL 2; มีหน้า Retry เมื่อเปิด WebGL ไม่สำเร็จ ภาพคน/สัตว์เลี้ยงเป็นภาพ 2D พร้อม idle/walk bounce ไม่ใช่โมเดล 3D หรือ skeletal animation
 - คนอื่นทั้งหมดเป็น MOCK และ Chat อยู่ในเครื่อง ป้ายชื่อวาดบน sprite ใน WebGL canvas ไม่สร้าง DOM element ต่อเฟรม แตะพื้นหรือเลือกอาคารจากแผนที่เพื่อเดินตามเส้นทางจริง ไม่ teleport; เปิดเมนูจะหยุดเดิน มีวงจุดหมายบนพื้นและปฏิเสธจุดที่เดินไม่ได้
 - แตะอาคารจะเปิดเมนูใช้งานก่อน: Arcade เลือกหนึ่งในเกมเดิม 7 เกมแล้วไปหน้า Detail (ยังไม่หัก Energy), ร้าน/อาคารอื่นเปิด Shop, Wardrobe, Room, Pass หรือ Battle มีปุ่มเดินไปหน้าร้านเป็นตัวเลือกรอง

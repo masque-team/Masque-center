@@ -3,9 +3,17 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "workspaces": [
+    "apps/masque-vease",
+    "packages/vease-protocol"
+  ],
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --exclude apps/**",
     "dev": "vite --host 0.0.0.0",
+    "dev:mv": "npm run dev --workspace=masque-vease",
+    "test:mv": "npm run test --workspace=masque-vease",
+    "check:mv": "npm run check --workspace=masque-vease",
+    "build:mv": "npm run build --workspace=masque-vease",
     "build": "svelte-check && vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "art": "node scripts/optimize-art.mjs",
@@ -15,16 +23,13 @@
   },
   "dependencies": {
     "@lucide/svelte": "^1.57.0",
-    "pathfinding": "^0.4.18",
-    "svelte": "^5.0.0",
-    "three": "^0.184.0"
+    "@masque/vease-protocol": "file:packages/vease-protocol",
+    "svelte": "^5.0.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tailwindcss/vite": "^4.0.0",
     "@tsconfig/svelte": "^5.0.8",
-    "@types/pathfinding": "^0.1.0",
-    "@types/three": "^0.184.0",
     "sharp": "^0.35.5",
     "svelte-check": "^4.0.0",
     "tailwindcss": "^4.0.0",

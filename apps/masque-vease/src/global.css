@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+@source './**/*.{svelte,ts}';
+
+@layer base {
+	button:not(:disabled) { @apply transition-transform duration-150 active:scale-[0.97] motion-reduce:transition-none; }
+}
+
+:root { font-family: 'Kanit', 'Tahoma', sans-serif; color: #254b61; background: #eaf3f7; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; letter-spacing: 0; }
+* { box-sizing: border-box; }
+html, body, #app { width: 100%; height: 100%; margin: 0; }
+body { overflow-x: hidden; }
+@layer base { button, input, select { font: inherit; } }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+button:focus-visible, a:focus-visible { outline: 2px solid #337e99; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }

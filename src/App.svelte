@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fade } from 'svelte/transition';
+  import { fly } from 'svelte/transition';
   import { SvelteDate } from 'svelte/reactivity';
   import { Flame, Gamepad2, Swords, Trophy, UsersRound, ReceiptText, Settings2, ArrowUpRight } from '@lucide/svelte';
   import AppHeader from './lib/components/AppHeader.svelte';
@@ -14,7 +14,7 @@
   import ModalHost from './lib/components/ModalHost.svelte';
   import SectionHeading from './lib/components/SectionHeading.svelte';
   import Toast from './lib/components/Toast.svelte';
-  import AvatarPage from './lib/pages/AvatarPage.svelte';
+  import PetGacha from './lib/components/PetGacha.svelte';
   import PassPage from './lib/pages/SeasonPage.svelte';
   import BattlePage from './lib/pages/BattlePage.svelte';
   import WalletPage from './lib/pages/WalletPage.svelte';
@@ -22,13 +22,13 @@
   import RankingPage from './lib/pages/RankingPage.svelte';
   import AdminPage from './lib/pages/AdminPage.svelte';
   import ShopPage from './lib/pages/ShopPage.svelte';
-  import WorldPage from './lib/pages/MasqueVease.svelte';
-  import { townDestination, TOWN_MENUS } from './lib/world/town';
+  import VeaseFrame from './lib/components/VeaseFrame.svelte';
+  import type { SceneState } from '@masque/vease-protocol';
   import { AVATARS, PETS } from './lib/data/config';
   import AssetPortrait from './lib/components/AssetPortrait.svelte';
   import { GAMES, GAME_BY_ID } from './lib/data/games';
   import { MOCK_RANKINGS } from './lib/data/mockRankings';
-  import { selectAvatar } from './lib/services/avatarService';
+  import { equipOutfit, selectAvatar } from './lib/services/avatarService';
   import { isVip, nextRefillIn, refreshEnergy, refillEnergy, spendGameEnergy } from './lib/services/energyService';
   import { purchaseVip } from './lib/services/passService';
   import { drawPet, equipPet } from './lib/services/petService';
@@ -53,8 +53,9 @@
   let mockScores = $derived({ bird: 0, mole: 0, run: 0, fruit: 0, timber: 0, duck: 0, memory: 0, ...player.demo.scores });
   let CHECKIN_REWARD = $derived(player.demo.config.checkinReward);
   let page = $state<Page>('home');
-  let sceneryVisible = $state(true);
-  let guideStop = $derived(townDestination(page));
+  let sceneState = $derived(veaseState(player));
+  let wardrobeHeight = $state(1000);
+  let motionReduced = $state(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   let gameId = $state<GameId>('bird');
   let rankingGameId = $state<GameId>('bird');
   let rankingPeriod = $state<RankingPeriod>('weekly');
@@ -65,9 +66,9 @@
   let gameLoading = $state(true);
   let gameFallback = $state(false);
   let iframeVersion = $state(0);
-  let iframeTimeout: ReturnType<typeof setTimeout> | undefined;
-  let toastTimer: ReturnType<typeof setTimeout> | undefined;
-  let gachaTimer: ReturnType<typeof setTimeout> | undefined;
+  let iframeTimeout: number | undefined;
+  let toastTimer: number | undefined;
+  let gachaTimer: number | undefined;
   let lastPlaySample = performance.now();
   let playClockVisible = !document.hidden;
   let shopTab = $state<ShopTab>('items');
@@ -105,10 +106,14 @@
     handleRoute();
   }
 
-  function watchScenery(node: HTMLElement) {
-    const observer = new IntersectionObserver(([entry]) => { sceneryVisible = entry.isIntersecting; });
-    observer.observe(node);
-    return { destroy() { observer.disconnect(); } };
+  function veaseState(subject: PlayerState): SceneState {
+    return {
+      appearance: { name: subject.displayName, level: subject.level, avatarId: subject.avatarId, petId: subject.petId, frameId: subject.demo.frameId, wingId: subject.demo.wingId, vip: isVip(subject, now) },
+      owned: { avatarIds: subject.ownedAvatarIds, petIds: subject.ownedPetIds, wingIds: subject.demo.wings },
+      theme: subject.demo.config.worldTheme, enabled: subject.demo.config.worldEnabled,
+      announcement: subject.demo.config.announcement.slice(0, 160),
+      games: subject.demo.config.games.map(({ id, name, cover, published }) => ({ id, name, cover, published })),
+    };
   }
 
   function chooseWings(id: string | null) { applyAction(equipWings(player, id), id ? 'ใส่ปีกแล้ว' : 'ถอดปีกแล้ว'); }
@@ -376,6 +381,9 @@
   }
 
   onMount(() => {
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const motionChanged = () => { motionReduced = motionQuery.matches; };
+    motionQuery.addEventListener('change', motionChanged);
     now = demoNow(player);
     if (resetMockRequested) {
       const cleanUrl = new URL(window.location.href);
@@ -403,6 +411,7 @@
       window.removeEventListener('hashchange', routeChanged);
       document.removeEventListener('visibilitychange', flushPlayTime);
       window.removeEventListener('pagehide', flushPlayTime);
+      motionQuery.removeEventListener('change', motionChanged);
     };
   });
 </script>
@@ -412,8 +421,9 @@
 {:else}
 <div class="app-frame" class:world-frame={page === 'world'}>
   {#if page !== 'game'}
-    <div class="fixed inset-y-0 left-1/2 w-full max-w-[460px] -translate-x-1/2">
-      <WorldPage {player} {vipActive} activeRoute={page} active={page === 'world' || sceneryVisible} onEquipPet={chooseEquipPet} onNavigate={navigate} onToast={showToast} />
+    {#if page !== 'world'}<div class="px-3.5 pt-3 pb-0"><AppHeader {player} {vipActive} countdown={formatCountdown(refillCountdown)} onRefill={() => vipActive ? openVipShop() : openRefill()} onShop={() => navigate('shop')} onProfile={() => navigate('profile')} /></div>{/if}
+    <div class={['relative w-full overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out', ['detail', 'ranking', 'battle', 'admin'].includes(page) ? 'hidden' : '']} style:height={page === 'world' ? '100dvh' : page === 'avatar' ? `${wardrobeHeight}px` : page === 'home' ? '220px' : '160px'}>
+      <VeaseFrame {sceneState} mode={page === 'world' ? 'town' : page === 'avatar' ? 'wardrobe' : 'portrait'} onSize={(height) => { wardrobeHeight = height; }} onNavigate={navigate} onOutfit={(outfit) => { const next = equipOutfit(player, outfit); if (!next) return null; persist(next, 'เปลี่ยนชุดจาก MV'); return veaseState(player); }} />
     </div>
   {/if}
   {#if page === 'game'}
@@ -435,21 +445,20 @@
     />
   {:else if page !== 'world'}
     <main class="app-main relative">
-      <div class="relative flex h-[30dvh] min-h-[190px] max-h-[260px] items-end justify-between gap-3 px-4 pb-3" use:watchScenery>
-        <div class="min-w-0 rounded-md bg-white/85 px-2 py-1 text-[#254b61]"><small class="block text-[9px] font-semibold">MASQUE VEASE</small><strong class="block text-xs">{guideStop ? TOWN_MENUS[guideStop.id] : 'Fountain Square'}</strong></div>
-        <button class="flex min-h-10 shrink-0 items-center gap-1.5 rounded-md border border-white bg-white/85 px-3 text-xs font-semibold text-[#25566d]" onclick={() => navigate('world')} aria-label="เดินเล่นใน Masque Vease"><UsersRound size={16} />เข้าเมือง<ArrowUpRight size={15} /></button>
-      </div>
       {#key page}
-      <div class="page-transition relative border-t border-white/80 bg-[#f5f8fc]/95" in:fade={{ duration: 150 }}>
+      <div class="page-transition relative border-t border-white/80 bg-[#f5f8fc]/95" in:fly={{ y: motionReduced ? 0 : 8, duration: motionReduced ? 0 : 180 }}>
       <div class="page-shell">
-        <AppHeader {player} {vipActive} countdown={formatCountdown(refillCountdown)} onRefill={() => vipActive ? openVipShop() : openRefill()} onShop={() => navigate('shop')} onProfile={() => navigate('profile')} />
         {#if page === 'home'}
           <div class="home">
-            <div class="flex items-center justify-between py-2 text-xs"><span class="font-bold text-sky-700">MASQUE PLAYGROUND <span class="rounded border border-sky-300 px-1.5 py-0.5 text-[10px]">DEMO</span></span><button class="flex min-h-9 items-center gap-1" onclick={() => navigate('admin')} aria-label="เปิด Demo Admin"><Settings2 size={15} />Demo Studio</button></div>
-            <div class="welcome" class:vip={vipActive}>
-              <div><small>MASQUE GAME</small><h1>วันนี้เล่นอะไรดี?</h1><span>{vipActive ? 'VIP พร้อมลุยทุกเกม' : 'เลือกเกมที่ชอบ แล้วไปลุยกัน'}</span></div>
-              <button class="home-party" data-frame={player.demo.frameId} aria-label="เปลี่ยน Avatar และสัตว์เลี้ยง" onclick={() => navigate('avatar')}><AssetPortrait src={homeAvatar.imagePath} alt={homeAvatar.name} placeholder={homeAvatar.placeholder} kind="avatar" loading="eager" />{#if homePet}<span><AssetPortrait src={homePet.imagePath} alt={homePet.name} placeholder={homePet.placeholder} kind="pet" /></span>{/if}</button>
-            </div>
+            <div class="flex items-center justify-between gap-3 pt-2"><div><p class="text-[10px] font-semibold text-sky-700">MASQUE <span class="ml-1 rounded border border-sky-300 px-1 text-[9px]">DEMO</span></p><h1 class="text-xl font-bold leading-tight">Game Center</h1></div><button class="grid size-10 shrink-0 place-items-center rounded-md border border-white bg-white/60 text-sky-700 transition-transform active:scale-95 motion-reduce:transition-none" onclick={() => navigate('admin')} aria-label="เปิด Demo Admin" title="Demo Studio"><Settings2 size={18} /></button></div>
+            <section class="block">
+              <FeaturedGameCard game={featuredGame} {vipActive} onclick={() => navigate(`detail/${featuredGame.id}`)} />
+              <p class="mt-3 flex items-center justify-between px-1 text-xs text-[var(--g-muted)]"><span>Personal Best · SIMULATED</span><strong>{(player.demo.scores[featuredGame.id] ?? 0).toLocaleString()}</strong></p>
+            </section>
+            <section class="block">
+              <SectionHeading eyebrow="PICK YOUR NEXT PLAY" title="เกมทั้งหมด" chip={`${catalogGames.length + 1} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
+              <div class="game-list">{#each catalogGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} {vipActive} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 flex justify-between px-1 text-[11px] text-[var(--g-muted)]"><span>Personal Best</span><strong>{(player.demo.scores[game.id] ?? 0).toLocaleString()}</strong></p></div>{/each}</div>
+            </section>
             <button class="flex min-h-16 items-center gap-3 rounded-lg border border-white/80 bg-white/55 px-3 text-left shadow-sm transition-transform active:scale-[0.99]" onclick={() => navigate('world')}>
               <span class="h-12 w-10 shrink-0"><AssetPortrait src={homeAvatar.imagePath} alt="" placeholder={homeAvatar.placeholder} kind="avatar" /></span>
               <span class="min-w-0 flex-1"><strong class="block text-sm">{homeAvatar.name} พาเที่ยว Masque Vease</strong><small class="block text-xs text-[var(--g-muted)]">แวะร้าน เลือกเกม และเจอเพื่อนจำลอง</small></span>
@@ -464,16 +473,6 @@
               <DailyCheckinCard reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} />
             </section>
 
-            <section class="block">
-              <SectionHeading eyebrow="TODAY'S PICK" title="เกมแนะนำ" chip="HOT GAME">{#snippet icon()}<Flame size={20} fill="currentColor" />{/snippet}</SectionHeading>
-              <FeaturedGameCard game={featuredGame} {vipActive} onclick={() => navigate(`detail/${featuredGame.id}`)} />
-              <p class="mt-3 flex items-center justify-between px-1 text-xs text-[var(--g-muted)]"><span>Personal Best · SIMULATED</span><strong>{(player.demo.scores[featuredGame.id] ?? 0).toLocaleString()}</strong></p>
-            </section>
-
-            <section class="block">
-              <SectionHeading eyebrow="PICK YOUR NEXT PLAY" title="เกมทั้งหมด" chip={`${catalogGames.length + 1} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
-              <div class="game-list">{#each catalogGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} {vipActive} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 flex justify-between px-1 text-[11px] text-[var(--g-muted)]"><span>Personal Best</span><strong>{(player.demo.scores[game.id] ?? 0).toLocaleString()}</strong></p></div>{/each}</div>
-            </section>
           </div>
         {:else if page === 'detail'}
           {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId]} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('home')} onRefill={() => vipActive ? openVipShop() : openRefill()} onAvatar={() => navigate('avatar')} />{/key}
@@ -509,7 +508,7 @@
             onClock={(hours) => { const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + hours * 3_600_000 } }; now = demoNow(next); persist(refreshEnergy(next, now), 'เวลาจำลอง · ฟื้น Energy'); showToast('ปรับเวลาจำลองแล้ว'); }}
             onSeed={() => applyAction({ ...player, masquePoints: player.masquePoints + 500, aisPoints: player.aisPoints + 100 }, 'DEMO · เติมทุนจำลอง')} />
         {:else if page === 'avatar'}
-          <AvatarPage {player} {vipActive} {gachaBusy} onSelectAvatar={chooseAvatar} onEquipPet={chooseEquipPet} onGacha={startGacha} onWing={chooseWings} />
+          <PetGacha {player} busy={gachaBusy} onDraw={startGacha} />
         {:else if page === 'profile' || page === 'room'}
           {#key page}<ProfilePage {player} editable={page === 'room'} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onSave={(style, frameId) => applyAction(customizeProfile(player, style, frameId), 'บันทึกโปรไฟล์แล้ว')} />{/key}
         {:else if page === 'ranking'}
@@ -547,13 +546,6 @@
 <style>
   .app-frame.world-frame { display: block; width: min(100%, 460px); height: 100dvh; min-height: 100dvh; overflow: hidden; box-shadow: none; }
   @media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) { .app-frame.world-frame { display: none; } }
-  .welcome { display: flex; align-items: center; justify-content: space-between; min-height: 102px; padding: 0 10px; }
-  .welcome small { color: #9a83bc; font-size: 10px; font-weight: 900; }
-  .welcome h1 { margin: 5px 0; color: var(--g-ink); font-size: 23px; }
-  .welcome > div > span { color: var(--g-muted); font-size: 12px; }
-  .home-party { position: relative; width: 100px; height: 112px; flex: 0 0 auto; padding: 0; border: 0; background: transparent; }
-  .home-party > span { position: absolute; right: -5px; bottom: 0; width: 45px; height: 53px; }
-  .welcome.vip .home-party { filter: drop-shadow(0 0 10px #ffd472); }
   .home { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding-top: 4px; }
   .block { min-width: 0; }
   .hub-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 11px; }
