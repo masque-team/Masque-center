@@ -5,6 +5,7 @@
     variant = 'gold',
     size = 'md',
     disabled = false,
+    type = 'button',
     block = false,
     label,
     onclick,
@@ -13,6 +14,7 @@
     variant?: 'gold' | 'purple' | 'mint' | 'ghost';
     size?: 'sm' | 'md' | 'lg';
     disabled?: boolean;
+    type?: 'button' | 'submit' | 'reset';
     block?: boolean;
     label?: string;
     onclick?: () => void;
@@ -20,7 +22,7 @@
   } = $props();
 </script>
 
-<button class={`gbtn ${variant} ${size}`} class:block {disabled} aria-label={label} {onclick}>
+<button class={`gbtn ${variant} ${size}`} class:block {disabled} {type} aria-label={label} {onclick}>
   <span class="face">{@render children?.()}</span>
 </button>
 
@@ -57,7 +59,9 @@
     border-radius: 13px;
     background: linear-gradient(180deg, var(--top), var(--bottom));
     box-shadow: inset 0 2px 0 rgb(255 255 255 / 55%);
-    white-space: nowrap;
+    white-space: normal;
+    text-align: center;
+    overflow-wrap: anywhere;
   }
   .gbtn:active:not(:disabled) { transform: translateY(3px); padding-bottom: 1px; }
   .gbtn:disabled { filter: saturate(0.3); opacity: 0.62; cursor: not-allowed; }
@@ -73,7 +77,7 @@
 
   .purple { --edge: #4b32a8; --top: #a78bfa; --bottom: #7a5ce0; --ink: #fff; }
   .purple .face { text-shadow: 0 1px 0 rgb(60 30 130 / 55%); }
-  .mint { --edge: #198a63; --top: #7ee8b4; --bottom: #2fc48a; --ink: #fff; }
-  .mint .face { text-shadow: 0 1px 0 rgb(10 90 60 / 45%); }
+  .mint { --edge: #1d789c; --top: #6ac6e5; --bottom: #359ac3; --ink: #fff; }
+  .mint .face { text-shadow: 0 1px 0 rgb(20 80 110 / 35%); }
   .ghost { --edge: #cfc6ee; --top: #fff; --bottom: #f1ecff; --ink: #5a3fc0; box-shadow: 0 4px 9px rgb(90 70 160 / 12%); }
 </style>

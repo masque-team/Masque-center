@@ -3,7 +3,7 @@
 :root {
   font-family: 'Kanit', 'Noto Sans Thai', 'Trebuchet MS', sans-serif;
   color: #2b2468;
-  background: #cfc3f2;
+  background: #e5edf3;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -24,11 +24,19 @@
 * { box-sizing: border-box; }
 html, body, #app { width: 100%; min-height: 100%; margin: 0; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-body { min-height: 100dvh; overflow-x: hidden; background: #cfc3f2; }
+body { min-height: 100dvh; overflow-x: hidden; background: #e5edf3; }
 button, a, input, select { font: inherit; }
 a { color: inherit; text-decoration: none; }
 button { color: inherit; cursor: pointer; }
 button:disabled { cursor: not-allowed; }
+input, select, textarea { max-width: 100%; }
+:focus-visible { outline: 3px solid #208eb8; outline-offset: 3px; }
+progress { appearance: none; overflow: hidden; border: 0; border-radius: 4px; background: #dce6ee; }
+progress::-webkit-progress-bar { background: #dce6ee; }
+progress::-webkit-progress-value { border-radius: 4px; background: #359ac3; transition: width 0.3s ease; }
+progress::-moz-progress-bar { border-radius: 4px; background: #359ac3; }
+[data-frame='sunrise'] { outline: 3px solid #f5b73c; outline-offset: 3px; border-radius: 8px; box-shadow: 0 0 14px #f5b73c60; }
+[data-frame='ocean'] { outline: 3px solid #43b5db; outline-offset: 3px; border-radius: 8px; box-shadow: 0 0 14px #43b5db60; }
 
 .app-frame {
   position: relative;
@@ -37,10 +45,7 @@ button:disabled { cursor: not-allowed; }
   margin: 0 auto;
   overflow: clip;
   isolation: isolate;
-  background:
-    radial-gradient(circle at 12% 2%, rgb(255 255 255 / 85%) 0 7%, transparent 8%),
-    radial-gradient(circle at 88% 9%, rgb(255 255 255 / 70%) 0 5%, transparent 6%),
-    linear-gradient(180deg, #bfe6ff 0, #dcd2ff 340px, #f3ecff 640px, #fff8e8 100%);
+  background: linear-gradient(160deg, #e3f4fd 0, #e9e8fa 400px, #fce9ef 900px, #f5f8fc 100%);
   background-attachment: local;
   box-shadow: 0 6px 42px rgb(48 40 120 / 22%);
 }

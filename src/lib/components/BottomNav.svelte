@@ -6,7 +6,7 @@
 
   const TABS = [
     { id: 'home', href: '#home', label: 'เกม', icon: Gamepad2 },
-    { id: 'world', href: '#world', label: 'World', icon: Globe },
+    { id: 'world', href: '#world', label: 'Vease', icon: Globe },
     { id: 'shop', href: '#shop', label: 'Shop', icon: ShoppingBag },
     { id: 'rewards', href: '#rewards', label: 'Pass', icon: Crown },
     { id: 'avatar', href: '#avatar', label: 'Avatar', icon: Sparkles },

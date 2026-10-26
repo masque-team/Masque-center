@@ -1,0 +1,202 @@
+# Masque Game Center: PNG Production Brief
+
+## Delivery Rules
+
+- Deliver individual PNG files, not a contact sheet, collage or screenshot of a UI.
+- Transparent assets must contain real alpha transparency, not a checkerboard or white backdrop.
+- Use sRGB. Keep the original canvas size and transparent margins across every variant.
+- Original cute chibi fantasy art, polished game illustration, crisp silhouettes and readable at mobile size.
+- Palette: sky blue, coral pink, white and warm gold. No green-dominated or purple-dominated theme.
+- Light from upper left; consistent outlines and soft shading. No watermark, signatures or UI borders.
+- Keep labels, prices, numbers, player names and buttons OUT of the artwork. The app draws these as text.
+- Logos are the exception: supply a clean symbol version and a separate wordmark version.
+- Source PNGs go under `art-source/`, NEVER `dist/`. The build replaces `dist/`.
+- `public/` holds deployable art. Optimized WebP may be derived from PNG originals after review.
+- Do not overwrite current assets until dimensions, alignment and transparency have been checked.
+
+## Priority 1: Entry, Profile and Inventory
+
+| Filename | Size | Alpha | Use / Composition |
+| --- | --- | --- | --- |
+| `brand/masque-game-center-logo.png` | 1600 x 640 | Yes | Main Game Center wordmark, centered, 8% padding |
+| `brand/masque-vease-logo.png` | 1600 x 640 | Yes | Town wordmark, same family as main logo |
+| `entry/entry-island.png` | 1440 x 2560 | No | Portrait island town, open sky in upper 25%, quiet lower center for a name form |
+| `profile/canal-day.png` | 1600 x 1000 | No | Sunny canal town, unoccupied center for the player's Avatar |
+| `profile/cloud-club.png` | 1600 x 1000 | No | Sky terrace, blue and white clouds, open central floor |
+| `profile/atelier-dusk.png` | 1600 x 1000 | No | Pink evening atelier courtyard, open central floor |
+| `currency/arena-ticket.png` | 512 x 512 | Yes | Coral/gold admission ticket with crossed-swords symbol, NO text or quantity |
+| `currency/pet-gacha-ticket.png` | 512 x 512 | Yes | Sky/gold ticket with paw symbol, visibly different from Ranked ticket |
+| `currency/masque-point.png` | 512 x 512 | Yes | Gold coin, simple original Masque emblem |
+| `badges/first-finish.png` | 512 x 512 | Yes | Small silver medal with a finish flag |
+| `badges/ranked-debut.png` | 512 x 512 | Yes | Coral/gold shield with crossed swords |
+| `badges/explorer.png` | 512 x 512 | Yes | Sky blue compass medal |
+| `badges/season-top-1.png` | 512 x 512 | Yes | Gold trophy crest, no baked season name |
+| `badges/season-top-2.png` | 512 x 512 | Yes | Silver trophy crest, same silhouette |
+| `badges/season-top-3.png` | 512 x 512 | Yes | Bronze trophy crest, same silhouette |
+
+Start with the main logo, entry background, three profile backgrounds and Ranked ticket.
+Other images are polish, not blockers. Standard controls continue to use Lucide icons.
+
+### Already Supplied
+
+- Memory game's supplied logo is preserved at `public/images/mem.png`.
+- It is shown uncropped on the catalog and detail page. Do not regenerate or rename it.
+- Current profile backgrounds reuse existing town illustrations as placeholders.
+- The filenames in the table are the FINAL art handoff, not a claim that those files already exist.
+- When final backgrounds arrive, map them in `PROFILE_BACKGROUNDS` in `src/lib/data/config.ts`.
+- Entry and badge art need integration after delivery; the current app does not pretend missing PNGs exist.
+
+## Priority 2: Full-Body Characters and Wearable Wings
+
+Use FULL-BODY outfits first. The current system swaps a complete Avatar image; it is not a paper-doll rig.
+Generate the complete character in each outfit, leaving wings and magical effects on separate layers.
+
+### Avatar Master Canvas
+
+- PNG 1024 x 1024, real alpha, one character per file.
+- Front-facing slight 3/4 chibi view. Entire head, hands and shoes visible.
+- Same camera, scale, head-to-body ratio and pose for every outfit of one character.
+- Feet baseline at y = 940; body centered at x = 512; head top around y = 100.
+- Back attachment anchor: x = 512, y = 563. Do not move this between variants.
+- Keep at least 60px padding; never crop a hand, ear, hat or shoe.
+- No pet, wings, aura, background, floor shadow or lettering baked into the character.
+- Use a supplied current Avatar as the identity reference. Do not change face/skin/hair arbitrarily.
+
+| Filename | Art |
+| --- | --- |
+| `avatars/mali-default.png` | Mali, reference outfit |
+| `avatars/mali-festival.png` | Same Mali, coral/sky festival outfit |
+| `avatars/mali-ranked.png` | Same Mali, sporty Ranked outfit, no wings |
+| `avatars/nami-default.png` | Nami, identity reference |
+| `avatars/luna-default.png` | Luna, identity reference |
+
+Do not generate all ten characters before the first three Mali files pass an overlay alignment test.
+Current legacy World images are trimmed automatically; normalize them or adapt their anchors before
+mixing the new master canvases with legacy art. A matching filename alone does not guarantee alignment.
+
+### Wings
+
+- PNG 1024 x 1024, alpha; a symmetrical pair in the same image, NO character.
+- Attachment center at (512, 563), matching the Avatar back anchor.
+- Spread to x = 70..954, y = 170..800. Keep the very center relatively clear for the body.
+- Export `wings/sky-feather.png`: white feathers with sky blue shading and silver edges.
+- Export `wings/sunrise-seraph.png`: ivory/gold feathers with subtle coral jewel accents.
+- Optional later: `wings/moon-moth.png`, rose/silver fantasy moth wings, not neon purple.
+- PNG demo wings already exist under `public/assets/wings/`; these are programmatic illustrations,
+  not images from an AI generation service. `npm run art:cosmetics` regenerates and OVERWRITES them.
+- Final painted replacements should retain the names and anchors. Do not run that generator over finals.
+
+### Pets
+
+- PNG 1024 x 1024, alpha, full body, feet baseline y = 940, center x = 512.
+- One animal, no text, no wings or aura baked in. Keep its reference identity.
+- First files: `pets/pudding.png`, `pets/cloud.png`, `pets/frostwing.png`.
+- Rarity aura is rendered by the engine: Rare = blue, Epic = pink, Legendary = gold.
+- Pets currently have rarity, not individual XP/levels. Do not invent pet-level labels in the art.
+
+## Priority 3: Modular Head / Body Rig (Later)
+
+Only start this after choosing a modular dress-up system. It is NOT implemented by swapping arbitrary
+independently generated heads and bodies. Every part must be traced/aligned to ONE approved master.
+
+Keep every layer on the SAME untrimmed 1024 x 1024 canvas:
+
+1. `rig/mali/base-body.png`: skin/body, no head/hair/outfit.
+2. `rig/mali/head.png`: face/head; neck pivot at (512, 390).
+3. `rig/mali/hair-back.png` and `rig/mali/hair-front.png`.
+4. `rig/mali/outfit-default.png`, `outfit-festival.png`, `outfit-ranked.png`.
+5. `rig/mali/shoes-default.png` and `shoes-festival.png`.
+6. `rig/mali/hand-front.png` when an outfit needs an overlapping hand.
+7. `rig/mali/accessory-head.png`, optional headwear, same head pivot.
+
+Back-to-front order: aura -> rear hair -> wings -> base body -> outfit -> head -> front hair ->
+front hand -> head accessory. Avoid duplicated skin at the neck seam and baked shadows across layers.
+
+Ask for the layered source document as well as exported PNGs. Reject parts if the head size,
+neck width, shoulder angle or camera differs. Animation needs an additional rig/sprite-sheet spec;
+these static layers do not automatically provide a walk cycle.
+
+## Copyable Prompts
+
+### Shared Style Prefix
+
+```text
+Create one original production-ready mobile fantasy game art asset. Polished cute chibi illustration,
+clean confident outlines, carefully painted soft shading, consistent upper-left lighting, readable
+silhouette at small scale. Palette of sky blue, coral pink, ivory white and warm gold. Not green-heavy,
+not purple-heavy. No copyrighted characters, no watermark, no UI mockup, no collage, no extra assets.
+Follow the exact canvas, padding, alpha and attachment-anchor specification below.
+```
+
+### Entry Background
+
+```text
+[Use the shared style prefix.]
+Portrait 1440x2560 PNG. A welcoming miniature island town with coral-roofed arcade, sky-blue atelier,
+white stone walkways, turquoise canal and a small bridge. Clear architectural forms, soft daylight,
+no people, no text, no logo. Open sky in the upper quarter for a logo; keep the lower central region
+quiet for an interactive name-entry form. A single continuous scene, not divided panels. Solid image,
+no transparency. Filename: entry-island.png.
+```
+
+### Main Wordmark
+
+```text
+[Use the shared style prefix.]
+1600x640 PNG with real transparent alpha. Exact words: "MASQUE GAME CENTER".
+Original playful rounded game lettering, sky-blue primary letters with coral and restrained gold
+accents, compact wing/masquerade-inspired emblem, crisp contour, no background or banner panel.
+Keep all letters fully visible with 8 percent clear margins. Also deliver a symbol-only transparent
+version without text. Filename: masque-game-center-logo.png.
+```
+
+### Profile Background
+
+```text
+[Use the shared style prefix.]
+1600x1000 PNG, no alpha. Theme: [Canal Day / Cloud Club / Atelier Dusk]. Environmental illustration
+for a personalized player profile. Keep the middle 40 percent empty of people or foreground objects
+so a full-body Avatar can stand there. Low-detail edges in upper corners for earned achievement
+stickers. No character, badges, lettering, labels, border or UI. Filename: [profile filename].
+```
+
+### Full-Body Outfit
+
+```text
+[Use the shared style prefix and attach the approved Mali reference.]
+One complete full-body Mali character in [default/festival/ranked] outfit. Preserve exact identity,
+facial features, camera, pose and body proportions from the reference. 1024x1024 transparent PNG.
+Center x512; feet y940; head top y100; back attachment anchor x512,y563. No wings, aura, shadow,
+pet, floor or background. All hands and shoes visible. Do not crop or auto-trim the canvas.
+Filename: mali-[outfit].png.
+```
+
+### Wings
+
+```text
+[Use the shared style prefix.]
+One symmetrical pair of [sky-blue feather / ivory-gold seraph] fantasy wings only, viewed front-on
+to sit BEHIND a chibi Avatar. 1024x1024 PNG with real transparent alpha. Central attachment at
+x512,y563. Keep the center clear for the Avatar torso; wing tips within x70..954 and y170..800.
+No character, face, text, aura, drop shadow or background. Retain the full canvas without trimming.
+Filename: [sky-feather/sunrise-seraph].png.
+```
+
+### Ranked Ticket / Achievement Badge
+
+```text
+[Use the shared style prefix.]
+One [coral-gold admission ticket with crossed swords / achievement medal described in the table].
+512x512 PNG, true transparent alpha, object centered with 10 percent padding, readable at 32px.
+No price, digits, season name or text. No surrounding UI. Filename: [exact table filename].
+```
+
+## Acceptance Checklist
+
+- PNG decodes, sRGB, expected size, correct alpha; no checkerboard baked in.
+- Every asset is a separate correctly named file, lowercase ASCII, hyphenated.
+- Check logos at 160px width, tickets/badges at 32px and characters on light/dark backgrounds.
+- Overlay two outfits and wings to confirm unchanged feet and attachment positions.
+- Preview profile scenes at 320, 390, 430 and desktop widths; text remains rendered by the app.
+- Do not generate decorative button backgrounds, rasterized prices, progress bars or player names.
+- Magical auras are engine effects, not additional large PNGs or bloom postprocessing passes.

@@ -13,7 +13,7 @@
 
 <header class="bar">
   <button class="player" class:vip={isVipLook} onclick={onProfile} aria-label={`โปรไฟล์ ${player.displayName}`}>
-    <span class="thumb">
+    <span class="thumb" data-frame={player.demo.frameId}>
       <AssetPortrait src={avatar.imagePath} alt="" placeholder={avatar.placeholder} kind="avatar" loading="eager" className="thumb-img" style={`--avatar-color:${avatar.color}`} />
       <span class="lv">{player.level}</span>
       {#if pet}<span class="pet"><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" /></span>{/if}
@@ -24,7 +24,7 @@
     </span>
   </button>
 
-  <EnergyBadge energy={player.energy} {vipActive} {countdown} {onRefill} />
+  <EnergyBadge energy={player.energy} vipActive={vipActive && player.demo.config.vipUnlimited} max={player.demo.config.energyMax} {countdown} {onRefill} />
 
   <button class="wallet" onclick={onShop} aria-label={`เปิด Shop · Masque Points ${player.masquePoints}`}>
     <span class="coin" aria-hidden="true">M</span>

@@ -1,20 +1,20 @@
 <script lang="ts">
   import { Zap } from '@lucide/svelte';
-  import { ENERGY_CONFIG } from '../data/config';
 
-  let { energy, vipActive, countdown = '', onRefill }: {
+  let { energy, vipActive, countdown = '', onRefill, max = 12 }: {
     energy: number;
     vipActive: boolean;
     countdown?: string;
+    max?: number;
     onRefill: () => void;
   } = $props();
 </script>
 
 <button class="energy-badge" class:vip={vipActive} onclick={onRefill}
-  title={vipActive ? 'VIP · Energy ไม่จำกัด' : `Energy ${energy}/${ENERGY_CONFIG.max}${energy < ENERGY_CONFIG.max ? ` · +1 ใน ${countdown}` : ''}`}
-  aria-label={vipActive ? 'Energy ไม่จำกัด' : `Energy ${energy}/${ENERGY_CONFIG.max} · เติมพลังงาน`}
-  style={`--energy-fill:${vipActive ? 100 : energy / ENERGY_CONFIG.max * 100}%`}>
-  <span><Zap size={12} fill="currentColor" /><b>{vipActive ? '∞' : `${energy}/${ENERGY_CONFIG.max}`}</b></span>
+  title={vipActive ? 'VIP · Energy ไม่จำกัด' : `Energy ${energy}/${max}${energy < max ? ` · +1 ใน ${countdown}` : ''}`}
+  aria-label={vipActive ? 'Energy ไม่จำกัด' : `Energy ${energy}/${max} · เติมพลังงาน`}
+  style={`--energy-fill:${vipActive ? 100 : Math.min(100, energy / max * 100)}%`}>
+  <span><Zap size={12} fill="currentColor" /><b>{vipActive ? '∞' : `${energy}/${max}`}</b></span>
 </button>
 
 <style>

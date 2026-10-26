@@ -12,6 +12,7 @@
     onPlay: () => void; onBack: () => void; onRefill: () => void; onAvatar: () => void;
   } = $props();
   let tab = $state<'info' | 'ranking'>('info');
+  let unlimited = $derived(vipActive && player.demo.config.vipUnlimited);
   let period = $state<RankingPeriod>('weekly');
   let avatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
   let pet = $derived(PETS.find((item) => item.id === player.petId));
@@ -21,7 +22,7 @@
 
 <div class="page-stack">
   <div class="heading"><button title="กลับ" aria-label="กลับหน้าเกม" onclick={onBack}><ArrowLeft size={22} /></button><div><small>{game.genre}</small><h1>{game.name}</h1></div></div>
-  {#if game.cover}<img class="cover" src={`images/${game.cover}`} alt={game.name} />{:else}<div class="memory-cover"><span>?</span><span>♥</span><span>♥</span><span>?</span></div>{/if}
+  {#if game.cover}<img class="cover" class:logo={game.id === 'memory'} src={`images/${game.cover}`} alt={game.name} />{:else}<div class="memory-cover"><span>?</span><span>♥</span><span>♥</span><span>?</span></div>{/if}
   <div class="tabs" role="tablist" aria-label="ข้อมูลเกม">
     <button role="tab" aria-selected={tab === 'info'} class:on={tab === 'info'} onclick={() => tab = 'info'}><Info size={17} />ข้อมูลเกม</button>
     <button role="tab" aria-selected={tab === 'ranking'} class:on={tab === 'ranking'} onclick={() => tab = 'ranking'}><Trophy size={17} />อันดับ</button>
@@ -31,13 +32,13 @@
     <div class="party" class:vip={vipActive}>
       <div class="portraits"><AssetPortrait src={avatar.imagePath} alt={avatar.name} placeholder={avatar.placeholder} kind="avatar" />{#if pet}<span class="buddy"><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" /></span>{/if}</div>
       <div class="identity"><strong>{player.displayName}</strong><small>{avatar.name}{pet ? ` · ${pet.name}` : ''}</small><button onclick={onAvatar}><Shirt size={14} />เปลี่ยนตัวละคร</button></div>
-      <EnergyBadge energy={player.energy} {vipActive} {countdown} {onRefill} />
+      <EnergyBadge energy={player.energy} vipActive={unlimited} max={player.demo.config.energyMax} {countdown} {onRefill} />
     </div>
-    <div class="stats"><span><Trophy size={19} />คะแนนสูงสุด <b>{score.toLocaleString('en-US')}</b><small>คะแนนตัวอย่าง</small></span><span><Info size={19} />{vipActive ? 'VIP Energy' : 'ค่าเข้าเล่น'}<b>{vipActive ? '∞' : '1 Energy'}</b><small>{vipActive ? 'เล่นได้ไม่จำกัด' : 'ฟื้น 1 ทุก 30 นาที'}</small></span></div>
+    <div class="stats"><span><Trophy size={19} />คะแนนสูงสุด <b>{score.toLocaleString('en-US')}</b><small>SIMULATED SCORE</small></span><span><Info size={19} />{unlimited ? 'VIP Energy' : 'ค่าเข้าเล่น'}<b>{unlimited ? '∞' : `${player.demo.config.energyCost} Energy`}</b><small>{unlimited ? 'เล่นได้ไม่จำกัด' : `ฟื้น 1 ทุก ${player.demo.config.regenMinutes} นาที`}</small></span></div>
   {:else}
     <Leaderboard gameId={rankingGame} bind:period {player} currentScore={score} fixedGame />
   {/if}
-  <div class="play"><GameButton variant="purple" size="lg" block onclick={onPlay}><Play size={20} fill="currentColor" />เริ่มเล่น{vipActive ? '' : ' · 1 Energy'}</GameButton></div>
+  <div class="play"><GameButton variant="purple" size="lg" block onclick={onPlay}><Play size={20} fill="currentColor" />เริ่มเล่น{unlimited ? '' : ` · ${player.demo.config.energyCost} Energy`}</GameButton></div>
 </div>
 
 <style>
@@ -46,6 +47,7 @@
   h1 { margin: 0; font-size: 22px; color: var(--g-ink); line-height: 1.3; }
   small { font-size: 12px; color: var(--g-muted); }
   .cover { width: 100%; aspect-ratio: 1.6; object-fit: cover; object-position: center 38%; border-radius: 20px; border: 3px solid #fff; }
+  .cover.logo { object-fit: contain; object-position: center; background: #fff; }
   .memory-cover { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 170px; background: #c6e9eb; border-radius: 20px; }
   .memory-cover span { padding: 14px; background: #fff; border-radius: 8px; color: #9862cd; font-size: 28px; }
   .tabs { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: 16px; background: #e6dff5; gap: 4px; }

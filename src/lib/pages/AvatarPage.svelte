@@ -5,17 +5,18 @@
   import PageTitle from '../components/PageTitle.svelte';
   import Panel from '../components/Panel.svelte';
   import RarityChip from '../components/RarityChip.svelte';
-  import { AVATARS, PET_GACHA_COST, PETS } from '../data/config';
+  import { AVATARS, PETS, WINGS } from '../data/config';
   import { rarityOf } from '../data/rarity';
   import type { PlayerState } from '../types';
 
-  let { player, vipActive = false, gachaBusy, onSelectAvatar, onEquipPet, onGacha }: {
+  let { player, vipActive = false, gachaBusy, onSelectAvatar, onEquipPet, onGacha, onWing }: {
     player: PlayerState;
     vipActive?: boolean;
     gachaBusy: boolean;
     onSelectAvatar: (id: string) => void;
     onEquipPet: (id: string | null) => void;
     onGacha: () => void;
+    onWing: (id: string | null) => void;
   } = $props();
 
   let tab = $state<'avatar' | 'pet' | 'gacha'>('avatar');
@@ -27,10 +28,13 @@
   let petId = $derived(pickedPet === undefined ? player.petId : pickedPet);
   let avatar = $derived(AVATARS.find((item) => item.id === avatarId) ?? AVATARS[0]);
   let pet = $derived(PETS.find((item) => item.id === petId) ?? null);
+  let wing = $derived(WINGS.find((wing) => wing.id === player.demo.wingId));
   let avatarOwned = $derived(player.ownedAvatarIds.includes(avatar.id));
   let petOwned = $derived(pet ? player.ownedPetIds.includes(pet.id) : true);
   let hasTicket = $derived(player.gachaTickets > 0);
-  let canGacha = $derived(!gachaBusy && (hasTicket || player.masquePoints >= PET_GACHA_COST));
+  let PET_GACHA_COST = $derived(player.demo.config.gachaCost);
+  let totalWeight = $derived(player.demo.config.gachaPool.reduce((sum, item) => sum + item.weight, 0));
+  let canGacha = $derived(!gachaBusy && totalWeight > 0 && (hasTicket || player.masquePoints >= PET_GACHA_COST));
   let focus = $derived(tab === 'pet' && pet ? pet : avatar);
   let focusStyle = $derived(rarityOf(focus.rarity));
   let isVipLook = $derived(vipActive || avatar.rarity === 'VIP');
@@ -63,13 +67,21 @@
     {/if}
     <span class="floor"></span>
     <div class="pair">
-      <span class="hero"><AssetPortrait src={avatar.imagePath} alt={avatar.name} placeholder={avatar.placeholder} kind="avatar" loading="eager" className="stage-art" /></span>
+      {#if wing}<img class="pointer-events-none absolute inset-0 h-full w-full scale-150 object-contain" src={wing.imagePath} alt={wing.name} />{/if}
+      <span class="hero" data-frame={player.demo.frameId}><AssetPortrait src={avatar.imagePath} alt={avatar.name} placeholder={avatar.placeholder} kind="avatar" loading="eager" className="stage-art" /></span>
       {#if pet}<span class="buddy"><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" loading="eager" className="stage-art" /></span>{/if}
     </div>
     <div class="info">
       <div><strong>{avatar.name}</strong><RarityChip rarity={avatar.rarity} size="md" /></div>
       <small>{#if pet}คู่หู: {pet.name}{:else}ยังไม่มีสัตว์เลี้ยง{/if}{#if isVipLook} · ✦ แสงออร่า VIP{/if}</small>
     </div>
+  </section>
+
+  <section class="flex flex-wrap items-center gap-2 border-y border-white py-2" aria-label="ปีกที่มี">
+    <h2 class="text-xs font-semibold">Wings</h2>
+    <button class="min-h-10 rounded-md px-2 text-xs" aria-pressed={!player.demo.wingId} onclick={() => onWing(null)}>ไม่ใส่</button>
+    {#each WINGS.filter((wing) => player.demo.wings.includes(wing.id)) as item (item.id)}<button class="flex min-h-10 items-center gap-2 rounded-md border border-white bg-white/50 px-2 text-xs" aria-pressed={player.demo.wingId === item.id} class:ring-2={player.demo.wingId === item.id} onclick={() => onWing(item.id)}><img class="h-10 w-12 object-contain" src={item.imagePath} alt="" />{item.name}</button>{/each}
+    {#if !player.demo.wings.length}<a class="text-xs text-sky-700 underline" href="#shop">เลือกปีกใน Shop</a>{/if}
   </section>
 
   <div class="tabs" role="tablist" aria-label="หมวดหมู่">
@@ -156,7 +168,7 @@
         </div>
 
         <h2>Pet Gacha</h2>
-        <p>สุ่มรับสัตว์เลี้ยงคู่หู · ใช้ตั๋วก่อน ถ้าไม่มีตั๋วใช้ {PET_GACHA_COST} MP (ซ้ำรับคืน +15 MP)</p>
+        <p>ใช้ตั๋วก่อน ถ้าไม่มีใช้ {PET_GACHA_COST} MP · ซ้ำคืน {player.demo.config.duplicatePoints} MP · ไม่สวมให้อัตโนมัติ</p>
 
         <div class="wallet">
           <span class:dim={!hasTicket}><Ticket size={16} />ตั๋ว <b>{player.gachaTickets}</b></span>
@@ -167,6 +179,7 @@
           {#if gachaBusy}กำลังสุ่ม...{:else if hasTicket}<Ticket size={18} />ใช้ตั๋วสุ่ม 1 ครั้ง{:else}<Coins size={18} />สุ่ม {PET_GACHA_COST} MP{/if}
         </GameButton>
         {#if !canGacha && !gachaBusy}<small class="hint">MP ไม่พอ · แลกแต้มที่ Shop หรือรับตั๋วจาก Pass</small>{/if}
+        <details class="w-full text-left text-xs"><summary class="min-h-10 cursor-pointer py-3 font-semibold">โอกาสได้รับ Pet</summary><div class="grid grid-cols-2 gap-2">{#each player.demo.config.gachaPool as item (item.petId)}<span>{item.petId}</span><span class="text-right">{totalWeight ? (item.weight / totalWeight * 100).toFixed(1) : '0'}%</span>{/each}</div></details>
 
         <div class="pool">
           <div class="pool-head">

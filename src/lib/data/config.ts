@@ -19,15 +19,15 @@ export const PLAYER_MOCK_CONFIG = {
   gachaTickets: 0,
   avatarId: 'mali',
   ownedAvatarIds: ['mali'],
-  petId: null,
+  petId: 'pudding',
   ownedPetIds: ['pudding', 'cloud'],
 } as const;
 
 export const EXCHANGE_RATE = 10;
 
 export const VIP_PACKAGES: VipPackage[] = [
-  { id: 'five-day', label: '5-Day VIP Pass', durationDays: 5, cost: 180, reward: 'Pet Gacha Ticket x1' },
-  { id: 'seven-day', label: '7-Day VIP Pass', durationDays: 7, cost: 240, reward: 'Masque Points +80' },
+  { id: 'five-day', label: '5-Day VIP Pass', durationDays: 5, cost: 180, reward: 'Pet Gacha Ticket x1', bonusPoints: 0, bonusTickets: 1 },
+  { id: 'seven-day', label: '7-Day VIP Pass', durationDays: 7, cost: 240, reward: 'Masque Points +80', bonusPoints: 80, bonusTickets: 0 },
 ];
 
 export const BATTLE_PASS = {
@@ -79,6 +79,17 @@ export const PETS = [
 ];
 
 export const PET_GACHA_COST = 90;
+
+export const PROFILE_BACKGROUNDS = [
+  { id: 'canal-day', name: 'Canal Day', imagePath: 'assets/world/house-coral.webp' },
+  { id: 'cloud-club', name: 'Cloud Club', imagePath: 'assets/world/house-sky.webp' },
+  { id: 'atelier-dusk', name: 'Atelier Dusk', imagePath: 'assets/world/house-lilac.webp' },
+] as const;
+
+export const WINGS = [
+  { id: 'sky-feather', name: 'Sky Feather', rarity: 'Rare', color: '#84d4ee', imagePath: 'assets/wings/sky-feather.png', cost: 140 },
+  { id: 'sunrise-seraph', name: 'Sunrise Seraph', rarity: 'Legendary', color: '#f8c65f', imagePath: 'assets/wings/sunrise-seraph.png', cost: 280 },
+] as const;
 
 export const SHOP_ITEMS: { id: string; kind: 'avatar' | 'pet'; itemId: string; cost: number }[] = [
   { id: 'avatar-flora', kind: 'avatar', itemId: 'flora', cost: 120 },

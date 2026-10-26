@@ -20,7 +20,7 @@
 </script>
 
 <button class="card" style={`--i:${index}`} {onclick} aria-label={`เล่น ${game.name}`}>
-  <span class="cover">
+  <span class="cover" class:logo={game.id === 'memory'}>
     {#if game.cover}
       <img src={`images/${game.cover}`} alt="" loading={index < 2 ? 'eager' : 'lazy'} decoding="async" onerror={useFallback} />
     {:else}
@@ -63,6 +63,8 @@
 
   .cover { position: relative; display: block; aspect-ratio: 1 / 0.86; overflow: hidden; border: 2.5px solid #fff; border-bottom: 0; border-radius: 18px 18px 0 0; background: linear-gradient(145deg, #86d4f5, #8a7ee3); }
   .cover img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: 50% 42%; }
+  .cover.logo { background: #fff; }
+  .cover.logo img { object-fit: contain; object-position: center; }
   .tag-slot { position: absolute; top: 8px; left: 7px; }
   .go { position: absolute; right: 7px; bottom: 7px; display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid #fff; border-radius: 11px; color: #6b3d00; background: linear-gradient(180deg, #fff09a, #ffb42b); box-shadow: 0 3px 0 #c4770d, 0 5px 8px rgb(40 20 0 / 30%); }
 

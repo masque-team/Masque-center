@@ -3,14 +3,14 @@
   import AssetPortrait from './AssetPortrait.svelte';
   import GameButton from './GameButton.svelte';
   import RarityChip from './RarityChip.svelte';
-  import { AVATARS, SHOP_ITEMS, ENERGY_CONFIG, EXCHANGE_RATE, PETS, VIP_PACKAGES } from '../data/config';
+  import { AVATARS, PETS, WINGS } from '../data/config';
   import { rarityOf } from '../data/rarity';
   import type { ModalState, PlayerState } from '../types';
 
   let {
     modal, player, exchangeAmount, checkinReward,
     onClose, onPickRefill, onConfirmRefill, onConfirmVip, onConfirmExchange,
-    onOpenRefill, onOpenVip, onOpenExchange, onWait, onConfirmItem,
+    onOpenRefill, onOpenVip, onOpenExchange, onWait, onConfirmItem, onConfirmAction = () => {},
   }: {
     modal: ModalState;
     player: PlayerState;
@@ -26,30 +26,62 @@
     onOpenExchange: () => void;
     onWait: () => void;
     onConfirmItem: () => void;
+    onConfirmAction?: () => void;
   } = $props();
 
+  let SHOP_ITEMS = $derived(player.demo.config.shop);
+  let ENERGY_CONFIG = $derived({ max: player.demo.config.energyMax, refillPacks: player.demo.config.energyPacks });
+  let EXCHANGE_RATE = $derived(player.demo.config.exchangeRate);
+  let VIP_PACKAGES = $derived(player.demo.config.vipPlans);
   let vip = $derived(modal?.kind === 'vip-confirm' ? VIP_PACKAGES.find((pack) => pack.id === modal.packageId) ?? null : null);
   let refill = $derived(modal?.kind === 'refill-confirm' ? ENERGY_CONFIG.refillPacks.find((pack) => pack.id === modal.refillId) ?? null : null);
   let pet = $derived(modal?.kind === 'gacha-result' ? PETS.find((item) => item.id === modal.petId) ?? null : null);
   let petStyle = $derived(pet ? rarityOf(pet.rarity) : rarityOf('Common'));
   let vipShort = $derived(vip ? Math.max(0, vip.cost - player.masquePoints) : 0);
   let refillShort = $derived(refill ? Math.max(0, refill.cost - player.masquePoints) : 0);
-  let refillAfter = $derived(refill ? Math.min(ENERGY_CONFIG.max, player.energy + refill.energy) : player.energy);
+  let refillAfter = $derived(refill ? player.energy + refill.energy : player.energy);
   let celebrate = $derived(modal?.kind === 'gacha-result' || modal?.kind === 'checkin-success' || (modal?.kind === 'notice' && modal.tone === 'success'));
   let shopItem = $derived(modal?.kind === 'item-confirm' ? SHOP_ITEMS.find((item) => item.id === modal.itemId) : undefined);
   let shopArt = $derived(shopItem ? (shopItem.kind === 'avatar' ? AVATARS : PETS).find((item) => item.id === shopItem.itemId) : undefined);
+  let wing = $derived(shopItem?.kind === 'wing' ? WINGS.find((wing) => wing.id === shopItem.itemId) : undefined);
+
+  function focusDialog(node: HTMLElement) {
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const elements = () => Array.from(node.querySelectorAll<HTMLElement>('button:not([disabled]), input, select, a[href]'));
+    queueMicrotask(() => elements()[0]?.focus());
+    function trap(event: KeyboardEvent) {
+      if (event.key !== 'Tab') return;
+      const focusable = elements();
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+    node.addEventListener('keydown', trap);
+    return { destroy() { node.removeEventListener('keydown', trap); document.body.style.overflow = overflow; previous?.focus(); } };
+  }
 </script>
 
 <svelte:window onkeydown={(event) => { if (event.key === 'Escape' && modal) onClose(); }} />
 
 {#if modal}
   <div class="backdrop" role="presentation" onclick={onClose}>
-    <div class="card" class:spot={modal.kind === 'gacha-result'} role="dialog" tabindex="-1" aria-modal="true" onclick={(event) => event.stopPropagation()} onkeydown={(event) => event.stopPropagation()}>
+    <div class="card" use:focusDialog class:spot={modal.kind === 'gacha-result'} role="dialog" tabindex="-1" aria-label="รายการ Game Center" aria-modal="true" onclick={(event) => event.stopPropagation()} onkeydown={(event) => event.stopPropagation()}>
       <button class="close" aria-label="ปิดหน้าต่าง" onclick={onClose}><X size={18} strokeWidth={3} /></button>
-      {#if celebrate}<div class="confetti" aria-hidden="true">{#each Array.from({ length: 14 }) as _, i}<i style={`--n:${i}`}></i>{/each}</div>{/if}
+      {#if celebrate}<div class="confetti" aria-hidden="true">{#each Array.from({ length: 14 }) as _, i (i)}<i style={`--n:${i}`}></i>{/each}</div>{/if}
 
-      {#if shopItem && shopArt}
-        <div style="width:120px;height:150px;margin:0 auto 12px"><AssetPortrait src={shopArt.imagePath} alt={shopArt.name} placeholder={shopArt.placeholder} kind={shopItem.kind} loading="eager" /></div>
+      {#if shopItem?.kind === 'wing' && wing}
+        <img class="mx-auto h-40 w-48 object-contain" src={wing.imagePath} alt={wing.name} /><h2>{wing.name}</h2><RarityChip rarity={wing.rarity} />
+        <div class="receipt"><div><span>ราคา</span><b>{shopItem.cost} MP</b></div><div><span>ยอดปัจจุบัน</span><b>{player.masquePoints} MP</b></div></div>
+        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton><GameButton disabled={player.masquePoints < shopItem.cost} onclick={onConfirmItem}>ยืนยันซื้อ</GameButton></div>
+      {:else if shopItem?.kind === 'frame'}
+        <div class="medal blue"><Sparkles size={32} /></div><h2>{shopItem.itemId === 'sunrise' ? 'Sunrise Frame' : 'Ocean Frame'}</h2>
+        <div class="receipt"><div><span>ราคา</span><b>{shopItem.cost} MP</b></div><div><span>ยอดปัจจุบัน</span><b>{player.masquePoints} MP</b></div></div>
+        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton><GameButton disabled={player.masquePoints < shopItem.cost} onclick={onConfirmItem}>ยืนยันซื้อ</GameButton></div>
+      {:else if shopItem && shopArt}
+        <div style="width:120px;height:150px;margin:0 auto 12px"><AssetPortrait src={shopArt.imagePath} alt={shopArt.name} placeholder={shopArt.placeholder} kind={shopItem.kind === 'avatar' ? 'avatar' : 'pet'} loading="eager" /></div>
         <h2>{shopArt.name}</h2>
         <RarityChip rarity={shopArt.rarity} size="md" />
         <div class="receipt"><div><span>ราคา</span><b>{shopItem.cost} MP</b></div><div><span>ยอดปัจจุบัน</span><b>{player.masquePoints} MP</b></div></div>
@@ -60,7 +92,7 @@
         <div class="medal gold"><Crown size={34} fill="currentColor" /></div>
         <p class="eyebrow">VIP PASS · ราคาตัวอย่าง</p>
         <h2>{vip.label}</h2>
-        <ul class="perks"><li><Zap size={13} fill="currentColor" />Energy ไม่จำกัด</li><li><Check size={13} strokeWidth={3.5} />รางวัล + ภารกิจ VIP</li><li><Check size={13} strokeWidth={3.5} />สร้างห้องเล่นกับเพื่อน</li></ul>
+        <ul class="perks"><li><Zap size={13} fill="currentColor" />{player.demo.config.vipUnlimited ? 'Energy ไม่จำกัด' : 'VIP Profile Badge'}</li><li><Check size={13} strokeWidth={3.5} />{vip.reward}</li></ul>
         <div class="receipt">
           <div><span>ระยะเวลา</span><b>{vip.durationDays} วัน</b></div>
           <div><span>ของแถม</span><b>{vip.reward}</b></div>
@@ -91,17 +123,16 @@
           <div><span>ใช้แต้ม</span><b class="cost"><Coins size={14} />{refill.cost} MP</b></div>
           <div class="after"><span>Energy หลังเติม</span><b>{refillAfter}/{ENERGY_CONFIG.max}</b></div>
         </div>
-        {#if player.energy >= ENERGY_CONFIG.max}<div class="short info"><Check size={16} />Energy เต็มอยู่แล้ว</div>
-        {:else if refillShort > 0}<div class="short"><TriangleAlert size={16} />แต้มไม่พอ ขาดอีก <b>{refillShort.toLocaleString('en-US')}</b> MP</div>{/if}
+        {#if refillShort > 0}<div class="short"><TriangleAlert size={16} />แต้มไม่พอ ขาดอีก <b>{refillShort.toLocaleString('en-US')}</b> MP</div>{/if}
         <div class="actions">
           <GameButton variant="ghost" size="md" onclick={onClose}>ยกเลิก</GameButton>
           {#if refillShort > 0}<GameButton variant="mint" size="md" onclick={onOpenExchange}><Coins size={16} />แลกแต้ม</GameButton>
-          {:else}<GameButton variant="purple" size="md" disabled={player.energy >= ENERGY_CONFIG.max} onclick={onConfirmRefill}>ยืนยันเติม<Zap size={16} fill="currentColor" /></GameButton>{/if}
+          {:else}<GameButton variant="purple" size="md" onclick={onConfirmRefill}>ยืนยันเติม<Zap size={16} fill="currentColor" /></GameButton>{/if}
         </div>
 
       {:else if modal.kind === 'exchange-confirm'}
         <div class="medal green"><Coins size={34} /></div>
-        <p class="eyebrow">AIS POINTS EXCHANGE</p>
+        <p class="eyebrow">DEMO · AIS POINTS EXCHANGE</p>
         <h2>ยืนยันการแลกแต้ม</h2>
         <div class="swap"><div><small>ใช้</small><b>{exchangeAmount}</b><span>AIS</span></div><ArrowRight size={22} /><div class="gain"><small>ได้รับ</small><b>{exchangeAmount * EXCHANGE_RATE}</b><span>MP</span></div></div>
         <div class="receipt">
@@ -116,10 +147,10 @@
           <span class="rays" aria-hidden="true"></span>
           <AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" loading="eager" className="reveal-pet" />
         </div>
-        <div class="newtag" class:dup={modal.duplicate}>{modal.duplicate ? 'ซ้ำ! คืน 15 MP' : 'NEW!'}</div>
+        <div class="newtag" class:dup={modal.duplicate}>{modal.duplicate ? `ซ้ำ! คืน ${player.demo.config.duplicatePoints} MP` : 'NEW!'}</div>
         <h2>{pet.name}</h2>
         <RarityChip rarity={pet.rarity} size="md" />
-        <p class="summary">{modal.duplicate ? 'ได้ Pet ตัวนี้อยู่แล้ว ระบบคืนแต้มให้บางส่วน' : 'เพิ่มเข้า Pet Collection และพาไปด้วยให้แล้ว'}</p>
+        <p class="summary">{modal.duplicate ? 'ได้ Pet ตัวนี้อยู่แล้ว คืนแต้มตามกติกาเดโม' : 'เพิ่มเข้า Pet Collection แล้ว เลือกใช้งานได้ที่ Avatar & Pets'}</p>
         <div class="actions one"><GameButton variant="gold" size="lg" onclick={onClose}><Sparkles size={18} />เยี่ยมเลย</GameButton></div>
 
       {:else if modal.kind === 'checkin-success'}
@@ -134,13 +165,17 @@
         <div class="medal blue empty"><Zap size={34} /></div>
         <p class="eyebrow">ENERGY EMPTY</p>
         <h2>Energy หมดแล้ว</h2>
-        <p class="summary">รอ Energy ฟื้นทีละ 1 ทุก 30 นาที เติมด้วย Masque Points หรือปลดล็อก VIP เพื่อเล่นได้ไม่จำกัด</p>
+        <p class="summary">Energy ฟื้นทีละ 1 ทุก {player.demo.config.regenMinutes} นาที หรือเติมด้วย Masque Points</p>
         <div class="stack">
           <GameButton variant="purple" size="md" onclick={onOpenRefill}><Zap size={16} fill="currentColor" />เติม Energy</GameButton>
           <GameButton variant="gold" size="md" onclick={onOpenVip}><Crown size={16} fill="currentColor" />ซื้อ VIP · Energy ∞</GameButton>
           <GameButton variant="ghost" size="md" onclick={onWait}><Clock3 size={16} />รอ Energy ฟื้น</GameButton>
         </div>
 
+      {:else if modal.kind === 'action-confirm'}
+        <div class="medal blue"><Sparkles size={32} /></div>
+        <h2>{modal.title}</h2><p class="summary">{modal.message}</p>
+        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton><GameButton onclick={onConfirmAction}>{modal.label}</GameButton></div>
       {:else if modal.kind === 'notice'}
         <div class={`medal ${modal.tone === 'success' ? 'green' : modal.tone === 'warn' ? 'orange' : 'blue'}`}>
           {#if modal.tone === 'success'}<Check size={36} strokeWidth={3.5} />{:else if modal.tone === 'warn'}<TriangleAlert size={32} />{:else}<Sparkles size={32} />{/if}

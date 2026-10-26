@@ -1,99 +1,174 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Flame, Gamepad2 } from '@lucide/svelte';
+  import { fade } from 'svelte/transition';
+  import { SvelteDate } from 'svelte/reactivity';
+  import { Flame, Gamepad2, Swords, Trophy, UsersRound, ReceiptText, Settings2, ArrowUpRight } from '@lucide/svelte';
   import AppHeader from './lib/components/AppHeader.svelte';
-  import BattlePassPromo from './lib/components/BattlePassPromo.svelte';
   import BottomNav from './lib/components/BottomNav.svelte';
   import DailyCheckinCard from './lib/components/DailyCheckinCard.svelte';
   import GameDetailPage from './lib/pages/GameDetailPage.svelte';
   import FeaturedGameCard from './lib/components/FeaturedGameCard.svelte';
   import GameCard from './lib/components/GameCard.svelte';
   import GameScreen from './lib/components/GameScreen.svelte';
+  import EntryPage from './lib/pages/EntryPage.svelte';
   import ModalHost from './lib/components/ModalHost.svelte';
   import SectionHeading from './lib/components/SectionHeading.svelte';
   import Toast from './lib/components/Toast.svelte';
   import AvatarPage from './lib/pages/AvatarPage.svelte';
-  import PassPage from './lib/pages/PassPage.svelte';
-  import ProfilePage from './lib/pages/ProfilePage.svelte';
+  import PassPage from './lib/pages/SeasonPage.svelte';
+  import BattlePage from './lib/pages/BattlePage.svelte';
+  import WalletPage from './lib/pages/WalletPage.svelte';
+  import ProfilePage from './lib/pages/ProfileShowcase.svelte';
   import RankingPage from './lib/pages/RankingPage.svelte';
-  import RoomPage from './lib/pages/RoomPage.svelte';
+  import AdminPage from './lib/pages/AdminPage.svelte';
   import ShopPage from './lib/pages/ShopPage.svelte';
-  import WorldPage from './lib/pages/WorldPage.svelte';
-  import { AVATARS, PETS, BATTLE_PASS, ENERGY_CONFIG, PET_GACHA_COST } from './lib/data/config';
+  import WorldPage from './lib/pages/MasqueVease.svelte';
+  import { townDestination, TOWN_MENUS } from './lib/world/town';
+  import { AVATARS, PETS } from './lib/data/config';
   import AssetPortrait from './lib/components/AssetPortrait.svelte';
   import { GAMES, GAME_BY_ID } from './lib/data/games';
-  import { battlePassLevel } from './lib/services/battlePassService';
+  import { MOCK_RANKINGS } from './lib/data/mockRankings';
   import { selectAvatar } from './lib/services/avatarService';
   import { isVip, nextRefillIn, refreshEnergy, refillEnergy, spendGameEnergy } from './lib/services/energyService';
   import { purchaseVip } from './lib/services/passService';
   import { drawPet, equipPet } from './lib/services/petService';
-  import { loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
-  import { addMockMissionXp, claimBattlePassReward } from './lib/services/rewardService';
-  import { createRoomCode } from './lib/services/roomService';
-  import { exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
-  import type { GameId, ModalState, Page, PlayerState, RankingPeriod, ShopTab, VipPackage } from './lib/types';
+  import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
+  import { buyArenaTickets, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
+  import { beginGame, buyPremium, claimPass, claimMission as completeMission, currentPass, currentSeason, demoNow, finishGame, ledger, recordPlayTime, validateConfig, claimRankingReward } from './lib/services/demoService';
+  import type { DemoConfig, GameId, GameMode, ModalState, Page, PlayerState, RankingPeriod, ShopTab, VipPackage } from './lib/types';
   import './app.css';
 
-  const mockScores: Record<GameId, number> = { bird: 47, mole: 1250, run: 640, fruit: 780, timber: 320, duck: 520, memory: 18 };
-  const CHECKIN_REWARD = 35;
   const WEEKDAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
   const initialQuery = new URLSearchParams(window.location.search);
   const resetMockRequested = initialQuery.get('resetMock') === '1';
+  const queryName = initialQuery.get('name')?.trim().replace(/\s+/g, ' ').slice(0, 40) || null;
+  const aisPointSeed = parseAisPointSeed(initialQuery.get('aispoint'));
   let player = $state<PlayerState>(loadPlayer(
-    initialQuery.get('name'),
-    parseAisPointSeed(initialQuery.get('aispoint')),
+    queryName,
+    aisPointSeed,
     resetMockRequested,
   ));
+  let sessionName = $state(queryName ?? '');
+  let hasEntered = $state(!!queryName);
+  let mockScores = $derived({ bird: 0, mole: 0, run: 0, fruit: 0, timber: 0, duck: 0, memory: 0, ...player.demo.scores });
+  let CHECKIN_REWARD = $derived(player.demo.config.checkinReward);
   let page = $state<Page>('home');
+  let sceneryVisible = $state(true);
+  let guideStop = $derived(townDestination(page));
   let gameId = $state<GameId>('bird');
   let rankingGameId = $state<GameId>('bird');
   let rankingPeriod = $state<RankingPeriod>('weekly');
   let modal = $state<ModalState>(null);
+  let confirmAction = $state<(() => void) | null>(null);
+  let activeSessionId = $state('');
   let now = $state(Date.now());
   let gameLoading = $state(true);
   let gameFallback = $state(false);
   let iframeVersion = $state(0);
   let iframeTimeout: ReturnType<typeof setTimeout> | undefined;
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  let gachaTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastPlaySample = performance.now();
+  let playClockVisible = !document.hidden;
   let shopTab = $state<ShopTab>('items');
   let exchangeAmount = $state(1);
-  let roomCode = $state('');
   let joinCode = $state('');
-  let roomCreated = $state(false);
   let gachaBusy = $state(false);
-  let pendingEnergyEntry = $state(false);
   let toast = $state('');
-  let currentGame = $derived(GAME_BY_ID[gameId]);
+  let currentGame = $derived(player.demo.config.games.find((game) => game.id === gameId) ?? GAME_BY_ID[gameId]);
   let homeAvatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
   let homePet = $derived(PETS.find((item) => item.id === player.petId));
-  let featuredGame = $derived(GAMES.find((game) => game.featured) ?? GAMES[0]);
-  let catalogGames = $derived(GAMES.filter((game) => game.id !== featuredGame.id).sort((left, right) => (left.displayOrder ?? 99) - (right.displayOrder ?? 99)));
+  let featuredGame = $derived(player.demo.config.games.find((game) => game.featured && game.published !== false) ?? player.demo.config.games.find((game) => game.published !== false) ?? GAMES[0]);
+  let catalogGames = $derived(player.demo.config.games.filter((game) => game.id !== featuredGame.id && game.published !== false).sort((left, right) => (left.displayOrder ?? 99) - (right.displayOrder ?? 99)));
   let vipActive = $derived(isVip(player, now));
-  let passLevel = $derived(battlePassLevel(player));
-  let passCompleted = $derived(player.battlePassXp >= BATTLE_PASS.totalLevels * BATTLE_PASS.xpPerLevel);
-  let passXp = $derived(passCompleted ? BATTLE_PASS.xpPerLevel : player.battlePassXp % BATTLE_PASS.xpPerLevel);
+  let passLevel = $derived(Math.min(currentSeason(player).free.length, Math.floor(currentPass(player).xp / 100) + 1));
   let refillCountdown = $derived(nextRefillIn(player, now));
   let checkedInToday = $derived(player.checkinDates.includes(todayKey(new Date(now))));
-  let dailyPlayed = $derived(player.claimedMissions.includes(`daily-played-${todayKey(new Date(now))}`));
-  let dailyClaimed = $derived(player.claimedMissions.includes(`daily-${todayKey(new Date(now))}`));
   let checkinDays = $derived(WEEKDAY_LABELS.map((label, index) => ({
     label,
     done: player.checkinDates.includes(checkinKeyForDay(index)),
     today: index === (new Date(now).getDay() + 6) % 7,
   })));
-  let vipUntil = $derived(player.vipExpiresAt ? new Date(player.vipExpiresAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) : '');
 
-  function persist(next = player): void {
-    player = next;
+  function persist(next = player, label = 'รายการเดโม'): void {
+    player = ledger(player, next, label);
     savePlayer(player);
   }
 
-  function todayKey(date = new Date()): string {
+  function enterSession(name: string): void {
+    const displayName = name.trim().replace(/\s+/g, ' ').slice(0, 40);
+    if (!displayName) return;
+    sessionName = displayName;
+    player = { ...player, displayName };
+    savePlayer(player);
+    hasEntered = true;
+    handleRoute();
+  }
+
+  function watchScenery(node: HTMLElement) {
+    const observer = new IntersectionObserver(([entry]) => { sceneryVisible = entry.isIntersecting; });
+    observer.observe(node);
+    return { destroy() { observer.disconnect(); } };
+  }
+
+  function chooseWings(id: string | null) { applyAction(equipWings(player, id), id ? 'ใส่ปีกแล้ว' : 'ถอดปีกแล้ว'); }
+
+  function requestAction(title: string, message: string, label: string, action: () => void): void {
+    confirmAction = action;
+    modal = { kind: 'action-confirm', title, message, label };
+  }
+
+  function applyAction(next: PlayerState | null, label: string): void {
+    if (!next) { showToast('ทำรายการไม่ได้ กรุณาตรวจสอบยอดหรือสถานะ'); return; }
+    persist(next, label);
+    showToast(label);
+  }
+
+  function saveConfig(config: DemoConfig): void {
+    const error = validateConfig(config);
+    if (error) { showToast(error); return; }
+    config.vipPlans = config.vipPlans.map((plan) => ({ ...plan, reward: `${plan.bonusPoints ?? 0} MP + ${plan.bonusTickets ?? 0} Gacha Tickets` }));
+    persist({ ...player, demo: { ...player.demo, config } });
+    showToast('บันทึกแล้ว · หน้าผู้เล่นอัปเดตตามการตั้งค่า');
+  }
+
+  function resetDemo(): void {
+    requestAction('Reset Demo?', 'ล้างข้อมูลเดโมทั้งหมดในเครื่อง แล้วคืนค่าตัวอย่างเริ่มต้น', 'ยืนยัน Reset', () => {
+      if (gachaTimer) window.clearTimeout(gachaTimer);
+      gachaBusy = false;
+      player = { ...loadPlayer(queryName, aisPointSeed, true), displayName: sessionName };
+      now = demoNow(player);
+      activeSessionId = '';
+      navigate('home');
+      showToast('รีเซ็ตเดโมแล้ว');
+    });
+  }
+
+  function resetRanking(): void {
+    requestAction('รีเซ็ต Season Ranking?', `${player.demo.config.rankingSeasonId} · Lifetime จะไม่เปลี่ยน`, 'รีเซ็ต Season', () => {
+      const id = player.demo.config.rankingSeasonId;
+      persist({ ...player, demo: { ...player.demo, rankingResets: [...new Set([...player.demo.rankingResets, id])], seasonScores: { ...player.demo.seasonScores, [id]: {} } } });
+      showToast('รีเซ็ตคะแนน Season แล้ว');
+    });
+  }
+
+  function simulateFinish(): void {
+    flushPlayTime();
+    const score = Math.round(MOCK_RANKINGS[gameId][0].score * (0.7 + Math.random() * 0.6));
+    const reward = player.demo.sessions.find((session) => session.id === activeSessionId)?.reward ?? { points: 0, xp: 40 };
+    const next = finishGame(player, activeSessionId, score);
+    if (!next) return;
+    persist(next, 'จบเกมจำลอง');
+    navigate(`detail/${gameId}`);
+    modal = { kind: 'notice', tone: 'success', title: 'SIMULATED · เล่นจบแล้ว', message: `${score} คะแนน · +${reward.xp} EXP${reward.points ? ` · +${reward.points} MP` : ''} · อัปเดตผลงานแล้ว` };
+  }
+
+  function todayKey(date = new Date(now)): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
 
   function checkinKeyForDay(index: number): string {
-    const date = new Date(now);
+    const date = new SvelteDate(now);
     const mondayOffset = (date.getDay() + 6) % 7;
     date.setDate(date.getDate() - mondayOffset + index);
     return todayKey(date);
@@ -106,31 +181,25 @@
   }
 
   function handleRoute(): void {
+    if (!hasEntered) return;
+    flushPlayTime();
     clearIframeTimeout();
     const [routePath, hashQuery = ''] = window.location.hash.replace(/^#/, '').split('?');
     const [route, requestedGame] = routePath.split('/');
-    const routes: Page[] = ['home', 'world', 'shop', 'rewards', 'ranking', 'avatar', 'profile', 'room'];
+    const routes: Page[] = ['home', 'world', 'shop', 'rewards', 'ranking', 'avatar', 'profile', 'room', 'battle', 'wallet', 'admin'];
     if (route === 'detail' && requestedGame && Object.hasOwn(GAME_BY_ID, requestedGame)) {
       gameId = requestedGame as GameId;
       page = 'detail';
-      pendingEnergyEntry = false;
       window.scrollTo({ top: 0 });
       return;
     }
     if (route === 'game' && requestedGame && requestedGame in GAME_BY_ID) {
-      if (!pendingEnergyEntry) {
-        const next = spendGameEnergy(player, now);
-        if (!next) {
-          page = 'home';
-          modal = { kind: 'energy-empty' };
-          return;
-        }
-        persist(next);
-      }
-      pendingEnergyEntry = false;
+      const sessionId = new URLSearchParams(hashQuery).get('session');
+      const session = player.demo.sessions.find((entry) => entry.id === sessionId && entry.gameId === requestedGame);
+      if (!session) { enterGame(requestedGame as GameId, new URLSearchParams(hashQuery).get('mode') === 'ranked' ? 'ranked' : 'casual'); return; }
+      activeSessionId = session.id;
       page = 'game';
       gameId = requestedGame as GameId;
-      recordDailyGameEntry();
       gameLoading = true;
       gameFallback = false;
       iframeVersion += 1;
@@ -139,29 +208,34 @@
       }, 15_000);
       return;
     }
-    pendingEnergyEntry = false;
     const inviteCode = new URLSearchParams(hashQuery).get('code');
     if (route === 'room' && inviteCode) joinCode = inviteCode.toUpperCase();
     page = routes.includes(route as Page) ? route as Page : 'home';
     window.scrollTo({ top: 0 });
   }
 
-  function enterGame(id: GameId): void {
-    const next = spendGameEnergy(player, now);
+  function enterGame(id: GameId, mode: GameMode = 'casual'): void {
+    if (player.demo.config.games.find((game) => game.id === id)?.published === false) { showToast('เกมนี้ปิดชั่วคราวโดย Demo Admin'); return; }
+    if (mode === 'ranked' && !player.demo.config.battleEnabled) { showToast('Arena ปิดชั่วคราว'); return; }
+    const next = beginGame(player, id, mode);
     if (!next) {
-      modal = { kind: 'energy-empty' };
+      modal = mode === 'ranked' ? { kind: 'notice', tone: 'warn', title: 'บัตรเข้า Ranked ไม่พอ', message: 'ซื้อบัตรเข้า Ranked ได้ที่ Shop' } : { kind: 'energy-empty' };
       return;
     }
-    persist(next);
-    pendingEnergyEntry = true;
-    navigate(`game/${id}`);
+    const sessionId = next.demo.sessions.at(-1)!.id;
+    persist(next, mode === 'ranked' ? 'ใช้บัตรเข้า Ranked' : 'เข้าเล่นเกม');
+    navigate(`game/${id}?session=${sessionId}&mode=${mode}`);
   }
 
-  function recordDailyGameEntry(): void {
-    const missionId = `daily-played-${todayKey()}`;
-    if (!player.claimedMissions.includes(missionId)) {
-      persist({ ...player, claimedMissions: [...player.claimedMissions, missionId] });
+  function flushPlayTime(): void {
+    const sample = performance.now();
+    const elapsed = sample - lastPlaySample;
+    lastPlaySample = sample;
+    if (playClockVisible && hasEntered && page === 'game' && !gameLoading && !gameFallback) {
+      const next = recordPlayTime(player, activeSessionId, elapsed);
+      if (next !== player) { player = next; savePlayer(player); }
     }
+    playClockVisible = !document.hidden;
   }
 
   function openRefill(refillId = 'small'): void {
@@ -185,7 +259,7 @@
 
   function claimCheckin(): void {
     if (player.checkinDates.includes(todayKey())) return;
-    persist({ ...player, checkinDates: [...player.checkinDates, todayKey()], masquePoints: player.masquePoints + CHECKIN_REWARD });
+    persist({ ...player, checkinDates: [...player.checkinDates, todayKey()], masquePoints: player.masquePoints + CHECKIN_REWARD }, 'Daily check-in');
     modal = { kind: 'checkin-success' };
   }
 
@@ -196,21 +270,21 @@
       modal = { kind: 'notice', tone: 'warn', title: 'ซื้อ VIP ไม่สำเร็จ', message: 'Masque Points ไม่เพียงพอ' };
       return;
     }
-    persist(next);
-    modal = { kind: 'notice', tone: 'success', title: 'VIP เปิดใช้งานแล้ว!', message: 'Energy ไม่จำกัด พร้อมปลดล็อกรางวัลและภารกิจ VIP' };
+    persist(next, 'ซื้อ VIP');
+    modal = { kind: 'notice', tone: 'success', title: 'VIP เปิดใช้งานแล้ว!', message: 'สิทธิ์ VIP และวันหมดอายุอัปเดตแล้ว · Premium Battle Pass ซื้อแยกตามซีซัน' };
   }
 
   function confirmRefill(): void {
     if (modal?.kind !== 'refill-confirm') return;
     const refillId = modal.refillId;
-    const pack = ENERGY_CONFIG.refillPacks.find((item) => item.id === refillId);
+    const pack = player.demo.config.energyPacks.find((item) => item.id === refillId);
     if (!pack) return;
-    const next = refillEnergy(player, pack.energy, pack.cost);
+    const next = refillEnergy(player, pack.energy, pack.cost, demoNow(player));
     if (!next) {
       modal = { kind: 'notice', tone: 'warn', title: 'เติม Energy ไม่สำเร็จ', message: 'ตรวจสอบยอด Masque Points หรือ Energy ปัจจุบันของคุณ' };
       return;
     }
-    persist(next);
+    persist(next, 'ซื้อ Energy');
     modal = { kind: 'notice', tone: 'success', title: 'เติม Energy สำเร็จ!', message: `ได้รับ Energy +${pack.energy}` };
   }
 
@@ -221,7 +295,7 @@
       modal = { kind: 'notice', tone: 'warn', title: 'ซื้อไม่สำเร็จ', message: 'แต้มไม่พอ หรือมีสินค้านี้แล้ว' };
       return;
     }
-    persist(next);
+    persist(next, 'ซื้อของเข้าคอลเลกชัน');
     modal = { kind: 'notice', tone: 'success', title: 'เพิ่มเข้าคอลเลกชันแล้ว', message: 'เลือกใช้งานได้ที่ Avatar & Pets' };
   }
 
@@ -232,43 +306,8 @@
       modal = { kind: 'notice', tone: 'warn', title: 'แลกไม่สำเร็จ', message: 'ตรวจสอบจำนวน AIS Points ของคุณ' };
       return;
     }
-    persist(next);
-    modal = { kind: 'notice', tone: 'success', title: 'แลกสำเร็จ!', message: `ได้รับ ${amount * 10} Masque Points` };
-  }
-
-  function claimReward(index: number, track: 'free' | 'vip'): void {
-    if (track === 'vip' && !vipActive) return;
-    const next = claimBattlePassReward(player, track, index);
-    if (!next) return;
-    persist(next);
-    const reward = track === 'vip' ? BATTLE_PASS.vipRewards[index] : BATTLE_PASS.freeRewards[index];
-    showToast(`${reward.title} รับแล้ว`);
-  }
-
-  function claimAllRewards(): void {
-    let next = player;
-    let count = 0;
-    BATTLE_PASS.freeRewards.forEach((_, index) => {
-      const claimed = claimBattlePassReward(next, 'free', index);
-      if (claimed) { next = claimed; count += 1; }
-    });
-    if (vipActive) {
-      BATTLE_PASS.vipRewards.forEach((_, index) => {
-        const claimed = claimBattlePassReward(next, 'vip', index);
-        if (claimed) { next = claimed; count += 1; }
-      });
-    }
-    if (!count) return;
-    persist(next);
-    showToast(`รับรางวัล ${count} รายการแล้ว`);
-  }
-
-  function claimMission(): void {
-    const missionId = `daily-${todayKey()}`;
-    if (!player.claimedMissions.includes(`daily-played-${todayKey()}`)) return;
-    if (player.claimedMissions.includes(missionId)) return;
-    persist({ ...addMockMissionXp(player, 50), claimedMissions: [...player.claimedMissions, missionId] });
-    showToast('รับ 50 XP แล้ว');
+    persist(next, 'DEMO · แลก AIS Points');
+    modal = { kind: 'notice', tone: 'success', title: 'แลกสำเร็จ!', message: `ได้รับ ${amount * player.demo.config.exchangeRate} Masque Points (จำลอง)` };
   }
 
   function chooseAvatar(avatarId: string): void {
@@ -287,16 +326,16 @@
 
   function startGacha(): void {
     if (gachaBusy) return;
-    if (player.gachaTickets <= 0 && player.masquePoints < PET_GACHA_COST) {
+    if (player.gachaTickets <= 0 && player.masquePoints < player.demo.config.gachaCost) {
       modal = { kind: 'notice', tone: 'warn', title: 'Masque Points ไม่พอ', message: 'แลก AIS Points ใน Shop เพื่อสุ่ม Pet ได้เลย' };
       return;
     }
     gachaBusy = true;
-    window.setTimeout(() => {
+    gachaTimer = window.setTimeout(() => {
       const result = drawPet(player);
       gachaBusy = false;
       if (!result) return;
-      persist(result.player);
+      persist(result.player, 'Pet Gacha');
       modal = { kind: 'gacha-result', petId: result.petId, duplicate: result.duplicate };
     }, 900);
   }
@@ -307,15 +346,6 @@
     toastTimer = window.setTimeout(() => (toast = ''), 1800);
   }
 
-  function makeRoom(): void {
-    if (!vipActive) {
-      modal = { kind: 'notice', tone: 'info', title: 'สร้างห้องสำหรับ VIP', message: 'VIP Pass ปลดล็อกการสร้างห้องเล่นกับเพื่อน' };
-      return;
-    }
-    roomCode = createRoomCode();
-    roomCreated = true;
-  }
-
   function formatCountdown(milliseconds: number): string {
     const totalSeconds = Math.ceil(milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -324,6 +354,7 @@
   }
 
   function onIframeLoad(): void {
+    lastPlaySample = performance.now();
     gameLoading = false;
     gameFallback = false;
     clearIframeTimeout();
@@ -345,6 +376,7 @@
   }
 
   onMount(() => {
+    now = demoNow(player);
     if (resetMockRequested) {
       const cleanUrl = new URL(window.location.href);
       cleanUrl.searchParams.delete('resetMock');
@@ -352,11 +384,14 @@
     }
     const routeChanged = (): void => handleRoute();
     const timer = window.setInterval(() => {
-      now = Date.now();
+      flushPlayTime();
+      now = demoNow(player);
       const refreshed = refreshEnergy(player, now);
-      if (refreshed !== player) persist(refreshed);
+      if (refreshed !== player) persist(refreshed, 'ฟื้น Energy');
     }, 1000);
     window.addEventListener('hashchange', routeChanged);
+    document.addEventListener('visibilitychange', flushPlayTime);
+    window.addEventListener('pagehide', flushPlayTime);
     if (window.location.hash) handleRoute();
     else window.location.hash = '#home';
     persist(refreshEnergy(player, now));
@@ -364,16 +399,28 @@
       window.clearInterval(timer);
       clearIframeTimeout();
       if (toastTimer) window.clearTimeout(toastTimer);
+      if (gachaTimer) window.clearTimeout(gachaTimer);
       window.removeEventListener('hashchange', routeChanged);
+      document.removeEventListener('visibilitychange', flushPlayTime);
+      window.removeEventListener('pagehide', flushPlayTime);
     };
   });
 </script>
 
-<div class="app-frame">
+{#if !hasEntered}
+  <EntryPage {aisPointSeed} onEnter={enterSession} />
+{:else}
+<div class="app-frame" class:world-frame={page === 'world'}>
+  {#if page !== 'game'}
+    <div class="fixed inset-y-0 left-1/2 w-full max-w-[460px] -translate-x-1/2">
+      <WorldPage {player} {vipActive} activeRoute={page} active={page === 'world' || sceneryVisible} onEquipPet={chooseEquipPet} onNavigate={navigate} onToast={showToast} />
+    </div>
+  {/if}
   {#if page === 'game'}
     <GameScreen
       game={currentGame}
       {player}
+      sessionId={activeSessionId}
       {vipActive}
       loading={gameLoading}
       fallback={gameFallback}
@@ -383,46 +430,53 @@
       onError={() => (gameFallback = true)}
       onReload={reloadGame}
       onRefill={() => vipActive ? openVipShop() : openRefill()}
+      onFinish={simulateFinish}
+      finished={player.demo.sessions.find((session) => session.id === activeSessionId)?.finished ?? false}
     />
-  {:else}
-    <main class="app-main">
+  {:else if page !== 'world'}
+    <main class="app-main relative">
+      <div class="relative flex h-[30dvh] min-h-[190px] max-h-[260px] items-end justify-between gap-3 px-4 pb-3" use:watchScenery>
+        <div class="min-w-0 rounded-md bg-white/85 px-2 py-1 text-[#254b61]"><small class="block text-[9px] font-semibold">MASQUE VEASE</small><strong class="block text-xs">{guideStop ? TOWN_MENUS[guideStop.id] : 'Fountain Square'}</strong></div>
+        <button class="flex min-h-10 shrink-0 items-center gap-1.5 rounded-md border border-white bg-white/85 px-3 text-xs font-semibold text-[#25566d]" onclick={() => navigate('world')} aria-label="เดินเล่นใน Masque Vease"><UsersRound size={16} />เข้าเมือง<ArrowUpRight size={15} /></button>
+      </div>
+      {#key page}
+      <div class="page-transition relative border-t border-white/80 bg-[#f5f8fc]/95" in:fade={{ duration: 150 }}>
       <div class="page-shell">
         <AppHeader {player} {vipActive} countdown={formatCountdown(refillCountdown)} onRefill={() => vipActive ? openVipShop() : openRefill()} onShop={() => navigate('shop')} onProfile={() => navigate('profile')} />
         {#if page === 'home'}
           <div class="home">
+            <div class="flex items-center justify-between py-2 text-xs"><span class="font-bold text-sky-700">MASQUE PLAYGROUND <span class="rounded border border-sky-300 px-1.5 py-0.5 text-[10px]">DEMO</span></span><button class="flex min-h-9 items-center gap-1" onclick={() => navigate('admin')} aria-label="เปิด Demo Admin"><Settings2 size={15} />Demo Studio</button></div>
             <div class="welcome" class:vip={vipActive}>
               <div><small>MASQUE GAME</small><h1>วันนี้เล่นอะไรดี?</h1><span>{vipActive ? 'VIP พร้อมลุยทุกเกม' : 'เลือกเกมที่ชอบ แล้วไปลุยกัน'}</span></div>
-              <button class="home-party" aria-label="เปลี่ยน Avatar และสัตว์เลี้ยง" onclick={() => navigate('avatar')}><AssetPortrait src={homeAvatar.imagePath} alt={homeAvatar.name} placeholder={homeAvatar.placeholder} kind="avatar" loading="eager" />{#if homePet}<span><AssetPortrait src={homePet.imagePath} alt={homePet.name} placeholder={homePet.placeholder} kind="pet" /></span>{/if}</button>
+              <button class="home-party" data-frame={player.demo.frameId} aria-label="เปลี่ยน Avatar และสัตว์เลี้ยง" onclick={() => navigate('avatar')}><AssetPortrait src={homeAvatar.imagePath} alt={homeAvatar.name} placeholder={homeAvatar.placeholder} kind="avatar" loading="eager" />{#if homePet}<span><AssetPortrait src={homePet.imagePath} alt={homePet.name} placeholder={homePet.placeholder} kind="pet" /></span>{/if}</button>
             </div>
+            <button class="flex min-h-16 items-center gap-3 rounded-lg border border-white/80 bg-white/55 px-3 text-left shadow-sm transition-transform active:scale-[0.99]" onclick={() => navigate('world')}>
+              <span class="h-12 w-10 shrink-0"><AssetPortrait src={homeAvatar.imagePath} alt="" placeholder={homeAvatar.placeholder} kind="avatar" /></span>
+              <span class="min-w-0 flex-1"><strong class="block text-sm">{homeAvatar.name} พาเที่ยว Masque Vease</strong><small class="block text-xs text-[var(--g-muted)]">แวะร้าน เลือกเกม และเจอเพื่อนจำลอง</small></span>
+              <ArrowUpRight size={19} class="shrink-0 text-sky-700" />
+            </button>
+            <div class="space-y-2 border-y border-white/80 py-3"><div class="flex justify-between text-xs"><span>LV.{player.level} · Profile EXP</span><strong>{player.demo.profileXp % 100} / 100</strong></div><progress class="h-1.5 w-full accent-sky-600" value={player.demo.profileXp % 100} max="100" aria-label="Profile EXP"></progress></div>
+            <nav class="grid grid-cols-4 gap-2 py-3" aria-label="กิจกรรม">
+              {#each [{ route: 'battle', label: 'Ranked', icon: Swords, color: 'text-rose-600' }, { route: 'ranking', label: 'Ranking', icon: Trophy, color: 'text-amber-600' }, { route: 'room', label: 'My Space', icon: UsersRound, color: 'text-sky-600' }, { route: 'wallet', label: 'Wallet', icon: ReceiptText, color: 'text-indigo-600' }] as item (item)}<button class="grid min-h-18 justify-items-center gap-1 rounded-lg border border-white/80 bg-white/45 py-3 text-xs font-semibold" onclick={() => navigate(item.route)}><item.icon size={23} class={item.color} />{item.label}</button>{/each}
+            </nav>
+            <button class="flex w-full items-center justify-between gap-3 border-y border-white bg-white/35 px-2 py-3 text-left" onclick={() => navigate('rewards')}><span><small class="text-sky-700">CURRENT SEASON</small><strong class="block">{currentSeason(player).name}</strong></span><ArrowUpRight size={22} /></button>
             <section class="block hub-row">
               <DailyCheckinCard reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} />
-              <BattlePassPromo
-                {player}
-                level={passLevel}
-                xp={passXp}
-                completed={passCompleted}
-                {vipActive}
-                {vipUntil}
-                onOpen={() => navigate('rewards')}
-                onShop={openVipShop}
-                onRoom={() => navigate('room')}
-              />
             </section>
 
             <section class="block">
               <SectionHeading eyebrow="TODAY'S PICK" title="เกมแนะนำ" chip="HOT GAME">{#snippet icon()}<Flame size={20} fill="currentColor" />{/snippet}</SectionHeading>
               <FeaturedGameCard game={featuredGame} {vipActive} onclick={() => navigate(`detail/${featuredGame.id}`)} />
+              <p class="mt-3 flex items-center justify-between px-1 text-xs text-[var(--g-muted)]"><span>Personal Best · SIMULATED</span><strong>{(player.demo.scores[featuredGame.id] ?? 0).toLocaleString()}</strong></p>
             </section>
 
             <section class="block">
-              <SectionHeading eyebrow="PICK YOUR NEXT PLAY" title="เกมทั้งหมด" chip={`${GAMES.length} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
-              <div class="game-list">{#each catalogGames as game, index (game.id)}<GameCard {game} {index} {vipActive} onclick={() => navigate(`detail/${game.id}`)} />{/each}</div>
+              <SectionHeading eyebrow="PICK YOUR NEXT PLAY" title="เกมทั้งหมด" chip={`${catalogGames.length + 1} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
+              <div class="game-list">{#each catalogGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} {vipActive} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 flex justify-between px-1 text-[11px] text-[var(--g-muted)]"><span>Personal Best</span><strong>{(player.demo.scores[game.id] ?? 0).toLocaleString()}</strong></p></div>{/each}</div>
             </section>
           </div>
         {:else if page === 'detail'}
           {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId]} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('home')} onRefill={() => vipActive ? openVipShop() : openRefill()} onAvatar={() => navigate('avatar')} />{/key}
-        {:else if page === 'world'}
-          <WorldPage {player} {vipActive} onNavigate={navigate} onToast={showToast} />
         {:else if page === 'shop'}
           <ShopPage
             {player}
@@ -435,34 +489,35 @@
             onRefill={openRefill}
             onVip={openVipConfirm}
             onRoom={() => navigate('room')}
+            onEquipWing={chooseWings}
+            onBuyTickets={(quantity) => requestAction('ซื้อบัตรเข้า Ranked', `${quantity} ใบ · ${quantity * player.demo.config.arenaTicketPrice} MP`, 'ยืนยันซื้อบัตร', () => applyAction(buyArenaTickets(player, quantity), 'ซื้อบัตรเข้า Ranked แล้ว'))}
           />
         {:else if page === 'rewards'}
           <PassPage
             {player}
-            {vipActive}
-            {vipUntil}
-            level={passLevel}
-            xp={passXp}
-            completed={passCompleted}
-            {dailyPlayed}
-            {dailyClaimed}
-            onClaim={claimReward}
-            onClaimAll={claimAllRewards}
-            onClaimMission={claimMission}
+            onClaim={(index, track) => applyAction(claimPass(player, track, index), 'รับรางวัล Battle Pass แล้ว')}
+            onPremium={() => requestAction('Premium Battle Pass', `${player.demo.config.premiumPrice} MP · เฉพาะ ${currentSeason(player).name} · แยกจาก VIP`, 'ยืนยันซื้อ', () => applyAction(buyPremium(player), 'เปิด Premium Pass แล้ว'))}
+            onMission={() => applyAction(completeMission(player), 'รับ Pass XP แล้ว')}
             onPlay={() => navigate('home')}
-            onVip={openVipConfirm}
-            onRoom={() => navigate('room')}
           />
+        {:else if page === 'battle'}
+          <BattlePage {player} onShop={() => { shopTab = 'items'; navigate('shop'); }} onEnter={(id) => requestAction('เข้า Ranked', 'ใช้บัตรเข้า Ranked 1 ใบ · ไม่ใช้ Energy', 'เข้าเล่น Ranked', () => enterGame(id, 'ranked'))} />
+        {:else if page === 'wallet'}
+          <WalletPage {player} onShop={openExchange} />
+        {:else if page === 'admin'}
+          <AdminPage {player} onSave={saveConfig} onReset={resetDemo} onRankingReset={resetRanking}
+            onClock={(hours) => { const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + hours * 3_600_000 } }; now = demoNow(next); persist(refreshEnergy(next, now), 'เวลาจำลอง · ฟื้น Energy'); showToast('ปรับเวลาจำลองแล้ว'); }}
+            onSeed={() => applyAction({ ...player, masquePoints: player.masquePoints + 500, aisPoints: player.aisPoints + 100 }, 'DEMO · เติมทุนจำลอง')} />
         {:else if page === 'avatar'}
-          <AvatarPage {player} {vipActive} {gachaBusy} onSelectAvatar={chooseAvatar} onEquipPet={chooseEquipPet} onGacha={startGacha} />
-        {:else if page === 'profile'}
-          <ProfilePage {player} {vipActive} {passLevel} onNavigate={navigate} onRefill={() => openRefill()} />
+          <AvatarPage {player} {vipActive} {gachaBusy} onSelectAvatar={chooseAvatar} onEquipPet={chooseEquipPet} onGacha={startGacha} onWing={chooseWings} />
+        {:else if page === 'profile' || page === 'room'}
+          {#key page}<ProfilePage {player} editable={page === 'room'} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onSave={(style, frameId) => applyAction(customizeProfile(player, style, frameId), 'บันทึกโปรไฟล์แล้ว')} />{/key}
         {:else if page === 'ranking'}
-          <RankingPage {player} bind:gameId={rankingGameId} bind:period={rankingPeriod} scores={mockScores} />
-        {:else if page === 'room'}
-          <RoomPage {player} {vipActive} {roomCode} {roomCreated} bind:joinCode onCreate={makeRoom} onStart={() => navigate('detail/bird')} onVip={openVipShop} onToast={showToast} />
+          <RankingPage {player} bind:gameId={rankingGameId} bind:period={rankingPeriod} scores={mockScores} onClaim={(id) => applyAction(claimRankingReward(player, id), 'รับรางวัล Ranking แล้ว')} />
         {/if}
       </div>
+      </div>
+      {/key}
       <BottomNav {page} />
     </main>
   {/if}
@@ -481,13 +536,17 @@
   onConfirmVip={confirmVip}
   onConfirmExchange={confirmExchange}
   onConfirmItem={confirmItem}
+  onConfirmAction={() => { const action = confirmAction; confirmAction = null; modal = null; action?.(); }}
   onOpenRefill={() => openRefill()}
   onOpenVip={() => { modal = null; openVipShop(); }}
   onOpenExchange={openExchange}
   onWait={() => { modal = null; navigate('home'); }}
 />
+{/if}
 
 <style>
+  .app-frame.world-frame { display: block; width: min(100%, 460px); height: 100dvh; min-height: 100dvh; overflow: hidden; box-shadow: none; }
+  @media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) { .app-frame.world-frame { display: none; } }
   .welcome { display: flex; align-items: center; justify-content: space-between; min-height: 102px; padding: 0 10px; }
   .welcome small { color: #9a83bc; font-size: 10px; font-weight: 900; }
   .welcome h1 { margin: 5px 0; color: var(--g-ink); font-size: 23px; }

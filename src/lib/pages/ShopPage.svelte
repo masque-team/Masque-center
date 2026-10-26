@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { ArrowRight, Check, Coins, Crown, Gift, Minus, Plus, ShoppingBag, UsersRound, Zap } from '@lucide/svelte';
+  import { ArrowRight, Check, Coins, Crown, Gift, Minus, Plus, ShoppingBag, Ticket, UsersRound, Zap } from '@lucide/svelte';
   import GameButton from '../components/GameButton.svelte';
   import PageTitle from '../components/PageTitle.svelte';
   import Panel from '../components/Panel.svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
   import RarityChip from '../components/RarityChip.svelte';
-  import { AVATARS, PETS, SHOP_ITEMS, ENERGY_CONFIG, EXCHANGE_RATE, VIP_PACKAGES } from '../data/config';
+  import { AVATARS, PETS, WINGS } from '../data/config';
   import type { PlayerState, ShopTab } from '../types';
 
-  let { player, vipActive, now, tab = $bindable(), amount = $bindable(), onExchange, onRefill, onVip, onRoom, onBuy }: {
+  let { player, vipActive, now, tab = $bindable(), amount = $bindable(), onExchange, onRefill, onVip, onRoom, onBuy, onEquipWing, onBuyTickets }: {
     player: PlayerState;
     vipActive: boolean;
     now: number;
@@ -19,6 +19,8 @@
     onVip: (packageId: string) => void;
     onRoom: () => void;
     onBuy: (id: string) => void;
+    onEquipWing: (id: string | null) => void;
+    onBuyTickets: (quantity: number) => void;
   } = $props();
 
   const TABS: { id: ShopTab; label: string }[] = [
@@ -28,6 +30,11 @@
     { id: 'vip', label: 'VIP' },
   ];
 
+  let SHOP_ITEMS = $derived(player.demo.config.shop.filter((item) => item.kind === 'avatar' || item.kind === 'pet'));
+  let ENERGY_CONFIG = $derived({ max: player.demo.config.energyMax, refillPacks: player.demo.config.energyPacks });
+  let EXCHANGE_RATE = $derived(player.demo.config.exchangeRate);
+  let VIP_PACKAGES = $derived(player.demo.config.vipPlans);
+  let unlimited = $derived(vipActive && player.demo.config.vipUnlimited);
   let validAmount = $derived(Number.isInteger(amount) && amount >= 1 && amount <= player.aisPoints);
   let gain = $derived(validAmount ? amount * EXCHANGE_RATE : 0);
   let quick = $derived([1, 5, 10].filter((value) => value <= player.aisPoints));
@@ -36,6 +43,9 @@
   let category = $state<'all' | 'avatar' | 'pet'>('all');
   let previewAvatarId = $state<string | null>(null);
   let previewPetId = $state<string | null>(null);
+  let previewWingId = $state<string | undefined>(undefined);
+  let ticketQuantity = $state(1);
+  let previewWing = $derived(WINGS.find((wing) => wing.id === (previewWingId ?? player.demo.wingId)));
   let previewAvatar = $derived(AVATARS.find((item) => item.id === (previewAvatarId ?? player.avatarId)) ?? AVATARS[0]);
   let previewPet = $derived(PETS.find((item) => item.id === (previewPetId ?? player.petId)));
   let products = $derived(SHOP_ITEMS.filter((item) => category === 'all' || item.kind === category).map((item) => ({
@@ -71,10 +81,15 @@
   </div>
 
   {#if tab === 'items'}
+    <section class="space-y-3 border-y border-white py-4" aria-label="ซื้อบัตรเข้า Ranked">
+      <div class="flex items-center justify-between gap-2"><h2 class="flex items-center gap-2 text-sm font-semibold"><Ticket size={21} class="text-rose-600" />บัตรเข้า Ranked</h2><span class="text-xs">มี {player.demo.arenaTickets} ใบ</span></div>
+      <div class="flex items-end gap-3"><label class="grid w-20 shrink-0 gap-1 text-xs">จำนวน<input class="min-h-10 w-full rounded-md border border-sky-200 bg-white/70 px-2" type="number" min="1" max="99" step="1" aria-label="จำนวนบัตร Ranked" bind:value={ticketQuantity} /></label><GameButton block size="sm" disabled={!Number.isInteger(ticketQuantity) || ticketQuantity < 1 || ticketQuantity > 99 || player.masquePoints < ticketQuantity * player.demo.config.arenaTicketPrice} onclick={() => onBuyTickets(ticketQuantity)}><Ticket size={16} />ซื้อ · {(ticketQuantity || 0) * player.demo.config.arenaTicketPrice} MP</GameButton></div>
+      <a class="inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-sky-700" href="#battle">ไป Battle Arena<ArrowRight size={15} /></a>
+    </section>
     <div class="fitting" class:vip-look={vipActive} aria-label="ลองตัวละครและสัตว์เลี้ยง">
       <div class="fitting-title"><small>COLLECTION SHOP</small><h2>คู่หูในแบบของคุณ</h2><span>ราคาตัวอย่าง · ใช้ MP</span></div>
-      <div class="fitting-art"><AssetPortrait src={previewAvatar.imagePath} alt={previewAvatar.name} placeholder={previewAvatar.placeholder} kind="avatar" loading="eager" />{#if previewPet}<span class="fitting-pet"><AssetPortrait src={previewPet.imagePath} alt={previewPet.name} placeholder={previewPet.placeholder} kind="pet" /></span>{/if}</div>
-      {#if previewAvatarId || previewPetId}<button class="reset-preview" onclick={() => { previewAvatarId = null; previewPetId = null; }}>คืนชุดปัจจุบัน</button>{/if}
+      <div class="fitting-art">{#if previewWing}<img class="pointer-events-none absolute inset-0 h-full w-full scale-150 object-contain" src={previewWing.imagePath} alt={previewWing.name} />{/if}<AssetPortrait src={previewAvatar.imagePath} alt={previewAvatar.name} placeholder={previewAvatar.placeholder} kind="avatar" loading="eager" />{#if previewPet}<span class="fitting-pet"><AssetPortrait src={previewPet.imagePath} alt={previewPet.name} placeholder={previewPet.placeholder} kind="pet" /></span>{/if}</div>
+      {#if previewAvatarId || previewPetId || previewWingId}<button class="reset-preview" onclick={() => { previewAvatarId = null; previewPetId = null; previewWingId = undefined; }}>คืนชุดปัจจุบัน</button>{/if}
     </div>
     <div class="filters" role="group" aria-label="ประเภทสินค้า">
       <button class:on={category === 'all'} aria-pressed={category === 'all'} onclick={() => category = 'all'}>ทั้งหมด</button>
@@ -84,12 +99,30 @@
     <div class="products">
       {#each products as item (item.id)}
         <article class="product">
-          <button class="product-art" aria-label={`ลอง ${item.art.name}`} onclick={() => { if (item.kind === 'avatar') previewAvatarId = item.itemId; else previewPetId = item.itemId; }} style={`--tint:${item.art.color}`}><AssetPortrait src={item.art.imagePath} alt={item.art.name} placeholder={item.art.placeholder} kind={item.kind} /></button>
+          <button class="product-art" aria-label={`ลอง ${item.art.name}`} onclick={() => { if (item.kind === 'avatar') previewAvatarId = item.itemId; else previewPetId = item.itemId; }} style={`--tint:${item.art.color}`}><AssetPortrait src={item.art.imagePath} alt={item.art.name} placeholder={item.art.placeholder} kind={item.kind === 'avatar' ? 'avatar' : 'pet'} /></button>
           <div class="product-info"><h3>{item.art.name}</h3><RarityChip rarity={item.art.rarity} /><span class="product-price"><Coins size={13} />{item.cost} MP</span></div>
           <GameButton block variant={item.owned ? 'ghost' : 'purple'} size="sm" disabled={item.owned} onclick={() => onBuy(item.id)}>{item.owned ? 'มีแล้ว' : 'ซื้อ'}</GameButton>
         </article>
       {/each}
     </div>
+    <section class="space-y-3 border-t border-white pt-3" aria-label="ปีกตัวละคร">
+      <h2 class="text-sm font-bold">Wings</h2>
+      <div class="grid grid-cols-2 gap-3">
+        {#each player.demo.config.shop.filter((item) => item.kind === 'wing') as item (item.id)}
+          {@const wing = WINGS.find((wing) => wing.id === item.itemId)}
+          {#if wing}
+            {@const owned = player.demo.wings.includes(wing.id)}
+            <article class="grid min-w-0 content-start gap-2 rounded-lg border border-white bg-white/55 p-3">
+              <button class="grid h-28 w-full place-items-center rounded-md bg-sky-50" aria-label={`ลองปีก ${wing.name}`} onclick={() => previewWingId = wing.id}><img class="h-full w-full object-contain" src={wing.imagePath} alt={wing.name} /></button>
+              <h3 class="text-sm font-semibold">{wing.name}</h3><RarityChip rarity={wing.rarity} /><span class="text-xs">{item.cost} MP</span>
+              <GameButton block size="sm" variant={owned ? 'ghost' : 'purple'} onclick={() => owned ? onEquipWing(player.demo.wingId === wing.id ? null : wing.id) : onBuy(item.id)}>{owned ? player.demo.wingId === wing.id ? 'ถอดปีก' : 'ใส่ปีก' : 'ซื้อปีก'}</GameButton>
+            </article>
+          {/if}
+        {/each}
+      </div>
+    </section>
+    <h2 class="text-sm font-bold">กรอบรูปโปรไฟล์</h2>
+    <div class="grid grid-cols-2 gap-3">{#each player.demo.config.shop.filter((item) => item.kind === 'frame') as item (item)}<article class="grid justify-items-center gap-2 rounded-lg border border-white bg-white/50 p-3"><span class="h-20 w-16" data-frame={item.itemId}><AssetPortrait src={previewAvatar.imagePath} alt={item.itemId} placeholder={previewAvatar.placeholder} kind="avatar" /></span><strong class="text-sm">{item.itemId === 'sunrise' ? 'Sunrise' : 'Ocean'}</strong><span class="text-xs">{item.cost} MP</span><GameButton size="sm" disabled={player.demo.frames.includes(item.itemId)} onclick={() => onBuy(item.id)}>{player.demo.frames.includes(item.itemId) ? 'มีแล้ว' : 'ซื้อ Frame'}</GameButton></article>{/each}</div>
   {:else if tab === 'exchange'}
     <Panel tone="white">
       <div class="head"><span class="ico mint"><Coins size={22} /></span><div><h2>แลก AIS Points</h2><p>1 AIS Point = {EXCHANGE_RATE} Masque Points</p></div></div>
@@ -101,7 +134,7 @@
       </div>
       {#if quick.length}
         <div class="quick">
-          {#each quick as value}<button class:on={amount === value} onclick={() => setAmount(value)}>{value}</button>{/each}
+          {#each quick as value (value)}<button class:on={amount === value} onclick={() => setAmount(value)}>{value}</button>{/each}
           {#if player.aisPoints > 1}<button class:on={amount === player.aisPoints} onclick={() => setAmount(player.aisPoints)}>สูงสุด {player.aisPoints}</button>{/if}
         </div>
       {/if}
@@ -113,10 +146,10 @@
     </Panel>
   {:else if tab === 'energy'}
     <Panel tone="white">
-      <div class="head"><span class="ico blue"><Zap size={22} fill="currentColor" /></span><div><h2>เติมพลังงาน</h2><p>ตอนนี้ {vipActive ? '∞ (VIP)' : `${player.energy}/${ENERGY_CONFIG.max}`} · ฟื้น 1 ทุก 30 นาที</p></div></div>
+      <div class="head"><span class="ico blue"><Zap size={22} fill="currentColor" /></span><div><h2>เติมพลังงาน</h2><p>ตอนนี้ {unlimited ? '∞ (VIP)' : `${player.energy}/${ENERGY_CONFIG.max}`} · ฟื้น 1 ทุก {player.demo.config.regenMinutes} นาที</p></div></div>
       <div class="meter"><span style={`width:${vipActive ? 100 : energyPercent}%`}></span></div>
     </Panel>
-    {#if vipActive}
+    {#if unlimited}
       <Panel tone="gold"><p class="vipnote"><Crown size={18} fill="currentColor" />VIP มี Energy ไม่จำกัด ไม่ต้องเติม</p></Panel>
     {:else}
       <div class="packs">
@@ -125,7 +158,7 @@
             <span class="bolt"><Zap size={30} fill="currentColor" /></span>
             <b>+{pack.energy}</b><small>Energy</small>
             <span class="price"><Coins size={14} />{pack.cost} MP</span>
-            <GameButton variant="purple" size="sm" disabled={player.energy >= ENERGY_CONFIG.max} onclick={() => onRefill(pack.id)}>{player.energy >= ENERGY_CONFIG.max ? 'เต็มแล้ว' : 'เติม'}</GameButton>
+            <GameButton variant="purple" size="sm" onclick={() => onRefill(pack.id)}>เติม</GameButton>
           </article>
         {/each}
       </div>
@@ -133,7 +166,7 @@
   {:else}
     {#if vipActive}
       <Panel tone="gold">
-        <div class="active"><span class="crown"><Crown size={30} fill="currentColor" /></span><div><h2>VIP กำลังใช้งาน</h2><p>เหลืออีก {vipDays} วัน · Energy ไม่จำกัด</p></div></div>
+        <div class="active"><span class="crown"><Crown size={30} fill="currentColor" /></span><div><h2>VIP กำลังใช้งาน</h2><p>เหลืออีก {vipDays} วัน · {unlimited ? 'Energy ไม่จำกัด' : 'Profile Badge'}</p></div></div>
         <GameButton variant="ghost" size="sm" onclick={onRoom}><UsersRound size={15} />สร้างห้องเล่นกับเพื่อน</GameButton>
       </Panel>
     {/if}
@@ -144,9 +177,9 @@
           <span class="crown"><Crown size={28} fill="currentColor" /></span>
           <h3>{pack.label}</h3>
           <ul>
-            <li><Zap size={13} fill="currentColor" />Energy ไม่จำกัด</li>
-            <li><Check size={13} strokeWidth={3.5} />รางวัล + ภารกิจ VIP</li>
-            <li><Check size={13} strokeWidth={3.5} />สร้างห้องเล่นกับเพื่อน</li>
+            <li><Zap size={13} fill="currentColor" />{player.demo.config.vipUnlimited ? 'Energy ไม่จำกัด' : 'VIP Profile Badge'}</li>
+            <li><Check size={13} strokeWidth={3.5} />VIP badge · ระยะเวลา {pack.durationDays} วัน</li>
+            <li><Check size={13} strokeWidth={3.5} />Premium Battle Pass จำหน่ายแยก</li>
             <li><Gift size={13} />{pack.reward}</li>
           </ul>
           <div class="buy"><span class="price"><Coins size={15} />{pack.cost}<small>MP</small></span><GameButton variant="gold" size="md" onclick={() => onVip(pack.id)}>{vipActive ? 'ต่ออายุ' : 'ซื้อ'}</GameButton></div>

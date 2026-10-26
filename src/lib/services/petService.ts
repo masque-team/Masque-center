@@ -1,4 +1,4 @@
-import { PET_GACHA_COST, PETS } from '../data/config';
+import { PETS } from '../data/config';
 import type { PlayerState } from '../types';
 
 export function equipPet(player: PlayerState, petId: string | null): PlayerState | null {
@@ -8,16 +8,22 @@ export function equipPet(player: PlayerState, petId: string | null): PlayerState
 
 export function drawPet(player: PlayerState, random = Math.random): { player: PlayerState; petId: string; duplicate: boolean } | null {
   const useTicket = player.gachaTickets > 0;
-  if (!useTicket && player.masquePoints < PET_GACHA_COST) return null;
-  const pet = PETS[Math.min(PETS.length - 1, Math.floor(random() * PETS.length))];
+  const config = player.demo.config;
+  if (!useTicket && player.masquePoints < config.gachaCost) return null;
+  const pool = config.gachaPool.filter((entry) => entry.weight > 0 && PETS.some((pet) => pet.id === entry.petId));
+  const total = pool.reduce((sum, entry) => sum + entry.weight, 0);
+  if (!total) return null;
+  let draw = Math.max(0, Math.min(0.999999, random())) * total;
+  const selected = pool.find((entry) => { draw -= entry.weight; return draw < 0; }) ?? pool[pool.length - 1];
+  const pet = PETS.find((entry) => entry.id === selected.petId)!;
   const duplicate = player.ownedPetIds.includes(pet.id);
   return {
     player: {
       ...player,
-      masquePoints: player.masquePoints - (useTicket ? 0 : PET_GACHA_COST) + (duplicate ? 15 : 0),
+      masquePoints: player.masquePoints - (useTicket ? 0 : config.gachaCost) + (duplicate ? config.duplicatePoints : 0),
       gachaTickets: player.gachaTickets - (useTicket ? 1 : 0),
       ownedPetIds: duplicate ? player.ownedPetIds : [...player.ownedPetIds, pet.id],
-      petId: duplicate ? player.petId : pet.id,
+      petId: player.petId,
     },
     petId: pet.id,
     duplicate,

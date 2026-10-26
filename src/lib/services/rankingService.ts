@@ -10,12 +10,12 @@ export function getGameRanking(
   const multiplier = period === 'allTime' ? 3 : 1;
   const entries = MOCK_RANKINGS[gameId].map((entry) => ({
     ...entry,
-    score: entry.score * multiplier,
+    score: period === 'weekly' && player.demo.rankingResets.includes(player.demo.config.rankingSeasonId) ? 0 : entry.score * multiplier,
   }));
   entries.push({
     playerId: player.id,
     displayName: player.displayName,
-    score: currentScore * multiplier,
+    score: period === 'allTime' ? player.demo.scores[gameId] ?? currentScore : player.demo.seasonScores[player.demo.config.rankingSeasonId]?.[gameId] ?? 0,
     isCurrentPlayer: true,
   });
   return entries.sort((left, right) => right.score - left.score);

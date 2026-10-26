@@ -83,6 +83,7 @@ export const GAMES: Game[] = [
     editorialTag: 'new',
     displayOrder: 7,
     url: `${GAME_ORIGIN}/mygame/memonrycard/`,
+    cover: 'mem.png',
   },
 ];
 

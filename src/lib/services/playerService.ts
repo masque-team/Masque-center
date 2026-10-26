@@ -1,5 +1,7 @@
 import type { PlayerState } from '../types';
-import { ENERGY_CONFIG, PLAYER_MOCK_CONFIG } from '../data/config';
+import { ENERGY_CONFIG, PLAYER_MOCK_CONFIG, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
+import type { ProfileStyle } from '../types';
+import { createDemo } from './demoService';
 
 const STORAGE_KEY = 'masquegame_center_v2';
 
@@ -29,6 +31,7 @@ function createPlayer(displayName: string | null, aisPointSeed: number | null): 
     ownedAvatarIds: [...PLAYER_MOCK_CONFIG.ownedAvatarIds],
     petId: PLAYER_MOCK_CONFIG.petId,
     ownedPetIds: [...PLAYER_MOCK_CONFIG.ownedPetIds],
+    demo: createDemo(),
   };
 }
 
@@ -65,15 +68,49 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
     }
   }
   const result = player ?? createPlayer(queryName, aisPointSeed);
-  if (queryName?.trim()) result.displayName = queryName.trim().slice(0, 40);
+  if (!result.demo || result.demo.version !== 1) {
+    result.demo = createDemo();
+    result.demo.passes.songkran = {
+      xp: Math.max(0, Math.min(500, result.battlePassXp)), premium: false,
+      claims: result.claimedRewards.flatMap((claim) => {
+        const match = /^(free|vip)-(\d+)$/.exec(claim);
+        return match ? [`${match[1] === 'vip' ? 'premium' : 'free'}-${Number(match[2]) - 1}`] : [];
+      }),
+    };
+  }
+  result.demo.rankingResets ??= [];
+  result.demo.arenaTickets ??= 0;
+  result.demo.playTimeMs ??= {};
+  result.demo.playCounts ??= result.demo.sessions.filter((session) => session.finished).reduce<Record<string, number>>((counts, session) => ({ ...counts, [session.gameId]: (counts[session.gameId] ?? 0) + 1 }), {});
+  result.demo.achievements ??= [];
+  result.demo.profile ??= { backgroundId: 'canal-day', bio: '', badgeIds: [] };
+  result.demo.config.arenaTicketPrice ??= 30;
+  result.demo.wings ??= [];
+  result.demo.wingId ??= null;
+  if (!result.demo.wings.includes(result.demo.wingId ?? '') || !WINGS.some((wing) => wing.id === result.demo.wingId)) result.demo.wingId = null;
+  for (const wing of WINGS) {
+    if (!result.demo.config.shop.some((item) => item.kind === 'wing' && item.itemId === wing.id)) result.demo.config.shop.push({ id: `wing-${wing.id}`, kind: 'wing', itemId: wing.id, cost: wing.cost });
+  }
+  result.demo.ownedDecor ??= ['sofa', 'plant'];
+  result.demo.config.decorPrice ??= 25;
+  result.demo.config.games = result.demo.config.games.map((game, index) => ({ ...game, ...(game.id === 'memory' ? { cover: game.cover ?? 'mem.png' } : {}), published: game.published ?? true, displayOrder: game.displayOrder ?? index + 1 }));
+  result.demo.config.vipPlans = result.demo.config.vipPlans.map((plan) => ({ ...plan, bonusPoints: plan.bonusPoints ?? (plan.id === 'seven-day' ? 80 : 0), bonusTickets: plan.bonusTickets ?? (plan.id === 'five-day' ? 1 : 0) }));
+  result.displayName = queryName?.trim().replace(/\s+/g, ' ').slice(0, 40) || 'Guest Player';
   savePlayer(result);
   return result;
 }
 
 export function savePlayer(player: PlayerState): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(player));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...player, displayName: 'Guest Player' }));
   } catch {
     console.warn('MasqueGame mock player state could not be saved to localStorage.');
   }
+}
+
+export function customizeProfile(player: PlayerState, style: ProfileStyle, frameId: string | null): PlayerState | null {
+  if (!PROFILE_BACKGROUNDS.some((background) => background.id === style.backgroundId) || style.bio.length > 140 || style.badgeIds.length > 3) return null;
+  if (new Set(style.badgeIds).size !== style.badgeIds.length || style.badgeIds.some((id) => !player.demo.achievements.some((badge) => badge.id === id))) return null;
+  if (frameId && !player.demo.frames.includes(frameId)) return null;
+  return { ...player, demo: { ...player.demo, profile: { ...style, bio: style.bio.trim(), badgeIds: [...style.badgeIds] }, frameId } };
 }

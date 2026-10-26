@@ -2,12 +2,12 @@
   import { ArrowLeft, CircleAlert, ExternalLink, LoaderCircle, RotateCcw } from '@lucide/svelte';
   import GameButton from './GameButton.svelte';
   import EnergyBadge from './EnergyBadge.svelte';
-  import { ENERGY_CONFIG } from '../data/config';
   import type { Game, PlayerState } from '../types';
 
-  let { game, player, vipActive, loading, fallback, version, onBack, onLoad, onError, onReload, onRefill }: {
+  let { game, player, sessionId, vipActive, loading, fallback, version, onBack, onLoad, onError, onReload, onRefill, onFinish, finished }: {
     game: Game;
     player: PlayerState;
+    sessionId: string;
     vipActive: boolean;
     loading: boolean;
     fallback: boolean;
@@ -17,21 +17,26 @@
     onError: () => void;
     onReload: () => void;
     onRefill: () => void;
+    onFinish: () => void;
+    finished: boolean;
   } = $props();
+  let session = $derived(player.demo.sessions.find((session) => session.gameId === game.id && session.id === sessionId));
+  let ranked = $derived(session?.mode === 'ranked');
+  let hostedUrl = $derived.by(() => { const url = new URL(game.url); if (ranked) url.searchParams.set('mode', 'ranked'); return url.href; });
 </script>
 
 <main class="screen">
   <header class="top">
     <button class="back" onclick={onBack} aria-label="กลับหน้าเกม"><ArrowLeft size={22} strokeWidth={2.8} /></button>
     <div class="copy"><strong>{game.name}</strong><small>{player.displayName} · LV.{player.level}</small></div>
-    <EnergyBadge energy={player.energy} {vipActive} {onRefill} />
+    <EnergyBadge energy={player.energy} vipActive={vipActive && player.demo.config.vipUnlimited} max={player.demo.config.energyMax} {onRefill} />
   </header>
   <div class="info">
-    <span>{vipActive ? 'VIP · Energy ไม่จำกัด' : `ใช้ ${ENERGY_CONFIG.costPerGame} Energy ต่อการเข้าเล่น`}</span>
-    <a href={game.url} target="_blank" rel="noopener noreferrer" aria-label="เปิดเกมในแท็บใหม่"><ExternalLink size={17} /></a>
+    <span>{ranked ? 'RANKED · ใช้บัตรเข้า 1 ใบ · ไม่ใช้ Energy' : vipActive && player.demo.config.vipUnlimited ? 'VIP · Energy ไม่จำกัด' : `ใช้ ${player.demo.config.energyCost} Energy ต่อการเข้าเล่น`}</span>
+    <a href={hostedUrl} target="_blank" rel="noopener noreferrer" aria-label="เปิดเกมในแท็บใหม่"><ExternalLink size={17} /></a>
   </div>
   <section class="stage" aria-label={`เกม ${game.name}`}>
-    {#key version}<iframe src={game.url} title={game.name} allow="autoplay; fullscreen; gamepad" loading="eager" referrerpolicy="strict-origin-when-cross-origin" onload={onLoad} onerror={onError}></iframe>{/key}
+    {#key version}<iframe src={hostedUrl} title={game.name} allow="autoplay; fullscreen; gamepad" loading="eager" referrerpolicy="strict-origin-when-cross-origin" onload={onLoad} onerror={onError}></iframe>{/key}
     {#if loading && !fallback}
       <div class="overlay"><LoaderCircle size={34} class="spin" /><strong>กำลังเปิดเกม</strong><span>{game.name}</span></div>
     {/if}
@@ -41,12 +46,13 @@
         <strong>เกมอาจไม่รองรับการเปิดในหน้าต่างนี้</strong>
         <p>ลองเปิดเกมแยก หรือโหลดใหม่อีกครั้ง</p>
         <div class="actions">
-          <a class="open" href={game.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />เปิดเกมแยก</a>
+          <a class="open" href={hostedUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />เปิดเกมแยก</a>
           <GameButton variant="ghost" size="sm" onclick={onReload}><RotateCcw size={15} />โหลดใหม่</GameButton>
         </div>
       </div>
     {/if}
   </section>
+  <footer class="flex shrink-0 items-center justify-between gap-2 bg-white p-3 pb-[max(12px,env(safe-area-inset-bottom))]"><span class="text-[11px] font-semibold text-sky-700">DEMO · ไม่ใช่คะแนนยืนยัน</span><GameButton size="sm" disabled={finished} onclick={onFinish}>{finished ? 'บันทึกผลแล้ว' : 'Simulate Finish'}</GameButton></footer>
 </main>
 
 <style>

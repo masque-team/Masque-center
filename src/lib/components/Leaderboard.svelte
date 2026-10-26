@@ -42,7 +42,7 @@
 
   <div class="bar">
     <div class="period" role="group" aria-label="ช่วงเวลา">
-      <button class:on={period === 'weekly'} aria-pressed={period === 'weekly'} onclick={() => (period = 'weekly')}>รายสัปดาห์</button>
+      <button class:on={period === 'weekly'} aria-pressed={period === 'weekly'} onclick={() => (period = 'weekly')}>ซีซัน</button>
       <button class:on={period === 'allTime'} aria-pressed={period === 'allTime'} onclick={() => (period = 'allTime')}>ตลอดกาล</button>
     </div>
     <span class="myrank"><Trophy size={14} />อันดับของฉัน <b>#{me + 1}</b></span>
@@ -97,7 +97,7 @@
   .ph { display: grid; place-items: center; color: #fff; background: linear-gradient(150deg, #7fd3f3, #8c7fe6); font-size: 15px; font-weight: 900; }
   .games span:last-child { max-width: 100%; overflow: hidden; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 
-  .bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
   .period { display: flex; padding: 4px; border: 2.5px solid #fff; border-radius: 16px; background: #e4dcf8; }
   .period button { min-height: 40px; padding: 0 13px; border: 0; border-radius: 12px; color: #8a7fc4; background: transparent; font-size: 13px; font-weight: 900; }
   .period button.on { color: #fff; background: linear-gradient(180deg, #a78bfa, #6a4fd6); box-shadow: 0 3px 0 #4b32a8; }

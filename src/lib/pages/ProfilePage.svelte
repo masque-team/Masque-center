@@ -28,7 +28,8 @@
     { route: 'avatar', title: 'Avatar & Pets', hint: `${avatar.name}${pet ? ` · ${pet.name}` : ''}`, icon: Shirt },
     { route: 'rewards', title: 'Battle Pass', hint: `เลเวล ${passLevel}`, icon: Crown },
     { route: 'ranking', title: 'Ranking', hint: 'อันดับแยกตามเกม', icon: ChartNoAxesColumnIncreasing },
-    { route: 'room', title: 'Friends Room', hint: vipActive ? 'สร้างห้องได้' : 'สิทธิพิเศษ VIP', icon: UsersRound },
+    { route: 'room', title: 'My Room', hint: 'แต่งห้องและชวนเพื่อนจำลอง', icon: UsersRound },
+    { route: 'wallet', title: 'Wallet History', hint: 'ยอดและประวัติรายการ', icon: Coins },
   ]);
 </script>
 
@@ -39,7 +40,7 @@
 
   <Panel tone={isVipLook ? 'gold' : 'lilac'}>
     <div class="id">
-      <span class="portrait" class:vip={isVipLook} style={`--avatar-color:${avatar.color}`}><AssetPortrait src={avatar.imagePath} alt={avatar.name} placeholder={avatar.placeholder} kind="avatar" loading="eager" className="id-art" /></span>
+      <span class="portrait" data-frame={player.demo.frameId} class:vip={isVipLook} style={`--avatar-color:${avatar.color}`}><AssetPortrait src={avatar.imagePath} alt={avatar.name} placeholder={avatar.placeholder} kind="avatar" loading="eager" className="id-art" /></span>
       <div class="who">
         <strong>{player.displayName}</strong>
         <small>UID {player.id}</small>
@@ -47,10 +48,11 @@
       </div>
     </div>
   </Panel>
+  <section class="space-y-2 border-y border-white py-3"><div class="flex justify-between text-xs"><strong>Profile EXP</strong><span>{player.demo.profileXp % 100} / 100</span></div><progress class="h-2 w-full" max="100" value={player.demo.profileXp % 100} aria-label="Profile EXP"></progress>{#if pet}<div class="flex items-center gap-3"><span class="h-14 w-12"><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" /></span><span class="text-xs">Companion · {pet.name}</span></div>{/if}</section>
 
   <div class="wallet">
     <div><span class="wi gold"><Coins size={20} /></span><span class="wc"><small>Masque Points</small><b>{player.masquePoints.toLocaleString('en-US')}</b></span><button aria-label="เปิด Shop" onclick={() => onNavigate('shop')}><Plus size={17} strokeWidth={3.5} /></button></div>
-    <div><span class="wi blue"><Zap size={20} fill="currentColor" /></span><span class="wc"><small>Energy</small><b>{vipActive ? '∞' : `${player.energy}/${ENERGY_CONFIG.max}`}</b></span><button aria-label="เติม Energy" onclick={onRefill}><Plus size={17} strokeWidth={3.5} /></button></div>
+    <div><span class="wi blue"><Zap size={20} fill="currentColor" /></span><span class="wc"><small>Energy</small><b>{vipActive && player.demo.config.vipUnlimited ? '∞' : `${player.energy}/${player.demo.config.energyMax}`}</b></span><button aria-label="เติม Energy" onclick={onRefill}><Plus size={17} strokeWidth={3.5} /></button></div>
   </div>
 
   <div class="stats">
