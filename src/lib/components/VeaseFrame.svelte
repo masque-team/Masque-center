@@ -10,7 +10,7 @@
     onOutfit: (outfit: Outfit) => SceneState | null;
     onSize?: (height: number) => void;
   } = $props();
-  const source = new URL(import.meta.env.VITE_VEASE_URL || (import.meta.env.DEV ? `${location.protocol}//${location.hostname}:5174/` : `${location.origin}/masque-vease/`), location.href);
+  const source = new URL(import.meta.env.VITE_VEASE_URL || (import.meta.env.DEV ? `${location.protocol}//${location.hostname}:5174/` : '../masque-vease/'), document.baseURI);
   source.searchParams.set('embed', '1');
   source.searchParams.set('parentOrigin', location.origin);
   let frame = $state<HTMLIFrameElement>();

@@ -43,8 +43,8 @@
     if (embedded) post(packet('NAVIGATE', { route }));
     else if (route === 'avatar' || route === 'world') mode = route === 'avatar' ? 'wardrobe' : 'town';
     else {
-      const fallback = import.meta.env.DEV ? `${location.protocol}//${location.hostname}:5173/maque-center/` : `${location.origin}/maque-center/`;
-      const target = new URL(import.meta.env.VITE_GAME_CENTER_URL || fallback);
+      const fallback = import.meta.env.DEV ? `${location.protocol}//${location.hostname}:5173/maque-center/` : '../masque-center/';
+      const target = new URL(import.meta.env.VITE_GAME_CENTER_URL || fallback, document.baseURI);
       target.hash = route;
       location.assign(target.href);
     }

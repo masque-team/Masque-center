@@ -44,8 +44,9 @@ Shared package: `packages/vease-protocol` at repository root. No MGC app imports
 ## Production
 
 Output: `apps/masque-vease/dist/`, separate from MGC's root `dist/`.
-Default production base: `/masque-vease/`; deploy the output contents there.
-Same-origin MGC uses this URL automatically without a backend.
+Default production base: `/masque-gamecenter/masque-vease/`.
+Deploy the output contents there, next to `/masque-gamecenter/masque-center/`.
+Both apps resolve their sibling via a relative URL, without a backend or .env file.
 
 Public build configuration (see `.env.example`):
 

@@ -14,7 +14,7 @@
 </script>
 
 <main class="entry min-h-dvh overflow-hidden px-4 pb-[max(24px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] text-[#24485f]">
-  <div class="entry-art" aria-hidden="true"></div>
+  <div class="entry-art" style:--entry-background={`url("${import.meta.env.BASE_URL}assets/world/house-coral.webp")`} aria-hidden="true"></div>
   <div class="relative mx-auto flex min-h-[calc(100dvh_-_42px)] w-full max-w-[460px] flex-col">
     <header class="flex items-center gap-2 py-2"><span class="brand-mark"><Gamepad2 size={19} /></span><span><strong class="block text-sm">MASQUE GAME CENTER</strong><small class="text-[10px] text-[#607f91]">MYAIS DEMO WORLD</small></span></header>
     <div class="flex flex-1 flex-col justify-end pb-4">
@@ -38,7 +38,7 @@
 
 <style>
   .entry { position: relative; isolation: isolate; background: linear-gradient(180deg, #d9eff7, #edf0f8 58%, #f7edf0); }
-  .entry-art { position: absolute; inset: 0 0 auto; height: min(67dvh, 580px); background: linear-gradient(180deg, rgb(218 241 249 / 8%) 35%, #e9eff7 100%), url('/maque-center/assets/world/house-coral.webp') center 48% / cover; }
+  .entry-art { position: absolute; inset: 0 0 auto; height: min(67dvh, 580px); background: linear-gradient(180deg, rgb(218 241 249 / 8%) 35%, #e9eff7 100%), var(--entry-background) center 48% / cover; }
   .brand-mark { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #fff; border-radius: 10px; color: #fff; background: #387f9c; }
   .entry-panel { padding: 22px 19px 17px; border: 1px solid rgb(255 255 255 / 85%); border-radius: 10px; background: rgb(250 253 254 / 94%); box-shadow: 0 18px 60px rgb(43 82 103 / 12%); backdrop-filter: blur(16px); }
   .eyebrow { display: flex; align-items: center; gap: 6px; color: #387f9c; font-size: 10px; font-weight: 800; }

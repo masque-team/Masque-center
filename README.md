@@ -79,17 +79,19 @@ npm run build
 
 เปิดอีก terminal แล้วรัน `npm run dev:mv` สำหรับ MV ที่ `http://localhost:5174/` ส่วน MGC อยู่ที่ `http://localhost:5173/maque-center/` ต้องเปิดทั้งสอง dev server เพื่อใช้งาน iframe; หาก MV ไม่พร้อมจะแสดง Retry โดยหน้าเกม/Shop ยังเปิดได้
 
-คำสั่ง MV จาก root: `npm run test:mv`, `npm run check:mv`, `npm run build:mv` ใช้ `VITE_VEASE_URL` ใน MGC เมื่อต้องเปลี่ยน URL/พอร์ต MV แล้ว restart dev server; production ที่ไม่ตั้งค่านี้ใช้ `/masque-vease/` บน origin เดียวกัน
+คำสั่ง MV จาก root: `npm run test:mv`, `npm run check:mv`, `npm run build:mv` ใช้ `VITE_VEASE_URL` ใน MGC เมื่อต้องเปลี่ยน URL/พอร์ต MV แล้ว restart dev server; production ที่ไม่ตั้งค่านี้ใช้โฟลเดอร์ข้างกัน `../masque-vease/` บน origin เดียวกัน
 
 ## Deploy
 
 นำ **เนื้อหาภายใน `dist/`** ไปวางใน directory บนเว็บเซิร์ฟเวอร์ที่ให้บริการ URL นี้:
 
-**https://masque-lab.adldigitalservice.com/maque-center/**
+**https://masque-lab.adldigitalservice.com/masque-gamecenter/masque-center/**
 
-Build กำหนด asset base เป็น `/maque-center/` แล้ว และใช้ hash navigation เพื่อให้เปิดแต่ละหน้าใน static hosting ได้โดยไม่ต้องตั้ง backend routing
+Production asset base คือ `/masque-gamecenter/masque-center/` ส่วน dev ยังใช้ `/maque-center/` เดิม ใช้ hash navigation ไม่ต้องเพิ่ม backend routing วางเนื้อหาทั้งหมดของแต่ละ `dist` โดยไม่สร้างโฟลเดอร์ `dist` ซ้อนบนเซิร์ฟ
 
-MV build แยกด้วย `npm run build:mv`; นำเนื้อหา `apps/masque-vease/dist/` ไปวางที่ `/masque-vease/` ไม่ใช่ทับ `dist/` ของ MGC ถ้าโฮสต์ MV อีก origin ให้ตั้ง `VITE_VEASE_URL` ตอน build MGC และ `VITE_ALLOWED_PARENT_ORIGINS` ตอน build MV (origin คั่นด้วย comma ไม่มี path/trailing slash); `VITE_PUBLIC_BASE` เปลี่ยน asset base และ `VITE_GAME_CENTER_URL` ใช้กลับจาก MV แบบ standalone ตัวแปร VITE เป็น public config ไม่ใช่ที่เก็บ secret
+MV build แยกด้วย `npm run build:mv`; นำเนื้อหา `apps/masque-vease/dist/` ไปวางที่ `/masque-gamecenter/masque-vease/` ไม่ใช่ทับไฟล์ MGC ทั้งสองโฟลเดอร์อยู่ข้างกันใน `nginx/html/masque-gamecenter/` และไม่ต้องตั้ง `.env` สำหรับโครงสร้างนี้ หลังอัปโหลดให้ hard refresh เพื่อโหลด HTML/asset ชุดใหม่
+
+ถ้าเปลี่ยนที่วาง ให้ตั้ง `VITE_PUBLIC_BASE` ของแต่ละ FE แล้ว build ใหม่ ถ้าโฮสต์ MV อีก origin ให้ตั้ง `VITE_VEASE_URL` ใน MGC และ `VITE_ALLOWED_PARENT_ORIGINS` ใน MV (origin คั่นด้วย comma ไม่มี path/trailing slash); `VITE_GAME_CENTER_URL` ใช้เปลี่ยนปลายทางกลับจาก MV แบบ standalone ตัวแปร VITE เป็น public config ไม่ใช่ secret และ `.env.example` เป็นตัวอย่าง override ที่ comment ไว้เพื่อไม่ทับค่า default โดยไม่ตั้งใจ
 
 ## โครงสร้างหลัก
 
