@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Check, CheckCheck, Clock3, Crown, Gift, Infinity, Sparkles, Target, Trophy } from '@lucide/svelte';
+  import { Check, Clock3, Crown, Gift, Infinity, Sparkles, Target, Trophy } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
   import GameButton from '../components/GameButton.svelte';
   import RewardIcon from '../components/RewardIcon.svelte';
@@ -47,10 +47,10 @@
   <div class="sticky top-[76px] z-20 grid grid-cols-2 gap-1 rounded-lg border border-white bg-[#edf4ff]/95 p-1 backdrop-blur-md" role="tablist" aria-label="หมวด Pass">{#each [{ id: 'rewards' as const, label: 'รางวัล', icon: Gift }, { id: 'missions' as const, label: 'ภารกิจ', icon: Target }] as item (item.id)}<button class={['flex min-h-11 items-center justify-center gap-2 rounded-md text-xs font-semibold', tab === item.id ? 'bg-white text-indigo-800 shadow-sm' : 'text-[#7b8fa1]']} role="tab" aria-selected={tab === item.id} onclick={() => { tab = item.id; }}><item.icon size={16} />{item.label}</button>{/each}</div>
 
   {#if tab === 'rewards'}
-    <div class="flex items-center justify-between gap-2"><h2 class="text-sm font-bold">รางวัล 50 เลเวล</h2><button class="flex min-h-9 items-center gap-1 rounded-md border border-white bg-white/85 px-2 text-[10px] font-semibold text-sky-700 disabled:opacity-40" disabled={available === 0} onclick={onClaimAll}><CheckCheck size={14} />รับทั้งหมด{available ? ` (${available})` : ''}</button></div>
+    <h2 class="text-sm font-bold">รางวัล 50 เลเวล</h2>
     {#if progress.complete}<section class="flex items-center gap-3 rounded-lg border border-sky-200 bg-white/85 p-3" aria-label="โบนัสหลังเลเวล 50"><RewardIcon type={bonus.reward.type} size={44} /><div class="min-w-0 flex-1"><h2 class="flex items-center gap-1 text-xs font-bold"><Infinity size={14} />โบนัส LV.{bonus.level}</h2><p class="mt-1 text-[10px] text-[#7b8fa1]">{bonus.reward.title} · {bonus.level * 100} XP</p></div><GameButton size="sm" disabled={!bonus.ready} onclick={onBonus}>รับโบนัส</GameButton></section>{/if}
     {#if milestone && !progress.complete}<div class="flex items-center gap-3 border-y border-amber-100 bg-white/65 px-2 py-3"><RewardIcon type={milestone.type} itemId={milestone.itemId} size={44} /><div class="min-w-0"><small class="text-[9px] font-semibold text-amber-600">NEXT MILESTONE · LV.{nextMilestone}</small><strong class="block break-words text-xs">{milestone.title}</strong></div></div>{/if}
-    {#key season.id}<PassRewardTrack {player} {season} xp={pass.xp} claims={pass.claims} {premium} level={progress.level} {onClaim} />{/key}
+    {#key season.id}<PassRewardTrack {player} {season} xp={pass.xp} claims={pass.claims} {premium} level={progress.level} {available} {onClaim} {onClaimAll} />{/key}
   {:else}
     <section class="grid gap-3" aria-label="ภารกิจ Pass">
       {#each [{ id: daily.id, title: 'ประจำวัน', description: `เล่นจบ ${daily.target} รอบ`, count: daily.count, target: daily.target, xp: daily.xp, action: () => onMission(), icon: Target }, { id: weekly.id, title: 'ประจำสัปดาห์', description: `เล่นต่างกัน ${weekly.target} เกม`, count: weekly.games.length, target: weekly.target, xp: weekly.xp, action: onWeekly, icon: Trophy }] as mission (mission.id)}

@@ -131,7 +131,7 @@ Migration เก็บ pass records เดิมและคัดลอกส�
 5. กด + ข้าง MP เพื่อเปิดแพ็กเติมแต้ม ลองซื้อแพ็กเดิมซ้ำเพื่อตรวจว่าโบนัสครั้งแรกไม่ซ้ำ; Shop → Energy ซื้อได้เกินเพดาน Regen
 6. ซื้อ VIP Pass 30 วันจากแท็บ Pass ตรวจ Badge/Energy และรับรางวัลที่ปลดล็อกไว้แล้ว ลองต่ออายุหรือเลื่อนเวลาจำลองข้ามซีซันเพื่อตรวจวัน VIP ที่เหลือ
 7. ซื้อ Avatar/ปีกแล้วไป Avatar & Pets เพื่อสวม; กรอบรูปเลือกที่ My Space → แต่งโปรไฟล์ เลือก Pet ในเมืองได้จากปุ่มรูปอุ้งเท้า
-8. ที่ Pass → ภารกิจ เล่นเกมหนึ่งรอบ รับ MP/XP แล้วตรวจเป้ารายเกมเปลี่ยน 1 เป็น 5; เล่นครบ 3 รอบรับรายวัน และต่างกัน 4 เกมรับรายสัปดาห์ รางวัลเป็นรางเลื่อนต่อเนื่อง 1–50: VIP แถวบน, ฟรีแถวล่าง, เลขเลเวลคั่นกลาง เปิดใกล้เลเวลปัจจุบัน มีลูกศร/ปุ่มกลับจุดปัจจุบัน และโบนัสหลัง 50
+8. ที่ Pass → ภารกิจ เล่นเกมหนึ่งรอบ รับ MP/XP แล้วตรวจเป้ารายเกมเปลี่ยน 1 เป็น 5; เล่นครบ 3 รอบรับรายวัน และต่างกัน 4 เกมรับรายสัปดาห์ รางวัลเป็นทางเดินแนวตั้งต่อเนื่อง 1–50: ฟรีซ้าย, VIP ขวา, เส้นเลเวลอยู่กลาง ใช้ scroll หน้าเว็บปกติ ไม่มี scroll ซ้อน แถบ XP/รับทั้งหมด/ไปเลเวลปัจจุบันติดด้านบน และของเด่นทุก 5 เลเวลมีภาพใหญ่ขึ้น
 9. เปิด Demo Studio → Seasons เปลี่ยน Pass Season/Ranking ID หรือ Reset Ranking; Lifetime และ Pass Season อื่นยังอยู่
 10. ซื้อบัตรเข้า Ranked ที่ Shop แล้วเปิด Battle เลือกเกม ยืนยันใช้บัตร 1 ใบ เข้าหน้าเกมจริง ใช้ Simulate Finish เพื่อทดสอบรางวัลเดโมและ Match History
 11. เปิด Vease แล้วแตะพื้นเพื่อเดินตามจุดหมาย ตัวละครจะหาเส้นทางอ้อมบ้าน/คลองผ่านสะพาน แตะ Masque Arcade เพื่อเลือกเกม แตะ Point Market/Atelier/Pavilion/Clubhouse เพื่อเปิดหน้าที่เกี่ยวข้อง แผนที่เลือกเดินไปหน้าร้านได้ พร้อม Emote/Chat และโปรไฟล์ MOCK
@@ -142,7 +142,7 @@ Migration เก็บ pass records เดิมและคัดลอกส�
 
 ## Verification
 
-Reward-track presentation references the Free/Premium progression model in the [official VALORANT Battlepass FAQ](https://support.riotgames.com/en-us/valorant/gameplay/battlepass-faq). Masque uses its own artwork and a mobile two-lane horizontal track; no external game assets are bundled and the 30-day economy is unchanged by this UI refinement.
+Reward-track presentation references the Free/Premium progression model in the [official VALORANT Battlepass FAQ](https://support.riotgames.com/en-us/valorant/gameplay/battlepass-faq). Masque uses its own artwork and a portrait-friendly vertical path with aligned Free/Level/VIP columns; no external game assets are bundled and the 30-day economy is unchanged by this UI refinement. Claiming a reward preserves the page position.
 
 `npm test` ตรวจ MGC 34 tests รวมขอบเขต 30 วัน, 50 tiers/โบนัส, weekly distinct games, retroactive VIP, claim-all, migration และระบบ Economy เดิม ส่วน `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route/focus allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
 
