@@ -81,6 +81,11 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
     };
   }
   result.demo.rankingResets ??= [];
+  result.demo.config.vipFreeEntry ??= result.demo.config.vipUnlimited ?? true;
+  result.demo.config.vipEnergyBonus ??= 6;
+  result.demo.config.continueEnergyCost ??= 1;
+  delete result.demo.config.vipUnlimited;
+  if (result.energyUpdatedAt > Date.now() + result.demo.clockOffset) result.energyUpdatedAt = Date.now() + result.demo.clockOffset;
   result.demo.weeklyGames ??= {};
   result.demo.backgrounds ??= PROFILE_BACKGROUNDS.map((background) => background.id);
   if (result.demo.passRevision !== 2) {

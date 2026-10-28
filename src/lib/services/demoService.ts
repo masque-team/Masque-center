@@ -13,7 +13,7 @@ export function createDemo(): DemoState {
       energyMax: 12, regenMinutes: 30, energyCost: 1, exchangeRate: 10, checkinReward: 35,
       missionTarget: 1, missionXp: 100, premiumPrice: 200, gachaCost: 90, duplicatePoints: 30,
       gachaPool: PETS.map((pet) => ({ petId: pet.id, weight: pet.rarity === 'Legendary' ? 2 : pet.rarity === 'Epic' ? 8 : 20 })),
-      games: GAMES.map((game) => ({ ...game, published: true })), vipPlans: structuredClone(VIP_PACKAGES), vipUnlimited: true,
+      games: GAMES.map((game) => ({ ...game, published: true })), vipPlans: structuredClone(VIP_PACKAGES), vipFreeEntry: true, vipEnergyBonus: 6, continueEnergyCost: 1,
       energyPacks: ENERGY_CONFIG.refillPacks.map((pack) => ({ ...pack })),
       shop: [...SHOP_ITEMS.map((item) => ({ ...item })), ...WINGS.map((wing) => ({ id: `wing-${wing.id}`, kind: 'wing' as const, itemId: wing.id, cost: wing.cost })), { id: 'frame-sunrise', kind: 'frame', itemId: 'sunrise', cost: 80 }, { id: 'frame-ocean', kind: 'frame', itemId: 'ocean', cost: 80 }],
       seasons: [
@@ -39,8 +39,8 @@ export function demoNow(player: PlayerState): number { return Date.now() + playe
 export function validateConfig(config: DemoConfig): string | null {
   if (config.vipPlans.some((plan) => plan.durationDays !== PASS_RULES.days)) return 'VIP Pass ต้องมีอายุ 30 วัน';
   if (!Number.isSafeInteger(config.arenaTicketPrice) || config.arenaTicketPrice < 1) return 'ราคาบัตร Ranked ต้องเป็นจำนวนเต็มมากกว่า 0';
-  const positive = [config.energyMax, config.regenMinutes, config.energyCost, config.exchangeRate, config.missionTarget, config.missionXp, config.roomLimit];
-  const nonnegative = [config.checkinReward, config.premiumPrice, config.gachaCost, config.duplicatePoints, config.rankingPrize, config.battleEntry, config.battlePrize, config.decorPrice, ...config.shop.map((item) => item.cost), ...config.energyPacks.map((pack) => pack.cost), ...config.vipPlans.flatMap((plan) => [plan.cost, plan.bonusPoints ?? 0, plan.bonusTickets ?? 0]), ...config.gachaPool.map((item) => item.weight)];
+  const positive = [config.energyMax, config.regenMinutes, config.energyCost, config.continueEnergyCost, config.exchangeRate, config.missionTarget, config.missionXp, config.roomLimit];
+  const nonnegative = [config.vipEnergyBonus, config.checkinReward, config.premiumPrice, config.gachaCost, config.duplicatePoints, config.rankingPrize, config.battleEntry, config.battlePrize, config.decorPrice, ...config.shop.map((item) => item.cost), ...config.energyPacks.map((pack) => pack.cost), ...config.vipPlans.flatMap((plan) => [plan.cost, plan.bonusPoints ?? 0, plan.bonusTickets ?? 0]), ...config.gachaPool.map((item) => item.weight)];
   if (positive.some((value) => !Number.isSafeInteger(value) || value < 1) || nonnegative.some((value) => !Number.isSafeInteger(value) || value < 0)) return 'จำนวนต้องเป็นเลขจำนวนเต็มที่ถูกต้อง';
   if (config.energyPacks.some((pack) => !Number.isSafeInteger(pack.energy) || pack.energy < 1) || config.vipPlans.some((plan) => !Number.isSafeInteger(plan.durationDays) || plan.durationDays < 1)) return 'ระยะเวลาและจำนวน Energy ต้องมากกว่า 0';
   if (!config.gachaPool.some((item) => item.weight > 0)) return 'Gacha ต้องมีอย่างน้อย 1 ตัวที่มีน้ำหนักมากกว่า 0';

@@ -45,7 +45,7 @@
 
   <div class="vip-bar">
     <div class="perks">
-      <span><Zap size={12} fill="currentColor" />Energy ∞</span>
+      <span><Zap size={12} fill="currentColor" />ยกเว้นค่าเข้าเกม</span>
       <span><Crown size={12} fill="currentColor" />{vipActive ? 'ปลดล็อก VIP แล้ว' : `VIP เริ่ม ${startCost} MP`}</span>
     </div>
     <div class="actions">

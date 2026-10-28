@@ -5,6 +5,7 @@
   import Leaderboard from '../components/Leaderboard.svelte';
   import EnergyBadge from '../components/EnergyBadge.svelte';
   import { AVATARS, PETS } from '../data/config';
+  import { energyCapacity } from '../services/energyService';
   import type { Game, GameId, PlayerState, RankingPeriod } from '../types';
 
   let { game, player, vipActive, score, countdown, onPlay, onBack, onRefill, onAvatar }: {
@@ -12,7 +13,7 @@
     onPlay: () => void; onBack: () => void; onRefill: () => void; onAvatar: () => void;
   } = $props();
   let tab = $state<'info' | 'ranking'>('info');
-  let unlimited = $derived(vipActive && player.demo.config.vipUnlimited);
+  let freeEntry = $derived(vipActive && player.demo.config.vipFreeEntry);
   let period = $state<RankingPeriod>('weekly');
   let avatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
   let pet = $derived(PETS.find((item) => item.id === player.petId));
@@ -23,7 +24,7 @@
 <div class="page-stack">
   <div class="heading"><button title="กลับ" aria-label="กลับหน้าเกม" onclick={onBack}><ArrowLeft size={22} /></button><div><small>{game.genre}</small><h1>{game.name}</h1></div></div>
   {#if game.cover}<img class="cover" class:logo={game.id === 'memory'} src={`images/${game.cover}`} alt={game.name} />{:else}<div class="memory-cover"><span>?</span><span>♥</span><span>♥</span><span>?</span></div>{/if}
-  <div class="sticky top-2 z-10 rounded-lg bg-[#f5f8fc]/95 py-1 backdrop-blur-sm"><GameButton variant="purple" size="lg" block onclick={onPlay}><Play size={20} fill="currentColor" />เริ่มเล่น{unlimited ? '' : ` · ${player.demo.config.energyCost} Energy`}</GameButton></div>
+  <div class="sticky top-2 z-10 rounded-lg bg-[#f5f8fc]/95 py-1 backdrop-blur-sm"><GameButton variant="purple" size="lg" block onclick={onPlay}><Play size={20} fill="currentColor" />เริ่มเล่น{freeEntry ? '' : ` · ${player.demo.config.energyCost} Energy`}</GameButton></div>
   <div class="tabs" role="tablist" aria-label="ข้อมูลเกม">
     <button role="tab" aria-selected={tab === 'info'} class:on={tab === 'info'} onclick={() => tab = 'info'}><Info size={17} />ข้อมูลเกม</button>
     <button role="tab" aria-selected={tab === 'ranking'} class:on={tab === 'ranking'} onclick={() => tab = 'ranking'}><Trophy size={17} />อันดับ</button>
@@ -33,9 +34,9 @@
     <div class="party" class:vip={vipActive}>
       <div class="portraits"><AssetPortrait src={avatar.imagePath} alt={avatar.name} placeholder={avatar.placeholder} kind="avatar" />{#if pet}<span class="buddy"><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" /></span>{/if}</div>
       <div class="identity"><strong>{player.displayName}</strong><small>{avatar.name}{pet ? ` · ${pet.name}` : ''}</small></div>
-      <EnergyBadge energy={player.energy} vipActive={unlimited} max={player.demo.config.energyMax} {countdown} {onRefill} />
+      <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {countdown} {onRefill} />
     </div>
-    <div class="stats"><span><Trophy size={19} />คะแนนสูงสุด <b>{score.toLocaleString('en-US')}</b><small>SIMULATED SCORE</small></span><span><Info size={19} />{unlimited ? 'VIP Energy' : 'ค่าเข้าเล่น'}<b>{unlimited ? '∞' : `${player.demo.config.energyCost} Energy`}</b><small>{unlimited ? 'เล่นได้ไม่จำกัด' : `ฟื้น 1 ทุก ${player.demo.config.regenMinutes} นาที`}</small></span></div>
+    <div class="stats"><span><Trophy size={19} />คะแนนสูงสุด <b>{score.toLocaleString('en-US')}</b><small>SIMULATED SCORE</small></span><span><Info size={19} />ค่าเข้าเล่น<b>{freeEntry ? '0' : player.demo.config.energyCost} Energy</b><small>{freeEntry ? 'สิทธิ์ VIP · เฉพาะค่าเข้าเกม' : `ฟื้น 1 ทุก ${player.demo.config.regenMinutes} นาที`}</small></span></div>
   {:else}
     <Leaderboard gameId={rankingGame} bind:period {player} currentScore={score} fixedGame />
   {/if}

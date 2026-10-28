@@ -4,7 +4,7 @@
   import { ENERGY_CONFIG } from '../data/config';
   import type { Game } from '../types';
 
-  let { game, vipActive, onclick }: { game: Game; vipActive: boolean; onclick: () => void } = $props();
+  let { game, vipActive, energyCost = ENERGY_CONFIG.costPerGame, onclick }: { game: Game; vipActive: boolean; energyCost?: number; onclick: () => void } = $props();
   let fallbackTried = $state(false);
 
   function useFallback(event: Event): void {
@@ -26,7 +26,7 @@
     <span class="glints" aria-hidden="true"><i>✦</i><i>✧</i><i>✦</i></span>
     <span class="top">
       <GameTag tag={game.editorialTag ?? 'hot'} size="lg" />
-      <span class="cost"><Zap size={13} fill="currentColor" />{vipActive ? '∞' : ENERGY_CONFIG.costPerGame}</span>
+      <span class="cost"><Zap size={13} fill="currentColor" />{vipActive ? 0 : energyCost}</span>
     </span>
   </span>
 

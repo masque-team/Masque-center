@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './playerService';
-import { nextRefillIn, refreshEnergy, refillEnergy, spendGameEnergy } from './energyService';
+import { energyCapacity, nextRefillIn, refreshEnergy, refillEnergy, spendContinueEnergy, spendGameEnergy } from './energyService';
 import { awardPassXp, beginGame, buyDecor, buyPremium, claimMission, claimPass, claimPassBonus, claimRankingReward, claimWeeklyMission, currentPass, currentSeason, dayKey, finishGame, gameMission, hasPassAccess, ledger, nextPassBonus, recordPlayTime, startBattle, validateConfig, weeklyPassMission } from './demoService';
 import { drawPet } from './petService';
 import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './walletService';
 import { getGameRanking } from './rankingService';
 import { purchaseVip } from './passService';
 import { equipOutfit } from './avatarService';
+import { claimBattlePassReward } from './rewardService';
 import { passProgress, passTrack, passWindow } from './battlePassService';
 import { claimAvailablePass, grantReward } from './demoService';
 import type { PlayerState } from '../types';
@@ -58,6 +59,7 @@ describe('shared demo economy', () => {
     expect(next.masquePoints).toBe(250);
     expect(refreshEnergy(next, Date.now() + 3_600_000).energy).toBe(20);
     expect(nextRefillIn(next)).toBe(0);
+    expect(claimBattlePassReward({ ...next, energy: 20 }, 'free', 0)?.energy).toBe(22);
   });
   it('regenerates one unit per configured interval without exceeding the free cap', () => {
     const player = sample(); player.energy = 8;
@@ -93,8 +95,48 @@ describe('shared demo economy', () => {
   it('expires VIP without affecting free/vip ranking fairness', () => {
     const next = purchaseVip({ ...sample(), masquePoints: 2000 }, 'monthly')!;
     expect(spendGameEnergy(next)!.energy).toBe(12);
-    expect(spendGameEnergy(next, next.vipExpiresAt! + 1)!.energy).toBe(11);
+    expect(spendGameEnergy(next, next.vipExpiresAt! + 1)!.energy).toBe(17);
     expect(getGameRanking('bird', 'allTime', next, 0)).toEqual(getGameRanking('bird', 'allTime', { ...next, vipExpiresAt: null }, 0));
+  });
+  it('stores and regenerates numeric Energy for VIP while waiving only game admission', () => {
+    const player = sample(); player.vipExpiresAt = Date.now() + 86_400_000; player.energy = 0;
+    expect(energyCapacity(player)).toBe(18);
+    expect(nextRefillIn(player)).toBe(1_800_000);
+    expect(spendGameEnergy(player)?.energy).toBe(0);
+    expect(spendContinueEnergy(player)).toBeNull();
+    const recovered = refreshEnergy(player, Date.now() + 3_600_000);
+    expect(recovered.energy).toBe(2);
+    expect(spendContinueEnergy(recovered, Date.now() + 3_600_000)?.energy).toBe(1);
+    expect(spendContinueEnergy({ ...recovered, vipExpiresAt: null }, Date.now() + 3_600_000)?.energy).toBe(1);
+  });
+  it('preserves VIP-earned overflow at expiry and partial regeneration across the boundary', () => {
+    const player = sample(); player.energy = 12; player.vipExpiresAt = Date.now() + 45 * 60_000;
+    expect(refreshEnergy(player, Date.now() + 60 * 60_000).energy).toBe(13);
+    const partial = { ...player, energy: 0, vipExpiresAt: Date.now() + 20 * 60_000 };
+    expect(refreshEnergy(partial, Date.now() + 30 * 60_000).energy).toBe(1);
+    const overflow = { ...player, energy: 20 };
+    expect(refreshEnergy(overflow, Date.now() + 3_600_000).energy).toBe(20);
+  });
+  it('does not bank full-cap refill time before VIP purchase and keeps partial timers on renewal', () => {
+    const player = sample(); player.masquePoints = 2000; player.energyUpdatedAt = Date.now() - 3_600_000;
+    const vip = purchaseVip(player, 'monthly')!;
+    expect(vip.energy).toBe(12);
+    expect(vip.energyUpdatedAt).toBe(Date.now());
+    expect(refreshEnergy(vip).energy).toBe(12);
+    const partial = { ...vip, masquePoints: 2000, energy: 3, energyUpdatedAt: Date.now() - 20 * 60_000 };
+    expect(purchaseVip(partial, 'monthly')?.energyUpdatedAt).toBe(partial.energyUpdatedAt);
+  });
+  it('migrates the old unlimited-VIP refill clock without losing Energy or VIP days', () => {
+    const player = sample(); player.vipExpiresAt = Date.now() + 86_400_000; player.energy = 14; player.energyUpdatedAt = player.vipExpiresAt;
+    const { vipFreeEntry, vipEnergyBonus, continueEnergyCost, ...legacyConfig } = player.demo.config;
+    localStorage.setItem('masquegame_center_v2', JSON.stringify({ ...player, demo: { ...player.demo, config: { ...legacyConfig, vipUnlimited: true } } }));
+    const restored = loadPlayer(null);
+    expect(restored.energy).toBe(14);
+    expect(restored.vipExpiresAt).toBe(player.vipExpiresAt);
+    expect(restored.energyUpdatedAt).toBe(Date.now());
+    expect(restored.demo.config.vipFreeEntry).toBe(true);
+    expect(restored.demo.config.vipEnergyBonus).toBe(6);
+    expect(refreshEnergy(restored, Date.now() + 30 * 60_000).energy).toBe(15);
   });
   it('starts new demos with an owned follower and buys, equips and removes wings', () => {
     const player = sample();

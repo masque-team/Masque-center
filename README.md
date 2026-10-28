@@ -36,8 +36,8 @@ MGC เปิด MV ผ่าน iframe ไม่ import renderer ของ MV; 
 
 ## ฟีเจอร์
 
-- **Energy** เริ่มต้น 12 หน่วย ใช้ 1 หน่วยต่อ Session และฟื้น 1 หน่วยทุก 30 นาที ซื้อเพิ่มได้เกินเพดาน โดยไม่ Regen ขณะเต็มหรือเกินเพดาน
-- **VIP Pass** แพ็กเดียว 30 วันนับจากซื้อ ราคาเดโม 990 MP ซื้อ/ต่ออายุจากหน้า Pass รวม VIP, Energy ตาม config และช่องรางวัล VIP; วัน VIP ไม่รีเซ็ตตามซีซัน ซื้อทีหลังรับรางวัล VIP ย้อนหลังตามเลเวลได้
+- **Energy** เป็นยอดตัวเลขสะสมสำหรับทุกคน ฟื้น 1 หน่วยทุก 30 นาทีถึงเพดานปัจจุบัน: ฟรี 12 / VIP 18 (โบนัส MAX +6 ปรับได้ใน Studio) ซื้อหรือรับรางวัลเกินเพดานได้ ไม่ฟื้นเพิ่มขณะเต็ม และไม่ตัดยอดเมื่อ VIP หมดอายุ
+- **VIP Pass** แพ็กเดียว 30 วันนับจากซื้อ ราคาเดโม 990 MP ซื้อ/ต่ออายุจากหน้า Pass ยกเว้นเฉพาะค่าเข้าเกมปกติ ไม่ใช่ Energy ไม่จำกัด; ยังสะสม/ฟื้น/ซื้อ Energy ได้เหมือนเดิม วัน VIP ไม่รีเซ็ตตามซีซัน ซื้อทีหลังรับรางวัล VIP ย้อนหลังตามเลเวลได้
 - **Pass / Missions** ซีซันอัตโนมัติรอบละ 30 วัน, 50 เลเวลหลัก (100 XP/เลเวล), Free/VIP tracks และ claims แยกตามรอบ ปุ่มรับทั้งหมดเก็บของที่ปลดล็อกได้ครั้งเดียว; หลักไมล์มี Avatar, Pet, ปีก, กรอบ, พื้นหลัง, บัตร Ranked และป้ายจบซีซัน ของซ้ำชดเชย MP ตาม config
 - **Bonus Levels** หลัง LV.50 ยังเก็บ XP ต่อได้ ทุกเลเวลโบนัสรับ 10 MP ยกเว้นเลเวลที่หาร 5 ลงตัวเป็นตั๋วกาชา 1 ใบ ไม่แจก cosmetic หายากแบบไม่จำกัด
 - **ภารกิจ** รายวันเริ่มต้นจบ 3 รอบรับ 200 XP, รายสัปดาห์เล่นต่างกัน 4 เกมรับ 500 XP และรายเกมเป้าสะสม 1/5/10/20/50/100/... รับ MP/XP เป้ารายเกมไม่รีเซ็ตตามซีซัน ส่วนรายวัน/รายสัปดาห์แยกตามรอบป้องกันรับซ้ำ
@@ -52,6 +52,17 @@ MGC เปิด MV ผ่าน iframe ไม่ import renderer ของ MV; 
 - **Mobile-first** ออกแบบแนวตั้ง 320–430px พร้อม safe area และ bottom navigation; ไม่ทำ layout แนวนอนสำหรับเมือง
 
 ## Entry & Mock Testing
+
+### Energy Admission And Continue Rules
+
+| ผู้เล่น | ค่าเข้า Casual | เล่นต่อหลังตาย (เตรียมไว้) | เพดานฟื้นเริ่มต้น |
+| --- | --- | --- | --- |
+| ฟรี | 1 Energy | 1 Energy | 12 |
+| VIP | 0 Energy | 1 Energy | 18 |
+
+Ranked ยังคงใช้บัตร 1 ใบ ไม่ใช้ Energy ตอนเข้า ทั้งฟรีและ VIP ค่าเล่นต่ออยู่ใน `continueEnergyCost` และมี `spendContinueEnergy` แยกจาก `spendGameEnergy` แล้ว แต่ยังไม่มีปุ่ม resume, iframe message handler หรือการสั่งเกมให้เล่นต่อ เพราะเกมภายนอกยังไม่รองรับ ไม่ควรเรียกหักก่อนผู้เล่นยืนยันคำขอที่เกมรองรับจริง
+
+Config ใช้ `vipFreeEntry`, `vipEnergyBonus`, `continueEnergyCost` แทนความหมายเดิมของ `vipUnlimited` ตัว loader ย้าย save เก่าและแก้เวลา regen ที่เคยถูกพักถึงวันหมด VIP โดยรักษา Energy/วัน VIP เดิมไว้ การซื้อ/ต่ออายุไม่เติมพลังให้เต็มทันที และไม่รีเซ็ตเวลาที่ฟื้นค้างไว้เมื่อยังไม่เต็ม
 
 - เข้าแอปโดยไม่ใส่ `name` จะแสดงหน้าเริ่มเกม ให้กรอกชื่อก่อน ชื่อนี้อยู่ใน memory ของ session และไม่บันทึกใน `localStorage`; reload จะกลับมาหน้านี้
 - `?name=Mint` ข้ามหน้าเริ่มเกมและใช้ชื่อนี้ใน session โดยไม่รีเซ็ตยอดหรือบันทึกชื่อ
@@ -144,7 +155,7 @@ Migration เก็บ pass records เดิมและคัดลอกส�
 
 Reward-track presentation references the Free/Premium progression model in the [official VALORANT Battlepass FAQ](https://support.riotgames.com/en-us/valorant/gameplay/battlepass-faq). Masque uses its own artwork and a portrait-friendly vertical path with aligned Free/Level/VIP columns; no external game assets are bundled and the 30-day economy is unchanged by this UI refinement. Claiming a reward preserves the page position.
 
-`npm test` ตรวจ MGC 34 tests รวมขอบเขต 30 วัน, 50 tiers/โบนัส, weekly distinct games, retroactive VIP, claim-all, migration และระบบ Economy เดิม ส่วน `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route/focus allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
+`npm test` ตรวจ MGC 38 tests รวม VIP Energy ที่สะสม/ฟื้นตามปกติ, ค่าเข้าแยกจากค่าเล่นต่อ, overflow ตอนหมด VIP, migration นาฬิกาเก่า และระบบ Pass/Economy เดิม ส่วน `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route/focus allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
 
 ## Masque Vease
 

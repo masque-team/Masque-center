@@ -30,7 +30,7 @@
   import { GAMES, GAME_BY_ID } from './lib/data/games';
   import { MOCK_RANKINGS } from './lib/data/mockRankings';
   import { equipOutfit, selectAvatar } from './lib/services/avatarService';
-  import { isVip, nextRefillIn, refreshEnergy, refillEnergy, spendGameEnergy } from './lib/services/energyService';
+  import { isVip, nextRefillIn, refreshEnergy, refillEnergy } from './lib/services/energyService';
   import { purchaseVip } from './lib/services/passService';
   import { drawPet, equipPet } from './lib/services/petService';
   import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
@@ -430,7 +430,7 @@
       <VeaseFrame {sceneState} route={page} mode={page === 'world' ? 'town' : page === 'avatar' ? 'wardrobe' : 'backdrop'} onSize={(height) => { wardrobeHeight = height; }} onNavigate={navigate} onOutfit={(outfit) => { const next = equipOutfit(player, outfit); if (!next) return null; persist(next, 'เปลี่ยนชุดจาก MV'); return veaseState(player); }} />
       {#if page !== 'world' && page !== 'avatar'}<div class="pointer-events-none absolute inset-0 bg-[#edf4ff]/35"></div>{/if}
     </div>
-    {#if page !== 'world'}<div class="fixed top-0 left-1/2 z-30 w-full max-w-[460px] -translate-x-1/2 border-b border-white/80 bg-white/80 px-3.5 pt-2 pb-1 backdrop-blur-md"><AppHeader {player} {vipActive} countdown={formatCountdown(refillCountdown)} onRefill={() => vipActive ? openVipShop() : openRefill()} onShop={openExchange} onProfile={() => navigate('avatar')} /></div>{/if}
+    {#if page !== 'world'}<div class="fixed top-0 left-1/2 z-30 w-full max-w-[460px] -translate-x-1/2 border-b border-white/80 bg-white/80 px-3.5 pt-2 pb-1 backdrop-blur-md"><AppHeader {player} {vipActive} countdown={formatCountdown(refillCountdown)} onRefill={() => openRefill()} onShop={openExchange} onProfile={() => navigate('avatar')} /></div>{/if}
     {#if page === 'avatar'}<div class="h-24" aria-hidden="true"></div>{/if}
   {/if}
   {#if page === 'game'}
@@ -446,7 +446,7 @@
       onLoad={onIframeLoad}
       onError={() => (gameFallback = true)}
       onReload={reloadGame}
-      onRefill={() => vipActive ? openVipShop() : openRefill()}
+      onRefill={() => openRefill()}
       onFinish={simulateFinish}
       finished={player.demo.sessions.find((session) => session.id === activeSessionId)?.finished ?? false}
     />
@@ -460,12 +460,12 @@
             <section class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 py-1" aria-label="Avatar และเช็กอิน"><button class="relative h-28 w-[72px] transition-transform active:scale-95" title="แต่งตัว Avatar" aria-label="แต่งตัว Avatar" onclick={() => navigate('avatar')}><AssetPortrait src={homeAvatar.imagePath} alt={homeAvatar.name} placeholder={homeAvatar.placeholder} kind="avatar" loading="eager" />{#if homePet}<span class="absolute -right-2 bottom-0 h-12 w-10"><AssetPortrait src={homePet.imagePath} alt={homePet.name} placeholder={homePet.placeholder} kind="pet" /></span>{/if}</button><DailyCheckinCard compact reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} /></section>
             <div class="flex items-center justify-between gap-3 pt-2"><div><p class="text-[10px] font-semibold text-sky-700">MASQUE <span class="ml-1 rounded border border-sky-300 px-1 text-[9px]">DEMO</span></p><h1 class="text-xl font-bold leading-tight">Game Center</h1></div><button class="grid size-10 shrink-0 place-items-center rounded-md border border-white bg-white/60 text-sky-700 transition-transform active:scale-95 motion-reduce:transition-none" onclick={() => navigate('admin')} aria-label="เปิด Demo Admin" title="Demo Studio"><Settings2 size={18} /></button></div>
             <section class="block">
-              <FeaturedGameCard game={featuredGame} {vipActive} onclick={() => navigate(`detail/${featuredGame.id}`)} />
+              <FeaturedGameCard game={featuredGame} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${featuredGame.id}`)} />
               <p class="mt-3 flex items-center justify-between px-1 text-xs text-[var(--g-muted)]"><span>Personal Best · SIMULATED</span><strong>{(player.demo.scores[featuredGame.id] ?? 0).toLocaleString()}</strong></p>
             </section>
             <section class="block">
               <SectionHeading eyebrow="PICK YOUR NEXT PLAY" title="เกมทั้งหมด" chip={`${catalogGames.length + 1} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
-              <div class="game-list">{#each catalogGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} {vipActive} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 flex justify-between px-1 text-[11px] text-[var(--g-muted)]"><span>Personal Best</span><strong>{(player.demo.scores[game.id] ?? 0).toLocaleString()}</strong></p></div>{/each}</div>
+              <div class="game-list">{#each catalogGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 flex justify-between px-1 text-[11px] text-[var(--g-muted)]"><span>Personal Best</span><strong>{(player.demo.scores[game.id] ?? 0).toLocaleString()}</strong></p></div>{/each}</div>
             </section>
             <button class="flex min-h-16 items-center gap-3 rounded-lg border border-white/80 bg-white/55 px-3 text-left shadow-sm transition-transform active:scale-[0.99]" onclick={() => navigate('world')}>
               <span class="h-12 w-10 shrink-0"><AssetPortrait src={homeAvatar.imagePath} alt="" placeholder={homeAvatar.placeholder} kind="avatar" /></span>
@@ -480,7 +480,7 @@
 
           </div>
         {:else if page === 'detail'}
-          {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId]} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('home')} onRefill={() => vipActive ? openVipShop() : openRefill()} onAvatar={() => navigate('avatar')} />{/key}
+          {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId]} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('home')} onRefill={() => openRefill()} onAvatar={() => navigate('avatar')} />{/key}
         {:else if page === 'shop'}
           <ShopPage
             {player}
@@ -537,6 +537,7 @@
 <ModalHost
   {modal}
   {player}
+  {vipActive}
   exchangeAmount={exchangeAmount}
   checkinReward={CHECKIN_REWARD}
   onClose={() => (modal = null)}

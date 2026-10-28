@@ -6,6 +6,7 @@
   import RarityChip from '../components/RarityChip.svelte';
   import { AVATARS, ENERGY_CONFIG, PETS } from '../data/config';
   import type { PlayerState } from '../types';
+  import { energyCapacity } from '../services/energyService';
 
   let { player, vipActive, passLevel, onNavigate, onRefill }: {
     player: PlayerState;
@@ -52,7 +53,7 @@
 
   <div class="wallet">
     <div><span class="wi gold"><Coins size={20} /></span><span class="wc"><small>Masque Points</small><b>{player.masquePoints.toLocaleString('en-US')}</b></span><button aria-label="เปิด Shop" onclick={() => onNavigate('shop')}><Plus size={17} strokeWidth={3.5} /></button></div>
-    <div><span class="wi blue"><Zap size={20} fill="currentColor" /></span><span class="wc"><small>Energy</small><b>{vipActive && player.demo.config.vipUnlimited ? '∞' : `${player.energy}/${player.demo.config.energyMax}`}</b></span><button aria-label="เติม Energy" onclick={onRefill}><Plus size={17} strokeWidth={3.5} /></button></div>
+    <div><span class="wi blue"><Zap size={20} fill="currentColor" /></span><span class="wc"><small>Energy</small><b>{player.energy}/{energyCapacity(player, vipActive)}</b></span><button aria-label="เติม Energy" onclick={onRefill}><Plus size={17} strokeWidth={3.5} /></button></div>
   </div>
 
   <div class="stats">

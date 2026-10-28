@@ -2,6 +2,7 @@
   import { ArrowLeft, CircleAlert, ExternalLink, LoaderCircle, RotateCcw } from '@lucide/svelte';
   import GameButton from './GameButton.svelte';
   import EnergyBadge from './EnergyBadge.svelte';
+  import { energyCapacity } from '../services/energyService';
   import type { Game, PlayerState } from '../types';
 
   let { game, player, sessionId, vipActive, loading, fallback, version, onBack, onLoad, onError, onReload, onRefill, onFinish, finished }: {
@@ -29,10 +30,10 @@
   <header class="top">
     <button class="back" onclick={onBack} aria-label="กลับหน้าเกม"><ArrowLeft size={22} strokeWidth={2.8} /></button>
     <div class="copy"><strong>{game.name}</strong><small>{player.displayName} · LV.{player.level}</small></div>
-    <EnergyBadge energy={player.energy} vipActive={vipActive && player.demo.config.vipUnlimited} max={player.demo.config.energyMax} {onRefill} />
+    <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {onRefill} />
   </header>
   <div class="info">
-    <span>{ranked ? 'RANKED · ใช้บัตรเข้า 1 ใบ · ไม่ใช้ Energy' : vipActive && player.demo.config.vipUnlimited ? 'VIP · Energy ไม่จำกัด' : `ใช้ ${player.demo.config.energyCost} Energy ต่อการเข้าเล่น`}</span>
+    <span>{ranked ? 'RANKED · ใช้บัตรเข้า 1 ใบ · ไม่ใช้ Energy' : vipActive && player.demo.config.vipFreeEntry ? 'VIP · เข้าเกมไม่เสีย Energy' : `ใช้ ${player.demo.config.energyCost} Energy ต่อการเข้าเล่น`}</span>
     <a href={hostedUrl} target="_blank" rel="noopener noreferrer" aria-label="เปิดเกมในแท็บใหม่"><ExternalLink size={17} /></a>
   </div>
   <section class="stage" aria-label={`เกม ${game.name}`}>

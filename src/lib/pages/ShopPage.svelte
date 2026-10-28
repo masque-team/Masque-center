@@ -5,6 +5,7 @@
   import PointShop from '../components/PointShop.svelte';
   import RarityChip from '../components/RarityChip.svelte';
   import { AVATARS, PETS, WINGS } from '../data/config';
+  import { energyCapacity } from '../services/energyService';
   import type { PlayerState, ShopTab } from '../types';
   let { player, vipActive, tab = $bindable(), onBuy, onRefill, onBuyTickets, onBuyPointPack, onPass }: {
     player: PlayerState; vipActive: boolean; tab: ShopTab; onBuy: (id: string) => void; onRefill: (id: string) => void;
@@ -27,8 +28,9 @@
     {#if tab === 'exchange'}
       <PointShop {player} embedded onBuy={onBuyPointPack} />
     {:else if tab === 'energy'}
-      <div class="space-y-4"><div class="flex items-center justify-between border-y border-white py-4"><h2 class="flex items-center gap-2 font-semibold"><Zap size={22} />Energy</h2><strong>{vipActive && player.demo.config.vipUnlimited ? '∞ VIP' : `${player.energy}/${player.demo.config.energyMax}`}</strong></div>
-        {#if vipActive && player.demo.config.vipUnlimited}<p class="rounded-lg border border-amber-200 bg-white/80 p-4 text-sm text-amber-800">VIP Pass กำลังใช้งาน · Energy ไม่จำกัด</p>{:else}<div class="grid grid-cols-2 gap-3">{#each player.demo.config.energyPacks as pack (pack.id)}<article class="grid justify-items-center gap-3 rounded-lg border border-white bg-white/85 p-4"><Zap size={30} class="text-sky-500" /><strong class="text-2xl">+{pack.energy}</strong><span class="text-xs">{pack.cost} MP</span><GameButton size="sm" disabled={player.masquePoints < pack.cost} onclick={() => onRefill(pack.id)}>เติม Energy</GameButton></article>{/each}</div>{/if}
+      <div class="space-y-4"><div class="flex items-center justify-between border-y border-white py-4"><h2 class="flex items-center gap-2 font-semibold"><Zap size={22} />Energy</h2><strong>{player.energy}/{energyCapacity(player, vipActive)}</strong></div>
+        {#if vipActive}<p class="rounded-lg border border-amber-200 bg-white/80 p-4 text-sm text-amber-800">VIP · เพดานฟื้นพลัง {energyCapacity(player, true)}{player.demo.config.vipFreeEntry ? ' · เข้าเกมไม่เสีย Energy' : ''}</p>{/if}
+        <div class="grid grid-cols-2 gap-3">{#each player.demo.config.energyPacks as pack (pack.id)}<article class="grid justify-items-center gap-3 rounded-lg border border-white bg-white/85 p-4"><Zap size={30} class="text-sky-500" /><strong class="text-2xl">+{pack.energy}</strong><span class="text-xs">{pack.cost} MP</span><GameButton size="sm" disabled={player.masquePoints < pack.cost} onclick={() => onRefill(pack.id)}>เติม Energy</GameButton></article>{/each}</div>
         <button class="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50/90 text-sm font-semibold text-amber-800" onclick={onPass}><Crown size={18} />ไปหน้า VIP Pass</button>
       </div>
     {:else}

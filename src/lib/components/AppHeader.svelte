@@ -3,6 +3,7 @@
   import AssetPortrait from './AssetPortrait.svelte';
   import EnergyBadge from './EnergyBadge.svelte';
   import { AVATARS, PETS } from '../data/config';
+  import { energyCapacity } from '../services/energyService';
   import type { PlayerState } from '../types';
 
   let { player, vipActive = false, countdown = '', onRefill, onShop, onProfile }: { player: PlayerState; vipActive?: boolean; countdown?: string; onRefill: () => void; onShop: () => void; onProfile: () => void } = $props();
@@ -24,7 +25,7 @@
     </span>
   </button>
 
-  <EnergyBadge energy={player.energy} vipActive={vipActive && player.demo.config.vipUnlimited} max={player.demo.config.energyMax} {countdown} {onRefill} />
+  <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {countdown} {onRefill} />
 
   <button class="wallet" onclick={onShop} aria-label={`เติม Masque Points · ยอด ${player.masquePoints}`}>
     <span class="coin" aria-hidden="true">M</span>

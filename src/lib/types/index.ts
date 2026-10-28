@@ -109,7 +109,10 @@ export interface DemoConfig {
   gachaPool: { petId: string; weight: number }[];
   games: Game[];
   vipPlans: VipPackage[];
-  vipUnlimited: boolean;
+  vipUnlimited?: boolean;
+  vipFreeEntry: boolean;
+  vipEnergyBonus: number;
+  continueEnergyCost: number;
   energyPacks: { id: string; energy: number; cost: number }[];
   shop: { id: string; kind: 'avatar' | 'pet' | 'frame' | 'wing'; itemId: string; cost: number }[];
   seasons: DemoSeason[];

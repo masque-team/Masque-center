@@ -2,7 +2,8 @@
   import { Clock3, Crown, Zap } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
   import GameButton from './GameButton.svelte';
-  import { AVATARS, ENERGY_CONFIG, PETS } from '../data/config';
+  import { AVATARS, PETS } from '../data/config';
+  import { energyCapacity } from '../services/energyService';
   import type { PlayerState } from '../types';
 
   let { player, vipActive, countdown, onRefill, onVip }: {
@@ -16,9 +17,9 @@
   let avatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
   let pet = $derived(PETS.find((item) => item.id === player.petId));
   let isVipLook = $derived(vipActive || avatar.rarity === 'VIP');
-  let percent = $derived(Math.min(100, (player.energy / ENERGY_CONFIG.max) * 100));
-  let full = $derived(player.energy >= ENERGY_CONFIG.max);
-  let vipUntil = $derived(player.vipExpiresAt ? new Date(player.vipExpiresAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) : '');
+  let max = $derived(energyCapacity(player, vipActive));
+  let percent = $derived(Math.min(100, (player.energy / max) * 100));
+  let full = $derived(player.energy >= max);
 </script>
 
 <section class="hero" class:vip={vipActive} aria-label="Energy">
@@ -32,31 +33,29 @@
     {#if pet}<AssetPortrait src={pet.imagePath} alt="" placeholder={pet.placeholder} kind="pet" loading="eager" className="hero-pet" />{/if}
   </div>
 
-  <h1>{vipActive ? 'VIP ลุยไม่มีสะดุด!' : full ? 'พลังเต็ม ลุยเลย!' : 'พร้อมลุยหรือยัง?'}</h1>
+  <h1>{vipActive ? 'VIP พร้อมเข้าเกม!' : full ? 'พลังเต็ม ลุยเลย!' : 'พร้อมลุยหรือยัง?'}</h1>
 
   <div class="energy">
     <div class="row">
       <span class="bolt"><Zap size={20} fill="currentColor" /></span>
       <div class="count">
-        {#if vipActive}<b class="infinity" aria-label="Energy ไม่จำกัด">∞</b><small>ไม่จำกัด</small>
-        {:else}<b>{player.energy}</b><small>/{ENERGY_CONFIG.max}</small>{/if}
+        <b class:vip-number={vipActive}>{player.energy}</b><small>/{max}</small>
       </div>
       <span class="timer">
-        {#if vipActive}<Crown size={13} fill="currentColor" />ถึง {vipUntil}
-        {:else if full}พลังเต็ม
+        {#if full}พลังเต็ม
         {:else}<Clock3 size={13} />+1 ใน {countdown}{/if}
       </span>
     </div>
 
     <div class="row controls">
-      <div class="bar" role="progressbar" aria-label="Energy" aria-valuemin="0" aria-valuemax={ENERGY_CONFIG.max} aria-valuenow={vipActive ? ENERGY_CONFIG.max : player.energy}>
-        <span class="fill" style={`width:${vipActive ? 100 : percent}%`}></span>
+      <div class="bar" role="progressbar" aria-label="Energy" aria-valuemin="0" aria-valuemax={max} aria-valuenow={Math.min(max, player.energy)}>
+        <span class="fill" style={`width:${percent}%`}></span>
       </div>
+      <GameButton variant="gold" size="sm" label="เติม Energy" onclick={onRefill}><Zap size={14} fill="currentColor" />เติม</GameButton>
       {#if vipActive}
         <GameButton variant="ghost" size="sm" label="VIP Benefits" onclick={onVip}><Crown size={14} fill="currentColor" />VIP</GameButton>
       {:else}
-        <GameButton variant="gold" size="sm" label="เติม Energy" onclick={onRefill}><Zap size={14} fill="currentColor" />เติม</GameButton>
-        <GameButton variant="purple" size="sm" label="ปลดล็อก VIP Energy ไม่จำกัด" onclick={onVip}><Crown size={14} fill="currentColor" />VIP</GameButton>
+        <GameButton variant="purple" size="sm" label="เปิด VIP Pass" onclick={onVip}><Crown size={14} fill="currentColor" />VIP</GameButton>
       {/if}
     </div>
   </div>
@@ -101,7 +100,7 @@
   .count { display: flex; align-items: baseline; gap: 2px; color: #2b2468; }
   .count b { font-size: 26px; font-weight: 900; line-height: 1; }
   .count small { color: #8077b8; font-size: 13px; font-weight: 800; }
-  .infinity { color: #d68a14; font-size: 32px !important; text-shadow: 0 0 12px rgb(255 200 80 / 80%); }
+  .vip-number { color: #d68a14; font-size: 32px !important; text-shadow: 0 0 12px rgb(255 200 80 / 80%); }
   .timer { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0; margin-left: auto; padding: 5px 9px; border-radius: 99px; color: #5a46b8; background: #efeaff; font-size: 12px; font-weight: 800; white-space: nowrap; }
   .vip .timer { color: #8a5a06; background: #fff0c2; }
 

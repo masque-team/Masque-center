@@ -18,7 +18,7 @@
   let catalogMessage = $state('');
   onMount(() => { draft = structuredClone($state.snapshot(player.demo.config)); });
   const numericFields = [
-    ['energyMax', 'เพดาน Energy', 1], ['regenMinutes', 'ฟื้น 1 Energy ทุก (นาที)', 1], ['energyCost', 'Energy ต่อเกม', 1],
+    ['energyMax', 'เพดาน Energy ฟรี', 1], ['vipEnergyBonus', 'VIP เพิ่มเพดาน Energy', 0], ['regenMinutes', 'ฟื้น 1 Energy ทุก (นาที)', 1], ['energyCost', 'Energy ค่าเข้าเกม', 1], ['continueEnergyCost', 'Energy เล่นต่อ (เตรียมไว้)', 1],
     ['exchangeRate', 'MP ต่อ 1 AIS Point', 1], ['checkinReward', 'Check-in reward (MP)', 0], ['missionTarget', 'ภารกิจเล่นจบ (ครั้ง)', 1],
     ['missionXp', 'ภารกิจให้ Pass XP', 1], ['gachaCost', 'Gacha (MP)', 0],
     ['duplicatePoints', 'Pet ซ้ำคืน (MP)', 0], ['rankingPrize', 'Ranking prize (MP)', 0], ['arenaTicketPrice', 'บัตรเข้า Ranked (MP/ใบ)', 1], ['battlePrize', 'รางวัลจบ Ranked (MP)', 0],
@@ -54,7 +54,7 @@
   <form class="space-y-5" onsubmit={(event) => { event.preventDefault(); onSave(structuredClone($state.snapshot(draft))); }}>
     {#if section === 'economy'}
       <section class="grid grid-cols-2 gap-3">{#each numericFields as [key, label, min] (key)}<label class="grid content-start gap-1 text-xs font-semibold">{label}<input class="min-h-11 min-w-0 rounded-md border border-white bg-white/70 px-3 text-sm" type="number" {min} max="100000" required bind:value={draft[key]} /></label>{/each}</section>
-      <label class="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" bind:checked={draft.vipUnlimited} />VIP เล่นแบบ Energy ไม่จำกัด</label>
+      <label class="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" bind:checked={draft.vipFreeEntry} />VIP ไม่หัก Energy ตอนเข้าเกม</label>
       <h2 class="font-bold">Energy Packs</h2>
       {#each draft.energyPacks as pack (pack)}<div class="grid grid-cols-2 gap-3"><label class="grid gap-1 text-xs">{pack.id} · Energy<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" type="number" min="1" required bind:value={pack.energy} /></label><label class="grid gap-1 text-xs">ราคา MP<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" type="number" min="0" required bind:value={pack.cost} /></label></div>{/each}
       <h2 class="font-bold">VIP Plans</h2>

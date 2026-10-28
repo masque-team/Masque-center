@@ -88,7 +88,7 @@
           <strong>{vipMascot.name} & {vipPet.name}</strong>
           <small>ปลดล็อกที่ LV.2 · LV.4 พร้อมตัวละคร {freeHero.name}</small>
           <div class="perk-chips">
-            <span><Zap size={11} fill="currentColor" />Energy ∞</span>
+            <span><Zap size={11} fill="currentColor" />ยกเว้นค่าเข้าเกม</span>
             <span><Crown size={11} fill="currentColor" />รางวัล VIP x5</span>
           </div>
         </div>
@@ -172,7 +172,7 @@
           <span class="qi gold"><Crown size={22} fill="currentColor" /></span>
           <div class="qc">
             <strong>VIP กำลังใช้งาน</strong>
-            <small>{vipUntil ? `สิทธิ์ถึง ${vipUntil}` : 'เปิดใช้งานอยู่'} · Energy ∞ + รางวัล VIP</small>
+            <small>{vipUntil ? `สิทธิ์ถึง ${vipUntil}` : 'เปิดใช้งานอยู่'} · ยกเว้นค่าเข้าเกม + รางวัล VIP</small>
           </div>
           <GameButton variant="ghost" size="sm" onclick={onRoom}><UsersRound size={14} />ห้องเพื่อน</GameButton>
         </div>
@@ -186,11 +186,11 @@
             <span class="qi gold"><Crown size={22} fill="currentColor" /></span>
             <div>
               <h3>{pack.label}</h3>
-              <small>ปลดล็อก Battle Pass VIP + Energy ∞ ({pack.durationDays} วัน)</small>
+              <small>ปลดล็อก VIP Pass และยกเว้นค่าเข้าเกม ({pack.durationDays} วัน)</small>
             </div>
           </div>
           <ul class="vip-perks">
-            <li><Zap size={13} fill="currentColor" />Energy ไม่จำกัด</li>
+            <li><Zap size={13} fill="currentColor" />ไม่หัก Energy ตอนเข้าเกม</li>
             <li><Check size={13} strokeWidth={3.5} />รางวัล + ภารกิจ VIP</li>
             <li><UsersRound size={13} />สร้างห้องเพื่อน</li>
             <li><Gift size={13} />{pack.reward}</li>

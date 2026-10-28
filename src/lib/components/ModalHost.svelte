@@ -8,12 +8,13 @@
   import type { ModalState, PlayerState } from '../types';
 
   let {
-    modal, player, exchangeAmount, checkinReward,
+    modal, player, vipActive = false, exchangeAmount, checkinReward,
     onClose, onPickRefill, onConfirmRefill, onConfirmVip, onConfirmExchange,
     onOpenRefill, onOpenVip, onOpenExchange, onWait, onConfirmItem, onConfirmAction = () => {},
   }: {
     modal: ModalState;
     player: PlayerState;
+    vipActive?: boolean;
     exchangeAmount: number;
     checkinReward: number;
     onClose: () => void;
@@ -30,7 +31,7 @@
   } = $props();
 
   let SHOP_ITEMS = $derived(player.demo.config.shop);
-  let ENERGY_CONFIG = $derived({ max: player.demo.config.energyMax, refillPacks: player.demo.config.energyPacks });
+  let ENERGY_CONFIG = $derived({ max: player.demo.config.energyMax + (vipActive ? player.demo.config.vipEnergyBonus : 0), refillPacks: player.demo.config.energyPacks });
   let EXCHANGE_RATE = $derived(player.demo.config.exchangeRate);
   let VIP_PACKAGES = $derived(player.demo.config.vipPlans);
   let vip = $derived(modal?.kind === 'vip-confirm' ? VIP_PACKAGES.find((pack) => pack.id === modal.packageId) ?? null : null);
@@ -92,7 +93,7 @@
         <div class="medal gold"><Crown size={34} fill="currentColor" /></div>
         <p class="eyebrow">VIP PASS · ราคาตัวอย่าง</p>
         <h2>{vip.label}</h2>
-        <ul class="perks"><li><Zap size={13} fill="currentColor" />{player.demo.config.vipUnlimited ? 'Energy ไม่จำกัด' : 'VIP Profile Badge'}</li><li><Check size={13} strokeWidth={3.5} />{vip.reward}</li></ul>
+        <ul class="perks"><li><Zap size={13} fill="currentColor" />{player.demo.config.vipFreeEntry ? 'เข้าเกมไม่เสีย Energy' : 'VIP Profile Badge'}</li><li><Check size={13} strokeWidth={3.5} />เพดานฟื้น Energy +{player.demo.config.vipEnergyBonus}</li><li><Check size={13} strokeWidth={3.5} />{vip.reward}</li></ul>
         <div class="receipt">
           <div><span>ระยะเวลา</span><b>{vip.durationDays} วัน</b></div>
           <div><span>ของแถม</span><b>{vip.reward}</b></div>
@@ -168,7 +169,7 @@
         <p class="summary">Energy ฟื้นทีละ 1 ทุก {player.demo.config.regenMinutes} นาที หรือเติมด้วย Masque Points</p>
         <div class="stack">
           <GameButton variant="purple" size="md" onclick={onOpenRefill}><Zap size={16} fill="currentColor" />เติม Energy</GameButton>
-          <GameButton variant="gold" size="md" onclick={onOpenVip}><Crown size={16} fill="currentColor" />ซื้อ VIP · Energy ∞</GameButton>
+          <GameButton variant="gold" size="md" onclick={onOpenVip}><Crown size={16} fill="currentColor" />VIP · ยกเว้นค่าเข้าเกม</GameButton>
           <GameButton variant="ghost" size="md" onclick={onWait}><Clock3 size={16} />รอ Energy ฟื้น</GameButton>
         </div>
 

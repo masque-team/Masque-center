@@ -19,7 +19,7 @@
     <h3>{vipActive ? 'VIP กำลังใช้งาน' : 'VIP Pass 5 / 7 วัน'}</h3>
     <p class="sub">{vipActive ? `สิทธิ์ถึง ${vipUntil}` : `เริ่มต้น ${startCost} MP · ราคาตัวอย่าง`}</p>
     <ul>
-      <li><Zap size={12} fill="currentColor" />Energy ∞</li>
+      <li><Zap size={12} fill="currentColor" />ยกเว้นค่าเข้าเกม</li>
       <li><Check size={12} strokeWidth={3.5} />รางวัล VIP</li>
       <li><Check size={12} strokeWidth={3.5} />ภารกิจ VIP</li>
     </ul>
