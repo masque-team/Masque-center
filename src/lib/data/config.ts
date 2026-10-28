@@ -112,8 +112,8 @@ export const SHOP_ITEMS: { id: string; kind: 'avatar' | 'pet'; itemId: string; c
 ];
 
 export const PASS_ARTWORK: Record<'standard' | 'boost' | 'crest' | 'banner', string | null> = {
-  standard: null,
-  boost: null,
-  crest: null,
-  banner: null,
+  standard: 'assets/pass/vip-ticket-standard.png',
+  boost: 'assets/pass/vip-ticket-boost.png',
+  crest: 'assets/pass/season-crest.png',
+  banner: 'assets/pass/season-keyart.png',
 };
