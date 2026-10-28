@@ -1,5 +1,15 @@
 import type { PlayerState } from '../types';
-import { WINGS } from '../data/config';
+import { POINT_PACKS, WINGS } from '../data/config';
+
+export function pointPackReward(player: PlayerState, packId: string): number {
+  const pack = POINT_PACKS.find((item) => item.id === packId);
+  return pack ? pack.points * (player.demo.pointPackClaims.includes(pack.id) ? 1 : 2) + pack.bonus : 0;
+}
+export function buyPointPack(player: PlayerState, packId: string): PlayerState | null {
+  const pack = POINT_PACKS.find((item) => item.id === packId);
+  if (!pack || player.aisPoints < pack.cost) return null;
+  return { ...player, aisPoints: player.aisPoints - pack.cost, masquePoints: player.masquePoints + pointPackReward(player, packId), demo: { ...player.demo, pointPackClaims: player.demo.pointPackClaims.includes(packId) ? player.demo.pointPackClaims : [...player.demo.pointPackClaims, packId] } };
+}
 
 export function exchangeAisPoints(player: PlayerState, amount: number): PlayerState | null {
   if (!Number.isInteger(amount) || amount < 1 || amount > player.aisPoints) return null;

@@ -62,7 +62,7 @@ export type GameMode = 'casual' | 'ranked';
 export interface ProfileStyle { backgroundId: string; bio: string; badgeIds: string[] }
 export interface ProfileBadge { id: string; title: string; earnedAt: number; seasonId?: string; gameId?: GameId }
 
-export type Page = 'home' | 'world' | 'shop' | 'rewards' | 'ranking' | 'avatar' | 'profile' | 'room' | 'game' | 'detail' | 'battle' | 'admin' | 'wallet';
+export type Page = 'home' | 'world' | 'shop' | 'rewards' | 'ranking' | 'avatar' | 'profile' | 'room' | 'game' | 'detail' | 'battle' | 'admin' | 'wallet' | 'points' | 'gacha';
 
 export type ShopTab = 'items' | 'exchange' | 'energy' | 'vip';
 
@@ -149,6 +149,7 @@ export interface DemoState {
   passes: Record<string, { xp: number; premium: boolean; claims: string[] }>;
   missionCounts: Record<string, number>;
   missionClaims: string[];
+  pointPackClaims: string[];
   frames: string[];
   frameId: string | null;
   wings: string[];

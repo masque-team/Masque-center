@@ -12,7 +12,7 @@
 </script>
 
 <header class="bar">
-  <button class="player" class:vip={isVipLook} onclick={onProfile} aria-label={`โปรไฟล์ ${player.displayName}`}>
+  <button class="player" class:vip={isVipLook} onclick={onProfile} aria-label={`Avatar ของ ${player.displayName}`}>
     <span class="thumb" data-frame={player.demo.frameId}>
       <AssetPortrait src={avatar.imagePath} alt="" placeholder={avatar.placeholder} kind="avatar" loading="eager" className="thumb-img" style={`--avatar-color:${avatar.color}`} />
       <span class="lv">{player.level}</span>
@@ -26,7 +26,7 @@
 
   <EnergyBadge energy={player.energy} vipActive={vipActive && player.demo.config.vipUnlimited} max={player.demo.config.energyMax} {countdown} {onRefill} />
 
-  <button class="wallet" onclick={onShop} aria-label={`เปิด Shop · Masque Points ${player.masquePoints}`}>
+  <button class="wallet" onclick={onShop} aria-label={`เติม Masque Points · ยอด ${player.masquePoints}`}>
     <span class="coin" aria-hidden="true">M</span>
     <strong>{player.masquePoints.toLocaleString('en-US')}</strong>
     <span class="plus" aria-hidden="true"><Plus size={16} strokeWidth={3.5} /></span>

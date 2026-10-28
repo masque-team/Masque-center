@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './playerService';
 import { nextRefillIn, refreshEnergy, refillEnergy, spendGameEnergy } from './energyService';
-import { beginGame, buyDecor, buyPremium, claimMission, claimPass, claimRankingReward, currentPass, dayKey, finishGame, ledger, recordPlayTime, startBattle, validateConfig } from './demoService';
+import { beginGame, buyDecor, buyPremium, claimMission, claimPass, claimRankingReward, currentPass, dayKey, finishGame, gameMission, hasPassAccess, ledger, recordPlayTime, startBattle, validateConfig } from './demoService';
 import { drawPet } from './petService';
-import { buyArenaTickets, equipWings, exchangeAisPoints, purchaseShopItem } from './walletService';
+import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './walletService';
 import { getGameRanking } from './rankingService';
 import { purchaseVip } from './passService';
 import { equipOutfit } from './avatarService';
@@ -113,10 +113,11 @@ describe('shared demo economy', () => {
   });
   it('migrates old saves without wings while preserving the unequipped pet and economy', () => {
     const player = sample();
-    const { wings, wingId, ...legacyDemo } = player.demo;
+    const { wings, wingId, pointPackClaims, ...legacyDemo } = player.demo;
     localStorage.setItem('masquegame_center_v2', JSON.stringify({ ...player, petId: null, demo: { ...legacyDemo, config: { ...player.demo.config, shop: player.demo.config.shop.filter((item) => item.kind !== 'wing') } } }));
     const restored = loadPlayer(null);
     expect(restored.demo.wings).toEqual([]);
+    expect(restored.demo.pointPackClaims).toEqual([]);
     expect(restored.demo.wingId).toBeNull();
     expect(restored.demo.config.shop.filter((item) => item.kind === 'wing')).toHaveLength(2);
     expect(restored.petId).toBeNull();
@@ -139,20 +140,60 @@ describe('progression and duplicate protection', () => {
     expect(currentPass(next).xp).toBe(100);
     expect(claimMission(next)).toBeNull();
   });
-  it('keeps Premium independent from VIP and prevents repeated reward claims', () => {
+  it('uses VIP as Pass access without a second purchase and prevents repeated claims', () => {
     const player = sample(); player.vipExpiresAt = Date.now() + 86_400_000;
-    expect(claimPass(player, 'premium', 0)).toBeNull();
-    const next = claimPass(buyPremium(player)!, 'premium', 0)!;
+    expect(hasPassAccess(player)).toBe(true);
+    expect(buyPremium(player)).toBeNull();
+    const next = claimPass(player, 'premium', 0)!;
+    expect(next.masquePoints).toBe(player.masquePoints + 40);
     expect(claimPass(next, 'premium', 0)).toBeNull();
-    expect(buyPremium(next)).toBeNull();
+    expect(hasPassAccess({ ...player, vipExpiresAt: Date.now() - 1 })).toBe(false);
   });
-  it('keeps pass ownership and claims separate across seasons', () => {
+  it('buys a single VIP Pass across seasons and preserves legacy season purchases', () => {
     const player = buyPremium(sample())!;
+    expect(player.vipExpiresAt).toBeGreaterThan(Date.now());
+    expect(player.masquePoints).toBe(160);
     player.demo.config.passSeasonId = 'loy-krathong';
-    expect(currentPass(player).premium).toBe(false);
+    expect(hasPassAccess(player)).toBe(true);
     expect(currentPass(player).claims).toEqual([]);
     player.demo.config.passSeasonId = 'songkran';
-    expect(currentPass(player).premium).toBe(true);
+    player.vipExpiresAt = null;
+    player.demo.passes.songkran = { xp: 0, premium: true, claims: [] };
+    expect(hasPassAccess(player)).toBe(true);
+  });
+  it('advances independent per-game missions through growing, repeatable goals', () => {
+    let player = finishedSample();
+    expect(gameMission(player, 'bird')).toMatchObject({ target: 1, count: 1 });
+    player = claimMission(player, 'bird')!;
+    expect(gameMission(player, 'bird')).toMatchObject({ target: 5, count: 1 });
+    expect(claimMission(player, 'bird')).toBeNull();
+    expect(gameMission(player, 'mole')).toMatchObject({ target: 1, count: 0 });
+    player.demo.playCounts.bird = 5;
+    player = claimMission(player, 'bird')!;
+    expect(gameMission(player, 'bird').target).toBe(10);
+    expect(currentPass(player).xp).toBe(50);
+    expect(player.masquePoints).toBe(345);
+    player.demo.playCounts.bird = 100;
+    for (let index = 0; index < 4; index += 1) player = claimMission(player, 'bird')!;
+    expect(gameMission(player, 'bird').target).toBe(150);
+    player.demo.config.passSeasonId = 'loy-krathong';
+    expect(gameMission(player, 'bird').target).toBe(150);
+    savePlayer(player);
+    expect(gameMission(loadPlayer(null), 'bird').target).toBe(150);
+  });
+  it('buys fixed AIS point packages and grants the first-pack bonus only once', () => {
+    const player = sample(); player.aisPoints = 500;
+    expect(pointPackReward(player, 'pocket')).toBe(3010);
+    const first = buyPointPack(player, 'pocket')!;
+    expect(first.aisPoints).toBe(401);
+    expect(first.masquePoints).toBe(3330);
+    const second = buyPointPack(first, 'pocket')!;
+    expect(second.masquePoints).toBe(4840);
+    expect(second.demo.pointPackClaims).toEqual(['pocket']);
+    expect(buyPointPack({ ...player, aisPoints: 98 }, 'pocket')).toBeNull();
+    expect(buyPointPack(player, 'unknown')).toBeNull();
+    savePlayer(second);
+    expect(pointPackReward(loadPlayer(null), 'pocket')).toBe(1510);
   });
   it('keeps lifetime scores after a season reset and guards ranking prizes', () => {
     const player = finishedSample();

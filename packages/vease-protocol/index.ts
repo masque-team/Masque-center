@@ -1,6 +1,6 @@
 export const CHANNEL = 'masque-vease';
 export const VERSION = 1;
-export type SceneMode = 'portrait' | 'town' | 'wardrobe';
+export type SceneMode = 'portrait' | 'town' | 'wardrobe' | 'backdrop';
 export interface Outfit { avatarId: string; petId: string | null; wingId: string | null }
 export interface Appearance extends Outfit { name: string; level: number; frameId: string | null; vip: boolean }
 export interface SceneState {
@@ -16,6 +16,7 @@ export type HostMessage =
   | Envelope<'INIT', { state: SceneState; mode: SceneMode }>
   | Envelope<'STATE', { state: SceneState }>
   | Envelope<'MODE', { mode: SceneMode }>
+  | Envelope<'FOCUS', { route: string }>
   | Envelope<'ACTIVE', { active: boolean }>
   | Envelope<'WALK_TO', { destination: string }>
   | Envelope<'EQUIP_RESULT', { ok: boolean; state: SceneState; message: string }>;
@@ -28,14 +29,14 @@ export type SceneMessage =
   | Envelope<'SIZE', { height: number }>
   | Envelope<'ERROR', { message: string }>;
 export const DESTINATIONS = ['arcade', 'cafe', 'market', 'atelier', 'club', 'pass', 'bakery', 'home', 'studio'];
-const ROUTES = ['home', 'shop', 'avatar', 'profile', 'room', 'rewards', 'battle', 'wallet', 'ranking', 'world'];
+const ROUTES = ['home', 'shop', 'avatar', 'profile', 'room', 'rewards', 'battle', 'wallet', 'ranking', 'world', 'points', 'gacha', 'detail', 'admin'];
 const GAME_IDS = ['bird', 'mole', 'run', 'fruit', 'timber', 'duck', 'memory'];
 const record = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const text = (value: unknown, maximum = 160): value is string => typeof value === 'string' && value.length <= maximum;
 const itemId = (value: unknown): value is string => typeof value === 'string' && /^[a-z0-9-]{1,64}$/.test(value);
 const optionalId = (value: unknown): value is string | null => value === null || itemId(value);
 const ids = (value: unknown): value is string[] => Array.isArray(value) && value.length <= 200 && value.every(itemId);
-const mode = (value: unknown): value is SceneMode => ['portrait', 'town', 'wardrobe'].includes(value as string);
+const mode = (value: unknown): value is SceneMode => ['portrait', 'town', 'wardrobe', 'backdrop'].includes(value as string);
 export function isOutfit(value: unknown): value is Outfit {
   return record(value) && itemId(value.avatarId) && optionalId(value.petId) && optionalId(value.wingId);
 }
@@ -58,6 +59,7 @@ export function isHostMessage(value: unknown): value is HostMessage {
     case 'INIT': return isSceneState(payload.state) && mode(payload.mode);
     case 'STATE': return isSceneState(payload.state);
     case 'MODE': return mode(payload.mode);
+    case 'FOCUS': return ROUTES.includes(payload.route as string);
     case 'ACTIVE': return typeof payload.active === 'boolean';
     case 'WALK_TO': return DESTINATIONS.includes(payload.destination as string);
     case 'EQUIP_RESULT': return typeof payload.ok === 'boolean' && isSceneState(payload.state) && text(payload.message);
@@ -70,7 +72,7 @@ export function isSceneMessage(value: unknown): value is SceneMessage {
   switch (value.type) {
     case 'READY': case 'ACK': return true;
     case 'ARRIVED': return DESTINATIONS.includes(payload.destination as string) && typeof payload.cancelled === 'boolean';
-    case 'NAVIGATE': return typeof payload.route === 'string' && (ROUTES.includes(payload.route) || /^detail\/(bird|mole|run|fruit|timber|duck|memory)$/.test(payload.route));
+    case 'NAVIGATE': return typeof payload.route === 'string' && (ROUTES.includes(payload.route) && !['admin', 'detail'].includes(payload.route) || /^detail\/(bird|mole|run|fruit|timber|duck|memory)$/.test(payload.route));
     case 'EQUIP_REQUEST': return isOutfit(payload);
     case 'SIZE': return Number.isSafeInteger(payload.height) && Number(payload.height) >= 350 && Number(payload.height) <= 4000;
     case 'ERROR': return text(payload.message);

@@ -19,6 +19,7 @@
     "art": "node scripts/optimize-art.mjs",
     "art:world": "node scripts/generate-world-art.mjs",
     "art:cosmetics": "node scripts/generate-cosmetics.mjs",
+    "art:points": "node scripts/generate-point-art.mjs",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {

@@ -1,278 +1,42 @@
 <script lang="ts">
-  import { ArrowRight, Check, Coins, Crown, Gift, Minus, Plus, ShoppingBag, Ticket, UsersRound, Zap } from '@lucide/svelte';
-  import GameButton from '../components/GameButton.svelte';
-  import PageTitle from '../components/PageTitle.svelte';
-  import Panel from '../components/Panel.svelte';
+  import { Coins, Crown, ShoppingBag, Ticket, Zap } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
+  import GameButton from '../components/GameButton.svelte';
+  import PointShop from '../components/PointShop.svelte';
   import RarityChip from '../components/RarityChip.svelte';
   import { AVATARS, PETS, WINGS } from '../data/config';
   import type { PlayerState, ShopTab } from '../types';
-
-  let { player, vipActive, now, tab = $bindable(), amount = $bindable(), onExchange, onRefill, onVip, onRoom, onBuy, onEquipWing, onBuyTickets }: {
-    player: PlayerState;
-    vipActive: boolean;
-    now: number;
-    tab: ShopTab;
-    amount: number;
-    onExchange: () => void;
-    onRefill: (packId: string) => void;
-    onVip: (packageId: string) => void;
-    onRoom: () => void;
-    onBuy: (id: string) => void;
-    onEquipWing: (id: string | null) => void;
-    onBuyTickets: (quantity: number) => void;
+  let { player, vipActive, tab = $bindable(), onBuy, onRefill, onBuyTickets, onBuyPointPack, onPass }: {
+    player: PlayerState; vipActive: boolean; tab: ShopTab; onBuy: (id: string) => void; onRefill: (id: string) => void;
+    onBuyTickets: (quantity: number) => void; onBuyPointPack: (id: string) => void; onPass: () => void;
   } = $props();
-
-  const TABS: { id: ShopTab; label: string }[] = [
-    { id: 'items', label: 'ของขาย' },
-    { id: 'exchange', label: 'แลกแต้ม' },
-    { id: 'energy', label: 'Energy' },
-    { id: 'vip', label: 'VIP' },
-  ];
-
-  let SHOP_ITEMS = $derived(player.demo.config.shop.filter((item) => item.kind === 'avatar' || item.kind === 'pet'));
-  let ENERGY_CONFIG = $derived({ max: player.demo.config.energyMax, refillPacks: player.demo.config.energyPacks });
-  let EXCHANGE_RATE = $derived(player.demo.config.exchangeRate);
-  let VIP_PACKAGES = $derived(player.demo.config.vipPlans);
-  let unlimited = $derived(vipActive && player.demo.config.vipUnlimited);
-  let validAmount = $derived(Number.isInteger(amount) && amount >= 1 && amount <= player.aisPoints);
-  let gain = $derived(validAmount ? amount * EXCHANGE_RATE : 0);
-  let quick = $derived([1, 5, 10].filter((value) => value <= player.aisPoints));
-  let vipDays = $derived(player.vipExpiresAt ? Math.max(0, Math.ceil((player.vipExpiresAt - now) / 86_400_000)) : 0);
-  let energyPercent = $derived(Math.min(100, (player.energy / ENERGY_CONFIG.max) * 100));
-  let category = $state<'all' | 'avatar' | 'pet'>('all');
-  let previewAvatarId = $state<string | null>(null);
-  let previewPetId = $state<string | null>(null);
-  let previewWingId = $state<string | undefined>(undefined);
-  let ticketQuantity = $state(1);
-  let previewWing = $derived(WINGS.find((wing) => wing.id === (previewWingId ?? player.demo.wingId)));
-  let previewAvatar = $derived(AVATARS.find((item) => item.id === (previewAvatarId ?? player.avatarId)) ?? AVATARS[0]);
-  let previewPet = $derived(PETS.find((item) => item.id === (previewPetId ?? player.petId)));
-  let products = $derived(SHOP_ITEMS.filter((item) => category === 'all' || item.kind === category).map((item) => ({
-    ...item,
-    art: (item.kind === 'avatar' ? AVATARS : PETS).find((art) => art.id === item.itemId)!,
-    owned: (item.kind === 'avatar' ? player.ownedAvatarIds : player.ownedPetIds).includes(item.itemId),
-  })));
-
-  function setAmount(value: number): void {
-    amount = Math.max(1, Math.min(Math.max(1, player.aisPoints), Math.floor(value) || 1));
-  }
+  let category = $state<'all' | 'avatar' | 'pet' | 'wing' | 'frame'>('all');
+  let quantity = $state(1);
+  const tabs = [{ id: 'items', label: 'ของขาย', icon: ShoppingBag }, { id: 'exchange', label: 'เติมแต้ม', icon: Coins }, { id: 'energy', label: 'Energy', icon: Zap }] as const;
+  let products = $derived(player.demo.config.shop.filter((item) => category === 'all' || item.kind === category).map((item) => {
+    const art = item.kind === 'avatar' ? AVATARS.find((art) => art.id === item.itemId) : item.kind === 'pet' ? PETS.find((art) => art.id === item.itemId) : item.kind === 'wing' ? WINGS.find((art) => art.id === item.itemId) : AVATARS.find((art) => art.id === player.avatarId);
+    const owned = (item.kind === 'avatar' ? player.ownedAvatarIds : item.kind === 'pet' ? player.ownedPetIds : item.kind === 'wing' ? player.demo.wings : player.demo.frames).includes(item.itemId);
+    return { ...item, art, owned };
+  }));
 </script>
 
-<div class="page-stack">
-  <PageTitle eyebrow="FANTASY POINT SHOP" title="Shop" subtitle="แลกแต้ม เติมพลัง และเปิด VIP">
-    {#snippet icon()}<ShoppingBag size={26} />{/snippet}
-  </PageTitle>
-
-  {#if tab === 'exchange'}
-  <Panel tone="sky">
-    <div class="wallet">
-      <div class="coin ais"><span class="mark">AIS</span><small>AIS Points</small><b>{player.aisPoints.toLocaleString('en-US')}</b></div>
-      <div class="rate"><ArrowRight size={18} strokeWidth={3} /><small>1 : {EXCHANGE_RATE}</small></div>
-      <div class="coin mp"><span class="mark"><Coins size={18} /></span><small>Masque Points</small><b>{player.masquePoints.toLocaleString('en-US')}</b></div>
-    </div>
-  </Panel>
-  {/if}
-
-  <div class="tabs" role="tablist" aria-label="หมวดร้านค้า">
-    {#each TABS as item (item.id)}
-      <button role="tab" aria-selected={tab === item.id} class:on={tab === item.id} onclick={() => (tab = item.id)}>{item.label}</button>
-    {/each}
-  </div>
-
-  {#if tab === 'items'}
-    <section class="space-y-3 border-y border-white py-4" aria-label="ซื้อบัตรเข้า Ranked">
-      <div class="flex items-center justify-between gap-2"><h2 class="flex items-center gap-2 text-sm font-semibold"><Ticket size={21} class="text-rose-600" />บัตรเข้า Ranked</h2><span class="text-xs">มี {player.demo.arenaTickets} ใบ</span></div>
-      <div class="flex items-end gap-3"><label class="grid w-20 shrink-0 gap-1 text-xs">จำนวน<input class="min-h-10 w-full rounded-md border border-sky-200 bg-white/70 px-2" type="number" min="1" max="99" step="1" aria-label="จำนวนบัตร Ranked" bind:value={ticketQuantity} /></label><GameButton block size="sm" disabled={!Number.isInteger(ticketQuantity) || ticketQuantity < 1 || ticketQuantity > 99 || player.masquePoints < ticketQuantity * player.demo.config.arenaTicketPrice} onclick={() => onBuyTickets(ticketQuantity)}><Ticket size={16} />ซื้อ · {(ticketQuantity || 0) * player.demo.config.arenaTicketPrice} MP</GameButton></div>
-      <a class="inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-sky-700" href="#battle">ไป Battle Arena<ArrowRight size={15} /></a>
-    </section>
-    <div class="fitting" class:vip-look={vipActive} aria-label="ลองตัวละครและสัตว์เลี้ยง">
-      <div class="fitting-title"><small>COLLECTION SHOP</small><h2>คู่หูในแบบของคุณ</h2><span>ราคาตัวอย่าง · ใช้ MP</span></div>
-      <div class="fitting-art">{#if previewWing}<img class="pointer-events-none absolute inset-0 h-full w-full scale-150 object-contain" src={previewWing.imagePath} alt={previewWing.name} />{/if}<AssetPortrait src={previewAvatar.imagePath} alt={previewAvatar.name} placeholder={previewAvatar.placeholder} kind="avatar" loading="eager" />{#if previewPet}<span class="fitting-pet"><AssetPortrait src={previewPet.imagePath} alt={previewPet.name} placeholder={previewPet.placeholder} kind="pet" /></span>{/if}</div>
-      {#if previewAvatarId || previewPetId || previewWingId}<button class="reset-preview" onclick={() => { previewAvatarId = null; previewPetId = null; previewWingId = undefined; }}>คืนชุดปัจจุบัน</button>{/if}
-    </div>
-    <div class="filters" role="group" aria-label="ประเภทสินค้า">
-      <button class:on={category === 'all'} aria-pressed={category === 'all'} onclick={() => category = 'all'}>ทั้งหมด</button>
-      <button class:on={category === 'avatar'} aria-pressed={category === 'avatar'} onclick={() => category = 'avatar'}>ตัวละคร</button>
-      <button class:on={category === 'pet'} aria-pressed={category === 'pet'} onclick={() => category = 'pet'}>สัตว์เลี้ยง</button>
-    </div>
-    <div class="products">
-      {#each products as item (item.id)}
-        <article class="product">
-          <button class="product-art" aria-label={`ลอง ${item.art.name}`} onclick={() => { if (item.kind === 'avatar') previewAvatarId = item.itemId; else previewPetId = item.itemId; }} style={`--tint:${item.art.color}`}><AssetPortrait src={item.art.imagePath} alt={item.art.name} placeholder={item.art.placeholder} kind={item.kind === 'avatar' ? 'avatar' : 'pet'} /></button>
-          <div class="product-info"><h3>{item.art.name}</h3><RarityChip rarity={item.art.rarity} /><span class="product-price"><Coins size={13} />{item.cost} MP</span></div>
-          <GameButton block variant={item.owned ? 'ghost' : 'purple'} size="sm" disabled={item.owned} onclick={() => onBuy(item.id)}>{item.owned ? 'มีแล้ว' : 'ซื้อ'}</GameButton>
-        </article>
-      {/each}
-    </div>
-    <section class="space-y-3 border-t border-white pt-3" aria-label="ปีกตัวละคร">
-      <h2 class="text-sm font-bold">Wings</h2>
-      <div class="grid grid-cols-2 gap-3">
-        {#each player.demo.config.shop.filter((item) => item.kind === 'wing') as item (item.id)}
-          {@const wing = WINGS.find((wing) => wing.id === item.itemId)}
-          {#if wing}
-            {@const owned = player.demo.wings.includes(wing.id)}
-            <article class="grid min-w-0 content-start gap-2 rounded-lg border border-white bg-white/55 p-3">
-              <button class="grid h-28 w-full place-items-center rounded-md bg-sky-50" aria-label={`ลองปีก ${wing.name}`} onclick={() => previewWingId = wing.id}><img class="h-full w-full object-contain" src={wing.imagePath} alt={wing.name} /></button>
-              <h3 class="text-sm font-semibold">{wing.name}</h3><RarityChip rarity={wing.rarity} /><span class="text-xs">{item.cost} MP</span>
-              <GameButton block size="sm" variant={owned ? 'ghost' : 'purple'} onclick={() => owned ? onEquipWing(player.demo.wingId === wing.id ? null : wing.id) : onBuy(item.id)}>{owned ? player.demo.wingId === wing.id ? 'ถอดปีก' : 'ใส่ปีก' : 'ซื้อปีก'}</GameButton>
-            </article>
-          {/if}
-        {/each}
+<div class="space-y-4 pb-8 [overflow-anchor:none]">
+  <div class="flex h-14 items-center justify-between"><div><p class="text-[10px] font-semibold text-sky-700">POINT MARKET</p><h1 class="text-xl font-bold">Shop</h1></div><ShoppingBag size={25} class="text-sky-700" /></div>
+  <div class="sticky top-[76px] z-20 grid grid-cols-3 gap-1 rounded-lg border border-white bg-[#edf4ff]/95 p-1 shadow-sm backdrop-blur-md" role="tablist" aria-label="หมวดร้านค้า">{#each tabs as item (item.id)}<button class={['flex min-h-11 items-center justify-center gap-1.5 rounded-md text-xs font-semibold transition-colors', tab === item.id ? 'bg-white text-indigo-800 shadow-sm' : 'text-[#7a83a4]']} role="tab" aria-selected={tab === item.id} onclick={() => { tab = item.id; }}><item.icon size={16} />{item.label}</button>{/each}</div>
+  <section class="min-h-[calc(100dvh_-_180px)]" aria-label={tab === 'exchange' ? 'แพ็กเติมแต้ม' : tab === 'energy' ? 'เติม Energy' : 'สินค้า'}>
+    {#if tab === 'exchange'}
+      <PointShop {player} embedded onBuy={onBuyPointPack} />
+    {:else if tab === 'energy'}
+      <div class="space-y-4"><div class="flex items-center justify-between border-y border-white py-4"><h2 class="flex items-center gap-2 font-semibold"><Zap size={22} />Energy</h2><strong>{vipActive && player.demo.config.vipUnlimited ? '∞ VIP' : `${player.energy}/${player.demo.config.energyMax}`}</strong></div>
+        {#if vipActive && player.demo.config.vipUnlimited}<p class="rounded-lg border border-amber-200 bg-white/80 p-4 text-sm text-amber-800">VIP Pass กำลังใช้งาน · Energy ไม่จำกัด</p>{:else}<div class="grid grid-cols-2 gap-3">{#each player.demo.config.energyPacks as pack (pack.id)}<article class="grid justify-items-center gap-3 rounded-lg border border-white bg-white/85 p-4"><Zap size={30} class="text-sky-500" /><strong class="text-2xl">+{pack.energy}</strong><span class="text-xs">{pack.cost} MP</span><GameButton size="sm" disabled={player.masquePoints < pack.cost} onclick={() => onRefill(pack.id)}>เติม Energy</GameButton></article>{/each}</div>{/if}
+        <button class="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50/90 text-sm font-semibold text-amber-800" onclick={onPass}><Crown size={18} />ไปหน้า VIP Pass</button>
       </div>
-    </section>
-    <h2 class="text-sm font-bold">กรอบรูปโปรไฟล์</h2>
-    <div class="grid grid-cols-2 gap-3">{#each player.demo.config.shop.filter((item) => item.kind === 'frame') as item (item)}<article class="grid justify-items-center gap-2 rounded-lg border border-white bg-white/50 p-3"><span class="h-20 w-16" data-frame={item.itemId}><AssetPortrait src={previewAvatar.imagePath} alt={item.itemId} placeholder={previewAvatar.placeholder} kind="avatar" /></span><strong class="text-sm">{item.itemId === 'sunrise' ? 'Sunrise' : 'Ocean'}</strong><span class="text-xs">{item.cost} MP</span><GameButton size="sm" disabled={player.demo.frames.includes(item.itemId)} onclick={() => onBuy(item.id)}>{player.demo.frames.includes(item.itemId) ? 'มีแล้ว' : 'ซื้อ Frame'}</GameButton></article>{/each}</div>
-  {:else if tab === 'exchange'}
-    <Panel tone="white">
-      <div class="head"><span class="ico mint"><Coins size={22} /></span><div><h2>แลก AIS Points</h2><p>1 AIS Point = {EXCHANGE_RATE} Masque Points</p></div></div>
-      <label class="label" for="ais-amount">จำนวน AIS Points ที่ต้องการแลก</label>
-      <div class="stepper">
-        <button aria-label="ลดจำนวน" onclick={() => setAmount((amount || 1) - 1)} disabled={player.aisPoints < 1}><Minus size={20} strokeWidth={3} /></button>
-        <input id="ais-amount" type="number" inputmode="numeric" min="1" max={player.aisPoints} bind:value={amount} />
-        <button aria-label="เพิ่มจำนวน" onclick={() => setAmount((amount || 0) + 1)} disabled={player.aisPoints < 1}><Plus size={20} strokeWidth={3} /></button>
-      </div>
-      {#if quick.length}
-        <div class="quick">
-          {#each quick as value (value)}<button class:on={amount === value} onclick={() => setAmount(value)}>{value}</button>{/each}
-          {#if player.aisPoints > 1}<button class:on={amount === player.aisPoints} onclick={() => setAmount(player.aisPoints)}>สูงสุด {player.aisPoints}</button>{/if}
-        </div>
-      {/if}
-      <div class="preview"><span>จะได้รับ</span><b><Coins size={20} />{gain.toLocaleString('en-US')}<small>MP</small></b></div>
-      {#if player.aisPoints < 1}<p class="warn">ยังไม่มี AIS Points ให้แลก ลองเพิ่ม <code>?aispoint=100</code> ที่ URL เพื่อทดสอบ</p>
-      {:else if !validAmount}<p class="warn">ใส่จำนวนเต็มระหว่าง 1 ถึง {player.aisPoints}</p>{/if}
-      <GameButton variant="mint" size="lg" block disabled={!validAmount} onclick={onExchange}>แลกเลย<ArrowRight size={18} /></GameButton>
-      <p class="note">ข้อมูลทดสอบ · ไม่ได้เชื่อมต่อ AIS Points จริง</p>
-    </Panel>
-  {:else if tab === 'energy'}
-    <Panel tone="white">
-      <div class="head"><span class="ico blue"><Zap size={22} fill="currentColor" /></span><div><h2>เติมพลังงาน</h2><p>ตอนนี้ {unlimited ? '∞ (VIP)' : `${player.energy}/${ENERGY_CONFIG.max}`} · ฟื้น 1 ทุก {player.demo.config.regenMinutes} นาที</p></div></div>
-      <div class="meter"><span style={`width:${vipActive ? 100 : energyPercent}%`}></span></div>
-    </Panel>
-    {#if unlimited}
-      <Panel tone="gold"><p class="vipnote"><Crown size={18} fill="currentColor" />VIP มี Energy ไม่จำกัด ไม่ต้องเติม</p></Panel>
     {:else}
-      <div class="packs">
-        {#each ENERGY_CONFIG.refillPacks as pack (pack.id)}
-          <article class="pack">
-            <span class="bolt"><Zap size={30} fill="currentColor" /></span>
-            <b>+{pack.energy}</b><small>Energy</small>
-            <span class="price"><Coins size={14} />{pack.cost} MP</span>
-            <GameButton variant="purple" size="sm" onclick={() => onRefill(pack.id)}>เติม</GameButton>
-          </article>
-        {/each}
+      <div class="space-y-4">
+        <section class="grid grid-cols-[1fr_auto] items-center gap-3 border-y border-white py-4" aria-label="ซื้อบัตรเข้า Ranked"><div><h2 class="flex items-center gap-1.5 text-sm font-semibold"><Ticket size={18} class="text-rose-500" />บัตร Ranked</h2><p class="mt-1 text-[10px] text-[var(--g-muted)]">มี {player.demo.arenaTickets} ใบ · {player.demo.config.arenaTicketPrice} MP/ใบ</p></div><div class="flex items-center gap-2"><input class="min-h-10 w-14 rounded-md border border-sky-200 bg-white/90 px-2 text-sm" type="number" min="1" max="99" aria-label="จำนวนบัตร Ranked" bind:value={quantity} /><GameButton size="sm" disabled={!Number.isInteger(quantity) || quantity < 1 || quantity > 99 || player.masquePoints < quantity * player.demo.config.arenaTicketPrice} onclick={() => onBuyTickets(quantity)}>ซื้อ</GameButton></div></section>
+        <div class="flex gap-1 overflow-x-auto pb-1" role="group" aria-label="ประเภทสินค้า">{#each [{ id: 'all', label: 'ทั้งหมด' }, { id: 'avatar', label: 'Avatar' }, { id: 'pet', label: 'Pet' }, { id: 'wing', label: 'ปีก' }, { id: 'frame', label: 'กรอบ' }] as item (item.id)}<button class={['min-h-10 shrink-0 rounded-md border px-3 text-xs font-semibold', category === item.id ? 'border-sky-400 bg-sky-600 text-white' : 'border-white bg-white/70 text-[#71839a]']} aria-pressed={category === item.id} onclick={() => { category = item.id as typeof category; }}>{item.label}</button>{/each}</div>
+        <div class="grid grid-cols-2 gap-3">{#each products as item (item.id)}{#if item.art}<article class="grid min-w-0 content-start gap-2 rounded-lg border border-white bg-white/85 p-3"><div class="h-28 w-full" data-frame={item.kind === 'frame' ? item.itemId : undefined}>{#if item.kind === 'wing'}<img class="h-full w-full object-contain" src={item.art.imagePath} alt={item.art.name} />{:else}<AssetPortrait src={item.art.imagePath} alt={item.art.name} placeholder="*" kind={item.kind === 'pet' ? 'pet' : 'avatar'} />{/if}</div><h3 class="text-sm font-bold">{item.kind === 'frame' ? `กรอบ ${item.itemId}` : item.art.name}</h3><RarityChip rarity={item.kind === 'frame' ? 'Rare' : item.art.rarity} /><span class="flex items-center gap-1 text-xs"><Coins size={13} class="text-amber-500" />{item.cost} MP</span><GameButton block size="sm" variant={item.owned ? 'ghost' : 'purple'} disabled={item.owned || player.masquePoints < item.cost} onclick={() => onBuy(item.id)}>{item.owned ? 'มีแล้ว' : 'ซื้อ'}</GameButton></article>{/if}{/each}</div>
       </div>
     {/if}
-  {:else}
-    {#if vipActive}
-      <Panel tone="gold">
-        <div class="active"><span class="crown"><Crown size={30} fill="currentColor" /></span><div><h2>VIP กำลังใช้งาน</h2><p>เหลืออีก {vipDays} วัน · {unlimited ? 'Energy ไม่จำกัด' : 'Profile Badge'}</p></div></div>
-        <GameButton variant="ghost" size="sm" onclick={onRoom}><UsersRound size={15} />สร้างห้องเล่นกับเพื่อน</GameButton>
-      </Panel>
-    {/if}
-    <div class="vips">
-      {#each VIP_PACKAGES as pack (pack.id)}
-        <article class="vip" class:best={pack.durationDays === 7}>
-          {#if pack.durationDays === 7}<span class="best-tag">คุ้มสุด</span>{/if}
-          <span class="crown"><Crown size={28} fill="currentColor" /></span>
-          <h3>{pack.label}</h3>
-          <ul>
-            <li><Zap size={13} fill="currentColor" />{player.demo.config.vipUnlimited ? 'Energy ไม่จำกัด' : 'VIP Profile Badge'}</li>
-            <li><Check size={13} strokeWidth={3.5} />VIP badge · ระยะเวลา {pack.durationDays} วัน</li>
-            <li><Check size={13} strokeWidth={3.5} />Premium Battle Pass จำหน่ายแยก</li>
-            <li><Gift size={13} />{pack.reward}</li>
-          </ul>
-          <div class="buy"><span class="price"><Coins size={15} />{pack.cost}<small>MP</small></span><GameButton variant="gold" size="md" onclick={() => onVip(pack.id)}>{vipActive ? 'ต่ออายุ' : 'ซื้อ'}</GameButton></div>
-          <p class="sample">ราคาตัวอย่าง ไม่ใช่ราคาจริง</p>
-        </article>
-      {/each}
-    </div>
-  {/if}
+  </section>
 </div>
-
-<style>
-  .fitting { position: relative; display: flex; align-items: center; justify-content: space-between; min-height: 180px; padding: 16px; overflow: hidden; border-radius: 20px; border: 2px solid #fff; background: linear-gradient(120deg, #e3f3fa, #eee1fc 70%, #ffe8ed); }
-  .fitting-title { max-width: 48%; color: var(--g-ink); }
-  .fitting-title small { font-size: 10px; font-weight: 900; }
-  .fitting-title h2 { font-size: 21px; line-height: 1.2; margin: 7px 0; }
-  .fitting-title > span { color: var(--g-muted); font-size: 11px; }
-  .fitting-art { position: relative; width: 130px; height: 164px; flex: 0 0 auto; }
-  .vip-look .fitting-art { filter: drop-shadow(0 0 10px #ffd057); }
-  .fitting-pet { position: absolute; right: -9px; bottom: 0; width: 58px; height: 70px; }
-  .reset-preview { position: absolute; bottom: 9px; left: 15px; padding: 4px 0; border: 0; background: none; color: #8054c5; font-size: 11px; }
-  .filters { display: flex; gap: 6px; }
-  .filters button { flex: 1; min-height: 40px; border: 1px solid #e3d7f7; border-radius: 8px; color: #8876ad; background: #fff; font-weight: 800; font-size: 12px; }
-  .filters .on { color: #fff; background: #8962d8; }
-  .products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .product { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 9px; border: 1px solid #e7def4; border-radius: 8px; background: #fff; }
-  .product-art { width: 100%; height: 132px; padding: 0; border: 0; border-radius: 8px; background: linear-gradient(160deg, #fff, var(--tint)); }
-  .product-info { display: grid; justify-items: start; gap: 4px; }
-  .product h3 { margin: 0; color: var(--g-ink); font-size: 14px; }
-  .product-price { display: inline-flex; align-items: center; gap: 4px; color: #ae780a; font-weight: 900; font-size: 12px; }
-  .wallet { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 6px; }
-  .coin { display: grid; justify-items: center; gap: 1px; padding: 8px 4px; border: 2px solid #fff; border-radius: 17px; background: rgb(255 255 255 / 85%); }
-  .mark { display: grid; place-items: center; width: 36px; height: 36px; margin-bottom: 2px; border: 2px solid #fff; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 900; }
-  .ais .mark { background: linear-gradient(160deg, #7ee8b4, #22b57d); box-shadow: 0 3px 0 #168a5f; }
-  .mp .mark { color: #7a4a00; background: linear-gradient(160deg, #fff09a, #ffb42b); box-shadow: 0 3px 0 #c4770d; }
-  .coin small { color: var(--g-muted); font-size: 12px; font-weight: 800; }
-  .coin b { color: var(--g-ink); font-size: 24px; font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; }
-  .rate { display: grid; justify-items: center; gap: 2px; color: #6a8cc4; }
-  .rate small { font-size: 11px; font-weight: 900; white-space: nowrap; }
-
-  .tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 5px; border: 2.5px solid #fff; border-radius: 20px; background: #e4dcf8; box-shadow: inset 0 2px 4px rgb(80 55 170 / 15%); }
-  .tabs button { min-height: 46px; padding: 0 3px; border: 0; border-radius: 15px; color: #8a7fc4; background: transparent; font-size: 13px; font-weight: 900; transition: transform 0.1s ease; }
-  .tabs button.on { color: #fff; background: linear-gradient(180deg, #a78bfa, #6a4fd6); box-shadow: 0 3px 0 #4b32a8; }
-  .tabs button:active { transform: translateY(2px); }
-
-  .head { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
-  .head h2 { margin: 0; color: var(--g-ink); font-size: 18px; font-weight: 900; }
-  .head p { margin: 2px 0 0; color: var(--g-muted); font-size: 13px; font-weight: 700; }
-  .ico { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 auto; border: 2px solid #fff; border-radius: 15px; color: #fff; }
-  .ico.mint { background: linear-gradient(160deg, #7ee8b4, #22b57d); box-shadow: 0 3px 0 #168a5f; }
-  .ico.blue { background: linear-gradient(160deg, #5fd0ff, #2b8ff0); box-shadow: 0 3px 0 #1c68be; }
-  .label { display: block; margin-bottom: 6px; color: var(--g-muted); font-size: 13px; font-weight: 800; }
-  .stepper { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; gap: 8px; }
-  .stepper button { display: grid; place-items: center; min-height: 56px; border: 0; border-radius: 16px; color: #fff; background: linear-gradient(180deg, #a78bfa, #6a4fd6); box-shadow: 0 4px 0 #4b32a8; }
-  .stepper button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #4b32a8; }
-  .stepper button:disabled { opacity: 0.45; }
-  .stepper input { width: 100%; min-width: 0; min-height: 56px; border: 3px solid #d9ccff; border-radius: 16px; color: var(--g-ink); background: #fff; font-size: 28px; font-weight: 900; text-align: center; appearance: textfield; }
-  .stepper input:focus { outline: 3px solid #7a5ce0; outline-offset: 2px; }
-  .stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { margin: 0; appearance: none; }
-  .quick { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 0; }
-  .quick button { min-height: 44px; padding: 0 16px; border: 2px solid #d9ccff; border-radius: 99px; color: #6a4fd6; background: #fff; font-size: 14px; font-weight: 900; }
-  .quick button.on { color: #fff; border-color: #fff; background: linear-gradient(180deg, #a78bfa, #6a4fd6); box-shadow: 0 3px 0 #4b32a8; }
-  .preview { display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 11px 14px; border: 2px solid #fff; border-radius: 17px; color: var(--g-muted); background: linear-gradient(150deg, #fff6cf, #ffe39a); font-size: 14px; font-weight: 800; }
-  .preview b { display: inline-flex; align-items: center; gap: 5px; color: #b87208; font-size: 30px; font-weight: 900; line-height: 1; }
-  .preview small { font-size: 13px; }
-  .warn { margin: 0 0 10px; padding: 9px 12px; border-radius: 13px; color: #b3430b; background: #fff1e6; font-size: 13px; font-weight: 800; line-height: 1.4; }
-  .warn code { padding: 1px 6px; border-radius: 6px; background: #ffe2cc; font-size: 12px; }
-  .note { margin: 10px 0 0; color: #9a90c8; font-size: 12px; font-weight: 700; text-align: center; }
-
-  .meter { height: 14px; overflow: hidden; border-radius: 99px; background: #dcd4f5; box-shadow: inset 0 2px 3px rgb(70 50 140 / 22%); }
-  .meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #4fb6ff, #7a8cff 60%, #b58cff); transition: width 0.6s ease; }
-  .vipnote { display: flex; align-items: center; gap: 8px; margin: 0; color: #8a5a06; font-size: 14px; font-weight: 800; }
-  .packs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .pack { display: grid; justify-items: center; gap: 2px; padding: 14px 8px 12px; border: 2.5px solid #fff; border-radius: 22px; background: linear-gradient(160deg, #fff, #eaf4ff); box-shadow: 0 8px 0 -3px #9cc6f2, 0 13px 18px rgb(60 110 190 / 16%); }
-  .bolt { display: grid; place-items: center; width: 56px; height: 56px; border: 3px solid #fff; border-radius: 19px; color: #fff; background: linear-gradient(160deg, #5fd0ff, #2b8ff0); box-shadow: 0 4px 0 #1c68be; }
-  .pack b { color: var(--g-ink); font-size: 32px; font-weight: 900; line-height: 1.1; }
-  .pack small { color: var(--g-muted); font-size: 12px; font-weight: 800; }
-  .price { display: inline-flex; align-items: center; gap: 3px; margin: 4px 0 6px; padding: 3px 11px; border-radius: 99px; color: #8a5a06; background: #fff0c2; font-size: 14px; font-weight: 900; }
-  .price small { color: inherit; font-size: 12px; }
-
-  .active { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; }
-  .active h2 { margin: 0; color: #5b3a00; font-size: 18px; font-weight: 900; }
-  .active p { margin: 2px 0 0; color: #7a5200; font-size: 13px; font-weight: 700; }
-  .crown { display: grid; place-items: center; width: 54px; height: 54px; flex: 0 0 auto; border: 3px solid #fff; border-radius: 18px; color: #7a4a00; background: linear-gradient(160deg, #fff09a, #ffb42b); box-shadow: 0 4px 0 #c4770d; }
-  .vips { display: grid; gap: 14px; }
-  .vip { position: relative; display: grid; justify-items: start; gap: 6px; padding: 14px; border: 2.5px solid #fff; border-radius: 22px; background: linear-gradient(150deg, #fff, #fff6d8); box-shadow: 0 8px 0 -3px #e2b24f, 0 13px 20px rgb(200 140 30 / 20%); }
-  .vip.best { background: linear-gradient(150deg, #fff9e0, #ffe39a); }
-  .best-tag { position: absolute; top: 12px; right: 12px; padding: 4px 11px; transform: rotate(3deg); border: 2px solid #fff; border-radius: 11px; color: #fff; background: linear-gradient(135deg, #ffb347, #ff5f3d); box-shadow: 0 3px 0 #c43d1d; font-size: 12px; font-weight: 900; }
-  .vip h3 { margin: 0; color: #5b3a00; font-size: 20px; font-weight: 900; }
-  .vip ul { display: grid; gap: 5px; width: 100%; margin: 0; padding: 0; list-style: none; }
-  .vip li { display: flex; align-items: center; gap: 6px; color: #7a5200; font-size: 14px; font-weight: 700; }
-  .vip li :global(svg) { color: #2fa574; }
-  .buy { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-top: 4px; }
-  .buy .price { margin: 0; font-size: 20px; }
-  .buy :global(.gbtn) { min-width: 112px; }
-  .sample { margin: 0; color: #a88a4a; font-size: 12px; font-weight: 700; }
-</style>

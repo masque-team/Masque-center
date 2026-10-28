@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
   import { SvelteDate } from 'svelte/reactivity';
-  import { Flame, Gamepad2, Swords, Trophy, UsersRound, ReceiptText, Settings2, ArrowUpRight } from '@lucide/svelte';
+  import { Gamepad2, Swords, Trophy, UsersRound, ReceiptText, Settings2, ArrowUpRight, PawPrint } from '@lucide/svelte';
   import AppHeader from './lib/components/AppHeader.svelte';
   import BottomNav from './lib/components/BottomNav.svelte';
   import DailyCheckinCard from './lib/components/DailyCheckinCard.svelte';
@@ -15,6 +15,7 @@
   import SectionHeading from './lib/components/SectionHeading.svelte';
   import Toast from './lib/components/Toast.svelte';
   import PetGacha from './lib/components/PetGacha.svelte';
+  import PointShop from './lib/components/PointShop.svelte';
   import PassPage from './lib/pages/SeasonPage.svelte';
   import BattlePage from './lib/pages/BattlePage.svelte';
   import WalletPage from './lib/pages/WalletPage.svelte';
@@ -24,7 +25,7 @@
   import ShopPage from './lib/pages/ShopPage.svelte';
   import VeaseFrame from './lib/components/VeaseFrame.svelte';
   import type { SceneState } from '@masque/vease-protocol';
-  import { AVATARS, PETS } from './lib/data/config';
+  import { AVATARS, PETS, POINT_PACKS } from './lib/data/config';
   import AssetPortrait from './lib/components/AssetPortrait.svelte';
   import { GAMES, GAME_BY_ID } from './lib/data/games';
   import { MOCK_RANKINGS } from './lib/data/mockRankings';
@@ -33,8 +34,8 @@
   import { purchaseVip } from './lib/services/passService';
   import { drawPet, equipPet } from './lib/services/petService';
   import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
-  import { buyArenaTickets, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
-  import { beginGame, buyPremium, claimPass, claimMission as completeMission, currentPass, currentSeason, demoNow, finishGame, ledger, recordPlayTime, validateConfig, claimRankingReward } from './lib/services/demoService';
+  import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
+  import { beginGame, claimPass, claimMission as completeMission, currentPass, currentSeason, demoNow, finishGame, ledger, recordPlayTime, validateConfig, claimRankingReward } from './lib/services/demoService';
   import type { DemoConfig, GameId, GameMode, ModalState, Page, PlayerState, RankingPeriod, ShopTab, VipPackage } from './lib/types';
   import './app.css';
 
@@ -191,7 +192,7 @@
     clearIframeTimeout();
     const [routePath, hashQuery = ''] = window.location.hash.replace(/^#/, '').split('?');
     const [route, requestedGame] = routePath.split('/');
-    const routes: Page[] = ['home', 'world', 'shop', 'rewards', 'ranking', 'avatar', 'profile', 'room', 'battle', 'wallet', 'admin'];
+    const routes: Page[] = ['home', 'world', 'shop', 'rewards', 'ranking', 'avatar', 'profile', 'room', 'battle', 'wallet', 'admin', 'points', 'gacha'];
     if (route === 'detail' && requestedGame && Object.hasOwn(GAME_BY_ID, requestedGame)) {
       gameId = requestedGame as GameId;
       page = 'detail';
@@ -252,14 +253,18 @@
   }
 
   function openVipShop(): void {
-    shopTab = 'vip';
-    navigate('shop');
+    navigate('rewards');
   }
 
   function openExchange(): void {
     modal = null;
-    shopTab = 'exchange';
-    navigate('shop');
+    navigate('points');
+  }
+
+  function purchasePoints(id: string): void {
+    const pack = POINT_PACKS.find((item) => item.id === id);
+    if (!pack) return;
+    requestAction('เติม Masque Points', `${pack.cost} AIS Points → ${pointPackReward(player, id).toLocaleString()} MP · DEMO`, 'ยืนยันซื้อแพ็ก', () => applyAction(buyPointPack(player, id), 'เติม Masque Points แล้ว'));
   }
 
   function claimCheckin(): void {
@@ -276,7 +281,7 @@
       return;
     }
     persist(next, 'ซื้อ VIP');
-    modal = { kind: 'notice', tone: 'success', title: 'VIP เปิดใช้งานแล้ว!', message: 'สิทธิ์ VIP และวันหมดอายุอัปเดตแล้ว · Premium Battle Pass ซื้อแยกตามซีซัน' };
+    modal = { kind: 'notice', tone: 'success', title: 'VIP Pass เปิดใช้งานแล้ว!', message: 'สิทธิ์ VIP และรางวัล Pass เปิดใช้งานแล้ว ไม่ต้องซื้อแยก' };
   }
 
   function confirmRefill(): void {
@@ -421,10 +426,12 @@
 {:else}
 <div class="app-frame" class:world-frame={page === 'world'}>
   {#if page !== 'game'}
-    {#if page !== 'world'}<div class="px-3.5 pt-3 pb-0"><AppHeader {player} {vipActive} countdown={formatCountdown(refillCountdown)} onRefill={() => vipActive ? openVipShop() : openRefill()} onShop={() => navigate('shop')} onProfile={() => navigate('profile')} /></div>{/if}
-    <div class={['relative w-full overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out', ['detail', 'ranking', 'battle', 'admin'].includes(page) ? 'hidden' : '']} style:height={page === 'world' ? '100dvh' : page === 'avatar' ? `${wardrobeHeight}px` : page === 'home' ? '220px' : '160px'}>
-      <VeaseFrame {sceneState} mode={page === 'world' ? 'town' : page === 'avatar' ? 'wardrobe' : 'portrait'} onSize={(height) => { wardrobeHeight = height; }} onNavigate={navigate} onOutfit={(outfit) => { const next = equipOutfit(player, outfit); if (!next) return null; persist(next, 'เปลี่ยนชุดจาก MV'); return veaseState(player); }} />
+    <div class={['w-full overflow-hidden', page === 'avatar' ? 'relative z-10 pt-[74px]' : 'fixed top-0 left-1/2 z-0 max-w-[460px] -translate-x-1/2', page !== 'world' && page !== 'avatar' ? 'pointer-events-none' : '']} style:height={page === 'world' ? 'calc(100dvh - 74px - env(safe-area-inset-bottom, 0px))' : page === 'avatar' ? `${wardrobeHeight + 74}px` : '100dvh'}>
+      <VeaseFrame {sceneState} route={page} mode={page === 'world' ? 'town' : page === 'avatar' ? 'wardrobe' : 'backdrop'} onSize={(height) => { wardrobeHeight = height; }} onNavigate={navigate} onOutfit={(outfit) => { const next = equipOutfit(player, outfit); if (!next) return null; persist(next, 'เปลี่ยนชุดจาก MV'); return veaseState(player); }} />
+      {#if page !== 'world' && page !== 'avatar'}<div class="pointer-events-none absolute inset-0 bg-[#edf4ff]/35"></div>{/if}
     </div>
+    {#if page !== 'world'}<div class="fixed top-0 left-1/2 z-30 w-full max-w-[460px] -translate-x-1/2 border-b border-white/80 bg-white/80 px-3.5 pt-2 pb-1 backdrop-blur-md"><AppHeader {player} {vipActive} countdown={formatCountdown(refillCountdown)} onRefill={() => vipActive ? openVipShop() : openRefill()} onShop={openExchange} onProfile={() => navigate('avatar')} /></div>{/if}
+    {#if page === 'avatar'}<div class="h-24" aria-hidden="true"></div>{/if}
   {/if}
   {#if page === 'game'}
     <GameScreen
@@ -443,13 +450,14 @@
       onFinish={simulateFinish}
       finished={player.demo.sessions.find((session) => session.id === activeSessionId)?.finished ?? false}
     />
-  {:else if page !== 'world'}
-    <main class="app-main relative">
+  {:else if page !== 'world' && page !== 'avatar'}
+    <main class="app-main relative z-10 pt-[76px]">
       {#key page}
-      <div class="page-transition relative border-t border-white/80 bg-[#f5f8fc]/95" in:fly={{ y: motionReduced ? 0 : 8, duration: motionReduced ? 0 : 180 }}>
+      <div class="page-transition relative border-t border-white/60 bg-white/35 backdrop-blur-[2px]" in:fly={{ y: motionReduced ? 0 : 8, duration: motionReduced ? 0 : 180 }}>
       <div class="page-shell">
         {#if page === 'home'}
           <div class="home">
+            <section class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 py-1" aria-label="Avatar และเช็กอิน"><button class="relative h-28 w-[72px] transition-transform active:scale-95" title="แต่งตัว Avatar" aria-label="แต่งตัว Avatar" onclick={() => navigate('avatar')}><AssetPortrait src={homeAvatar.imagePath} alt={homeAvatar.name} placeholder={homeAvatar.placeholder} kind="avatar" loading="eager" />{#if homePet}<span class="absolute -right-2 bottom-0 h-12 w-10"><AssetPortrait src={homePet.imagePath} alt={homePet.name} placeholder={homePet.placeholder} kind="pet" /></span>{/if}</button><DailyCheckinCard compact reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} /></section>
             <div class="flex items-center justify-between gap-3 pt-2"><div><p class="text-[10px] font-semibold text-sky-700">MASQUE <span class="ml-1 rounded border border-sky-300 px-1 text-[9px]">DEMO</span></p><h1 class="text-xl font-bold leading-tight">Game Center</h1></div><button class="grid size-10 shrink-0 place-items-center rounded-md border border-white bg-white/60 text-sky-700 transition-transform active:scale-95 motion-reduce:transition-none" onclick={() => navigate('admin')} aria-label="เปิด Demo Admin" title="Demo Studio"><Settings2 size={18} /></button></div>
             <section class="block">
               <FeaturedGameCard game={featuredGame} {vipActive} onclick={() => navigate(`detail/${featuredGame.id}`)} />
@@ -469,9 +477,6 @@
               {#each [{ route: 'battle', label: 'Ranked', icon: Swords, color: 'text-rose-600' }, { route: 'ranking', label: 'Ranking', icon: Trophy, color: 'text-amber-600' }, { route: 'room', label: 'My Space', icon: UsersRound, color: 'text-sky-600' }, { route: 'wallet', label: 'Wallet', icon: ReceiptText, color: 'text-indigo-600' }] as item (item)}<button class="grid min-h-18 justify-items-center gap-1 rounded-lg border border-white/80 bg-white/45 py-3 text-xs font-semibold" onclick={() => navigate(item.route)}><item.icon size={23} class={item.color} />{item.label}</button>{/each}
             </nav>
             <button class="flex w-full items-center justify-between gap-3 border-y border-white bg-white/35 px-2 py-3 text-left" onclick={() => navigate('rewards')}><span><small class="text-sky-700">CURRENT SEASON</small><strong class="block">{currentSeason(player).name}</strong></span><ArrowUpRight size={22} /></button>
-            <section class="block hub-row">
-              <DailyCheckinCard reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} />
-            </section>
 
           </div>
         {:else if page === 'detail'}
@@ -480,24 +485,21 @@
           <ShopPage
             {player}
             {vipActive}
-            {now}
             bind:tab={shopTab}
-            bind:amount={exchangeAmount}
-            onExchange={() => (modal = { kind: 'exchange-confirm' })}
             onBuy={(itemId) => (modal = { kind: 'item-confirm', itemId })}
             onRefill={openRefill}
-            onVip={openVipConfirm}
-            onRoom={() => navigate('room')}
-            onEquipWing={chooseWings}
+            onPass={() => navigate('rewards')}
+            onBuyPointPack={purchasePoints}
             onBuyTickets={(quantity) => requestAction('ซื้อบัตรเข้า Ranked', `${quantity} ใบ · ${quantity * player.demo.config.arenaTicketPrice} MP`, 'ยืนยันซื้อบัตร', () => applyAction(buyArenaTickets(player, quantity), 'ซื้อบัตรเข้า Ranked แล้ว'))}
           />
         {:else if page === 'rewards'}
           <PassPage
             {player}
+            {vipActive}
             onClaim={(index, track) => applyAction(claimPass(player, track, index), 'รับรางวัล Battle Pass แล้ว')}
-            onPremium={() => requestAction('Premium Battle Pass', `${player.demo.config.premiumPrice} MP · เฉพาะ ${currentSeason(player).name} · แยกจาก VIP`, 'ยืนยันซื้อ', () => applyAction(buyPremium(player), 'เปิด Premium Pass แล้ว'))}
-            onMission={() => applyAction(completeMission(player), 'รับ Pass XP แล้ว')}
-            onPlay={() => navigate('home')}
+            onVip={openVipConfirm}
+            onMission={(id) => applyAction(completeMission(player, id), 'รับรางวัลภารกิจแล้ว')}
+            onPlay={(id) => navigate(id ? `detail/${id}` : 'home')}
           />
         {:else if page === 'battle'}
           <BattlePage {player} onShop={() => { shopTab = 'items'; navigate('shop'); }} onEnter={(id) => requestAction('เข้า Ranked', 'ใช้บัตรเข้า Ranked 1 ใบ · ไม่ใช้ Energy', 'เข้าเล่น Ranked', () => enterGame(id, 'ranked'))} />
@@ -507,7 +509,9 @@
           <AdminPage {player} onSave={saveConfig} onReset={resetDemo} onRankingReset={resetRanking}
             onClock={(hours) => { const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + hours * 3_600_000 } }; now = demoNow(next); persist(refreshEnergy(next, now), 'เวลาจำลอง · ฟื้น Energy'); showToast('ปรับเวลาจำลองแล้ว'); }}
             onSeed={() => applyAction({ ...player, masquePoints: player.masquePoints + 500, aisPoints: player.aisPoints + 100 }, 'DEMO · เติมทุนจำลอง')} />
-        {:else if page === 'avatar'}
+        {:else if page === 'points'}
+          <PointShop {player} onBuy={purchasePoints} onBack={() => navigate('home')} />
+        {:else if page === 'gacha'}
           <PetGacha {player} busy={gachaBusy} onDraw={startGacha} />
         {:else if page === 'profile' || page === 'room'}
           {#key page}<ProfilePage {player} editable={page === 'room'} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onSave={(style, frameId) => applyAction(customizeProfile(player, style, frameId), 'บันทึกโปรไฟล์แล้ว')} />{/key}
@@ -517,9 +521,10 @@
       </div>
       </div>
       {/key}
-      <BottomNav {page} />
     </main>
   {/if}
+  {#if page !== 'game'}<BottomNav {page} />{/if}
+  {#if !['game', 'avatar', 'gacha', 'points'].includes(page)}<button class="fixed z-30 grid size-14 place-items-center rounded-full border-2 border-white bg-[#fff3cb] text-[#8b5a07] shadow-lg transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="Pet Gacha" aria-label="เปิด Pet Gacha" onclick={() => navigate('gacha')}><PawPrint size={26} />{#if player.gachaTickets > 0}<span class="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-rose-500 text-[10px] text-white">{player.gachaTickets}</span>{/if}</button>{/if}
 </div>
 
 {#if page !== 'game'}<div class="landscape-notice" role="status"><strong>กรุณาหมุนมือถือเป็นแนวตั้ง</strong></div>{/if}
@@ -548,7 +553,6 @@
   @media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) { .app-frame.world-frame { display: none; } }
   .home { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding-top: 4px; }
   .block { min-width: 0; }
-  .hub-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 11px; }
   .game-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   @media (max-width: 340px) { .game-list { gap: 9px; } .home { gap: 14px; } }
 </style>

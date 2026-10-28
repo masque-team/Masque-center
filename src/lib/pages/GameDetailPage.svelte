@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowLeft, Play, Trophy, Info, Shirt } from '@lucide/svelte';
+  import { ArrowLeft, Play, Trophy, Info } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
   import GameButton from '../components/GameButton.svelte';
   import Leaderboard from '../components/Leaderboard.svelte';
@@ -32,7 +32,7 @@
     <p class="description">{game.description}</p>
     <div class="party" class:vip={vipActive}>
       <div class="portraits"><AssetPortrait src={avatar.imagePath} alt={avatar.name} placeholder={avatar.placeholder} kind="avatar" />{#if pet}<span class="buddy"><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" /></span>{/if}</div>
-      <div class="identity"><strong>{player.displayName}</strong><small>{avatar.name}{pet ? ` · ${pet.name}` : ''}</small><button onclick={onAvatar}><Shirt size={14} />เปลี่ยนตัวละคร</button></div>
+      <div class="identity"><strong>{player.displayName}</strong><small>{avatar.name}{pet ? ` · ${pet.name}` : ''}</small></div>
       <EnergyBadge energy={player.energy} vipActive={unlimited} max={player.demo.config.energyMax} {countdown} {onRefill} />
     </div>
     <div class="stats"><span><Trophy size={19} />คะแนนสูงสุด <b>{score.toLocaleString('en-US')}</b><small>SIMULATED SCORE</small></span><span><Info size={19} />{unlimited ? 'VIP Energy' : 'ค่าเข้าเล่น'}<b>{unlimited ? '∞' : `${player.demo.config.energyCost} Energy`}</b><small>{unlimited ? 'เล่นได้ไม่จำกัด' : `ฟื้น 1 ทุก ${player.demo.config.regenMinutes} นาที`}</small></span></div>
@@ -60,7 +60,6 @@
   .buddy { position: absolute; right: -14px; bottom: 0; width: 40px; height: 46px; }
   .identity { display: grid; gap: 4px; flex: 1; min-width: 0; }
   .identity strong { color: var(--g-ink); overflow-wrap: anywhere; }
-  .identity button { display: flex; align-items: center; gap: 4px; padding: 4px 0; background: none; border: 0; color: #8059c6; font-size: 12px; }
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stats > span { display: grid; gap: 3px; padding: 12px; border-radius: 8px; background: #fff; color: #9382b0; font-size: 12px; }
   .stats b { color: var(--g-ink); font-size: 22px; }

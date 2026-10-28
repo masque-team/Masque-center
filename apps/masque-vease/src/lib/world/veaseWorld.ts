@@ -61,6 +61,7 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
   let appearance = options.appearance;
   let theme = options.theme;
   let walkPath: TownPoint[] = [];
+  let backdropTarget: TownBuilding | undefined;
     let guided = false;
     let travelSpeed = 5;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -93,6 +94,7 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
   const materialCache = new Map<string, THREE.MeshStandardMaterial>();
   const textureCache = new Map<string, THREE.Texture>();
   const interactables: THREE.Object3D[] = [];
+  const buildingBadges: THREE.Sprite[] = [];
   const loader = new THREE.TextureLoader();
   const assetRoot = new URL('assets/world/', document.baseURI).href;
   let loadedAssets = 0;
@@ -175,6 +177,12 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
   sunlight.shadow.normalBias = 0.07;
   sunlight.shadow.bias = -0.0003;
   scene.add(sunlight);
+  const plazaLight = new THREE.PointLight('#ffe3a3', 18, 19, 2);
+  plazaLight.position.set(0, 4.5, -1.5);
+  scene.add(plazaLight);
+  const marketLight = new THREE.PointLight('#9ce9ff', 12, 14, 2);
+  marketLight.position.set(-21, 4, 5);
+  scene.add(marketLight);
 
   const pavingMap = texture('paving.webp');
   pavingMap.wrapS = pavingMap.wrapT = THREE.RepeatWrapping;
@@ -218,6 +226,8 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
   }
 
   const colors = { coral: { wall: '#fff1e8', trim: '#dc7d75', roof: '#bc5e67' }, sky: { wall: '#edf8fa', trim: '#559db5', roof: '#4c829c' }, lemon: { wall: '#fff8e5', trim: '#d6ad5c', roof: '#ae8452' }, lilac: { wall: '#f6f0fc', trim: '#a18db9', roof: '#7e6b9d' } };
+  const windowMaterial = new THREE.MeshStandardMaterial({ color: '#fff1c8', emissive: '#ffcb75', emissiveIntensity: 0.6, roughness: 0.3 });
+  materials.add(windowMaterial);
   for (const building of TOWN_BUILDINGS) {
     const palette = colors[building.palette];
     const group = new THREE.Group();
@@ -277,7 +287,13 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
     badge.userData = { kind: 'place', id: building.id };
     badge.renderOrder = 5;
     scene.add(badge);
+    buildingBadges.push(badge);
     interactables.push(badge);
+    for (const side of [-1, 1]) {
+      mesh(new THREE.PlaneGeometry(0.82, 0.95), windowMaterial, side * building.width * 0.3, 1.8, building.depth / 2 + 0.04, group);
+      box(0.94, 0.08, 0.12, side * building.width * 0.3, 2.3, building.depth / 2 + 0.06, palette.trim, group);
+      box(0.07, 0.95, 0.08, side * building.width * 0.3, 1.8, building.depth / 2 + 0.09, palette.trim, group);
+    }
     for (let stripe = 0; stripe < 10; stripe += 1) {
       const awning = box(building.width * 0.073, 0.13, 1.1, -building.width * 0.365 + stripe * building.width * 0.081, 2.32, building.depth / 2 + 0.45, stripe % 2 ? '#fffaf0' : palette.trim, group);
       awning.rotation.x = 0.14;
@@ -335,6 +351,18 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
     const pennant = mesh(new THREE.ConeGeometry(0.23, 0.45, 3), paint(index % 3 === 0 ? '#df8fa0' : index % 3 === 1 ? '#e9bb62' : '#88bfd1'), -7 + index * 1.15, 5.1 - Math.sin(index / 12 * Math.PI) * 0.6, 5.5);
     pennant.rotation.z = Math.PI;
   }
+  const sparkleGeometry = new THREE.BufferGeometry();
+  const sparklePositions = new Float32Array(48 * 3);
+  for (let index = 0; index < 48; index += 1) {
+    sparklePositions[index * 3] = Math.sin(index * 2.4) * 24;
+    sparklePositions[index * 3 + 1] = 1 + index % 7 * 0.6;
+    sparklePositions[index * 3 + 2] = Math.cos(index * 1.9) * 23;
+  }
+  sparkleGeometry.setAttribute('position', new THREE.BufferAttribute(sparklePositions, 3));
+  geometries.add(sparkleGeometry);
+  const sparkleMaterial = new THREE.PointsMaterial({ color: '#fff0b0', size: 0.1, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending });
+  materials.add(sparkleMaterial);
+  scene.add(new THREE.Points(sparkleGeometry, sparkleMaterial));
 
   scene.updateMatrixWorld(true);
   const staticBatches = new Map<string, { material: THREE.Material; objects: THREE.Mesh[]; castShadow: boolean; receiveShadow: boolean }>();
@@ -509,6 +537,7 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
     skyLight.intensity = next === 'lantern' ? 1.65 : 2.1;
     sunlight.intensity = next === 'lantern' ? 1.8 : 2.7;
     lampMaterial.emissiveIntensity = next === 'lantern' ? 1.7 : 0.35;
+    windowMaterial.emissiveIntensity = next === 'lantern' ? 1.4 : 0.6;
   }
   setTheme(theme);
 
@@ -524,10 +553,9 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
     camera.top = span / 2;
     camera.bottom = -span / 2;
     camera.zoom = zoom;
-    if (guided) camera.setViewOffset(width, height, 0, Math.round(height * 0.28), width, height);
-    else camera.clearViewOffset();
+    camera.clearViewOffset();
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, width < 600 ? 1.1 : 1.35));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.35));
     renderer.setSize(width, height, false);
   }
   const resizeObserver = new ResizeObserver(resize);
@@ -585,6 +613,7 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
   function draw(time: number) {
     if (disposed) return;
     animation = requestAnimationFrame(draw);
+    if (guided && time - lastTime < 32) return;
     const seconds = Math.min(0.05, Math.max(0, (time - lastTime) / 1000));
     lastTime = time;
     if (document.hidden || !active) return;
@@ -648,10 +677,14 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
       const angle = index / 8 * Math.PI * 2;
       drop.position.set(Math.sin(angle) * fraction * 1.5, 2.5 - fraction ** 2 * 2.1, -1.5 + Math.cos(angle) * fraction * 1.5);
     }
-    lookTarget.set(player.point.x, 0, player.point.z - 2);
+    if (!reducedMotion.matches) {
+      for (let index = 0; index < 48; index += 1) sparklePositions[index * 3 + 1] = 1.4 + (index * 0.7 + elapsed * 0.15) % 4;
+      sparkleGeometry.attributes.position.needsUpdate = true;
+    }
+    lookTarget.set(backdropTarget?.x ?? player.point.x, 0, backdropTarget?.z ?? player.point.z - 2);
     cameraTarget.lerp(lookTarget, reducedMotion.matches ? 1 : 1 - Math.exp(-seconds * 5));
     camera.position.set(cameraTarget.x + Math.sin(heading) * 32, 31, cameraTarget.z + Math.cos(heading) * 32);
-    lookTarget.copy(cameraTarget); lookTarget.y = 0.5;
+    lookTarget.copy(cameraTarget); lookTarget.y = guided ? 2 : 0.5;
     camera.lookAt(lookTarget);
     renderer.render(scene, camera);
     if (!ready && loadedAssets >= requestedAssets) { ready = true; canvas.dataset.ready = 'true'; options.onReady(); }
@@ -682,6 +715,10 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
     setActive(value) { active = value; canvas.dataset.active = String(value); },
     guideTo(route) {
       guided = route !== 'world';
+      backdropTarget = guided ? townDestination(route) : undefined;
+      zoom = guided ? 1.55 : 1;
+      for (const badge of buildingBadges) badge.visible = !guided;
+      for (const actor of actors) if (actor.nameplate) actor.nameplate.visible = !guided;
       canvas.dataset.route = route;
       stopWalking();
       const building = townDestination(route);
@@ -692,7 +729,7 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
           let previous = player.point;
           let length = 0;
           for (const point of walkPath) { length += Math.hypot(point.x - previous.x, point.z - previous.z); previous = point; }
-          travelSpeed = Math.max(5, length / 1.6);
+          travelSpeed = Math.max(8, length / 0.45);
         }
       }
       resize();
@@ -713,7 +750,7 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
         let previous = player.point;
         let length = 0;
         for (const point of walkPath) { length += Math.hypot(point.x - previous.x, point.z - previous.z); previous = point; }
-        travelSpeed = Math.max(5, length / 1.6);
+        travelSpeed = Math.max(10, length / 0.45);
       }
       return true;
     },

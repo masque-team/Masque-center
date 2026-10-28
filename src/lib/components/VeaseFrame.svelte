@@ -3,9 +3,10 @@
   import { ExternalLink, LoaderCircle, RotateCcw } from '@lucide/svelte';
   import { isSceneMessage, packet, trustedSender, type HostMessage, type Outfit, type SceneMode, type SceneState } from '@masque/vease-protocol';
 
-  let { sceneState, mode, onNavigate, onOutfit, onSize }: {
+  let { sceneState, mode, route = 'home', onNavigate, onOutfit, onSize }: {
     sceneState: SceneState;
     mode: SceneMode;
+    route?: string;
     onNavigate: (route: string) => void;
     onOutfit: (outfit: Outfit) => SceneState | null;
     onSize?: (height: number) => void;
@@ -85,6 +86,7 @@
   $effect(() => { if (ready) send(packet('STATE', { state: $state.snapshot(sceneState) })); });
   $effect(() => { const next = mode; if (ready) { untrack(cancelPending); send(packet('MODE', { mode: next })); } });
   $effect(() => { if (ready) send(packet('ACTIVE', { active: visible && documentVisible })); });
+  $effect(() => { if (ready) send(packet('FOCUS', { route })); });
 </script>
 
 <section class="relative h-full w-full overflow-hidden bg-[#eaf3f7]" aria-label="Masque Vease" data-testid="vease-embed" data-ready={ready} data-mode={mode}>

@@ -37,10 +37,10 @@ MGC เปิด MV ผ่าน iframe ไม่ import renderer ของ MV; 
 ## ฟีเจอร์
 
 - **Energy** เริ่มต้น 12 หน่วย ใช้ 1 หน่วยต่อ Session และฟื้น 1 หน่วยทุก 30 นาที ซื้อเพิ่มได้เกินเพดาน โดยไม่ Regen ขณะเต็มหรือเกินเพดาน
-- **VIP Pass** มีแพ็กเกจ Mock 5 และ 7 วัน ซื้อด้วย Masque Points พร้อม Energy ไม่จำกัดและ VIP Benefits
-- **Battle Pass** มี Free/Premium tracks แยกสิทธิ์จาก VIP, ภารกิจ, XP และ Claim แยกตาม Season สงกรานต์/ลอยกระทง
-- **Shop / Wallet** แลกแต้มจำลอง ซื้อ Energy, VIP, Avatar/Pet, ปีก, กรอบรูปโปรไฟล์ และบัตรเข้า Ranked; ปีกซื้อเข้าคลังก่อนแล้วใส่/ถอดแยกได้
-- **Avatar & Pets** เลือกตัวละครทั้งตัว, pet collection, equip และ pet gacha แบบ Mock
+- **VIP Pass** ซื้อจากแท็บ Pass เท่านั้น แพ็ก Mock 5/7 วันรวมสิทธิ์ VIP, Energy ไม่จำกัดตาม config และรางวัล VIP Pass ไม่ต้องซื้อ Premium แยก; สิทธิ์ Premium รายซีซันที่เคยซื้อใน save เก่ายังใช้ได้
+- **Pass / Missions** Free/VIP tracks และ claims แยกตาม Season; มีภารกิจรายวันและภารกิจแต่ละเกมแบบสะสม 1/5/10/20/50/100/... รอบ รับ MP/Pass XP แล้วเลื่อนไปเป้าถัดไป เป้ารายเกมไม่รีเซ็ตเมื่อเปลี่ยนซีซัน
+- **Shop / Point Shop** แท็บของขาย/เติมแต้ม/Energy อยู่ตำแหน่งเดิม ไม่มีร้าน VIP ซ้ำ ปุ่ม + ข้างยอด MP เปิด `#points` โดยตรง เลือกแพ็ก 99/199/299/499/699/999 AIS Points ไม่มีช่องแลกจำนวนเอง โบนัส x2 ครั้งแรกคิดเฉพาะแต้มหลักและจำแยกต่อแพ็ก; ธุรกรรมยังเป็นเดโมในเครื่อง
+- **Avatar & Pets** แต่งตัวจาก Avatar; ปุ่มลอยรูปอุ้งเท้าเปิด `#gacha` แยกจากห้องแต่งตัว มีตั๋ว/MP และผลสุ่มแบบ Mock
 - **Ranking** แยก Game ID และ Lifetime/Season พร้อมรางวัล MP สำหรับ Top 3 แบบจำลอง รับครั้งเดียวต่อเกม/Season; Free และ VIP ใช้กติกาเดียวกัน
 - **Battle Arena** ซื้อบัตรเข้า Ranked ด้วย MP (เริ่มต้น 30 MP/ใบ) แล้วใช้ 1 ใบเข้าเกม ไม่หัก Energy/MP ตอนเข้าและไม่หักบัตรซ้ำเมื่อ reload session เดิม; จบ Ranked เดโมได้ 70 MP/80 EXP เทียบกับ Casual 40 EXP; ส่ง `mode=ranked` ให้ URL เกม แต่โฮสต์ยังต้องรองรับโหมด/ผลยืนยันเอง
 - **Masque Vease / World** เมือง 3D แนวตั้งด้วย Three.js พร้อมบ้าน/ร้านค้า คลอง สะพาน น้ำพุ และตัวละคร 2D billboard แตะพื้นเพื่อเดินด้วย A* อ้อมสิ่งกีดขวาง ไม่มี joystick แตะอาคารเพื่อเปิดเมนูร้าน/เลือกเกม พร้อมกล้องตามตัวละคร, ซูม/หมุน, แผนที่, Emote/Chat และผู้เล่นจำลอง 6 คน
@@ -124,30 +124,31 @@ Season ที่เลือกใน Studio เป็น **Demo Preview Overrid
 2. เช็กอิน แล้วตรวจรางวัลที่หน้า Wallet
 3. เปิดเกม กดเริ่ม ลองรีเฟรช แล้วใช้ **Simulate Finish**; Energy หักครั้งเดียวและคะแนน/EXP อัปเดต
 4. เปิด Ranking สลับ Season/Lifetime ดูคะแนนของตนเอง รางวัล Top 3 ใช้ MP เท่านั้น
-5. เข้า Shop แลก AIS จำลองและซื้อ Energy แม้ยอดเกินเพดาน Regen
-6. ซื้อ VIP ตรวจ Badge/Energy และใช้ Studio → เวลา +8 วัน เพื่อลองหมดอายุ
+5. กด + ข้าง MP เพื่อเปิดแพ็กเติมแต้ม ลองซื้อแพ็กเดิมซ้ำเพื่อตรวจว่าโบนัสครั้งแรกไม่ซ้ำ; Shop → Energy ซื้อได้เกินเพดาน Regen
+6. ซื้อ VIP Pass จากแท็บ Pass ตรวจ Badge/Energy และรางวัล VIP แล้วใช้ Studio → เวลา +8 วัน เพื่อลองหมดอายุ
 7. ซื้อ Avatar/ปีกแล้วไป Avatar & Pets เพื่อสวม; กรอบรูปเลือกที่ My Space → แต่งโปรไฟล์ เลือก Pet ในเมืองได้จากปุ่มรูปอุ้งเท้า
-8. ที่ Pass → ภารกิจ รับ XP หลังเล่นจบ แล้ว Claim ของ Free/Premium; Premium ซื้อแยกจาก VIP
+8. ที่ Pass → ภารกิจ เล่นเกมหนึ่งรอบ รับ MP/XP แล้วตรวจเป้ารายเกมเปลี่ยนจาก 1 เป็น 5 รอบ; VIP เปิดรางวัล Pass โดยไม่ซื้อสิทธิ์ซ้ำ
 9. เปิด Demo Studio → Seasons เปลี่ยน Pass Season/Ranking ID หรือ Reset Ranking; Lifetime และ Pass Season อื่นยังอยู่
 10. ซื้อบัตรเข้า Ranked ที่ Shop แล้วเปิด Battle เลือกเกม ยืนยันใช้บัตร 1 ใบ เข้าหน้าเกมจริง ใช้ Simulate Finish เพื่อทดสอบรางวัลเดโมและ Match History
 11. เปิด Vease แล้วแตะพื้นเพื่อเดินตามจุดหมาย ตัวละครจะหาเส้นทางอ้อมบ้าน/คลองผ่านสะพาน แตะ Masque Arcade เพื่อเลือกเกม แตะ Point Market/Atelier/Pavilion/Clubhouse เพื่อเปิดหน้าที่เกี่ยวข้อง แผนที่เลือกเดินไปหน้าร้านได้ พร้อม Emote/Chat และโปรไฟล์ MOCK
 12. เปิด Profile ดูสถิติ/กระเป๋า/ผลงาน; My Space (`#room`) เปลี่ยนพื้นหลังและ bio ปักป้ายที่ปลดล็อกแล้ว บันทึกและ refresh เพื่อตรวจ persistence
 13. เปิด Studio → Reset Demo → ยืนยัน เพื่อคืนข้อมูลตัวอย่างเริ่มต้น
 
-ใช้ **เติมทุนจำลอง** ใน Studio เมื่อต้องการนำเสนอหลายรายการต่อเนื่อง การเปลี่ยน Admin Config ต้องกด **บันทึกการตั้งค่า** ก่อนจึงมีผลต่อผู้เล่น ปุ่ม Reset และการจ่ายค่าเข้า/ซื้อ Premium ใช้ Popup ยืนยันกลาง
+ใช้ **เติมทุนจำลอง** ใน Studio เมื่อต้องการนำเสนอหลายรายการต่อเนื่อง การเปลี่ยน Admin Config ต้องกด **บันทึกการตั้งค่า** ก่อนจึงมีผลต่อผู้เล่น ปุ่ม Reset, ซื้อแพ็กแต้ม และซื้อ VIP Pass ใช้ Popup ยืนยันกลาง ภาพแพ็กคริสตัลเป็น PNG ที่สร้างด้วย `npm run art:points` ไม่ใช่ AI image generation; คำสั่งนี้เขียนทับภาพแพ็กตัวอย่างเท่านั้น
 
 ## Verification
 
-`npm test` ตรวจ MGC 24 tests รวม Economy, Ownership และการสวมชุดแบบ atomic ส่วน `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
+`npm test` ตรวจ MGC 26 tests รวม Economy, VIP Pass ที่รวมสิทธิ์แล้ว, ภารกิจต่อเนื่อง, โบนัสแพ็กครั้งแรก, Ownership และ atomic outfit ส่วน `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route/focus allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
 
 ## Masque Vease
 
 MV อยู่ใน `apps/masque-vease` ของ repo เดิม ดู [MV README](apps/masque-vease/README.md) ไม่มี backend/multiplayer เพิ่ม และไม่แก้หรือเชื่อม runtime ไปยัง Gatherfall
 
-- Home ใช้ `portrait` มุมใกล้ Avatar/Pet ไม่สร้างเมือง/NPC และให้เกมแนะนำอยู่ในจอแรก; Detail ซ่อน MV และวางปุ่มเริ่มเล่นใต้ภาพเกมทันที `#avatar` ใช้ `wardrobe` และ `#world` ใช้ `town`
+- หน้าเมนูใช้ `backdrop` เป็นฉากเมืองเต็มพื้นที่ใต้ UI โปร่งใส เลือกมุมร้านด้วย `FOCUS`; Home มี Avatar/เช็กอินด้านบน และให้เกมแนะนำอยู่ในจอแรก `#avatar` ใช้ `wardrobe` และ `#world` ใช้ `town` พร้อมเมนูล่างที่ไม่หาย
 - `src/lib/components/VeaseFrame.svelte` เป็น iframe bridge ของ MGC ใช้ iframe เดิมเปลี่ยนโหมด พักการวาดเมื่อพ้นจอ/แท็บ hidden และถอด MV เมื่อเข้าเกมจริง; wardrobe ส่งขนาดเนื้อหากลับเพื่อลด scroll ซ้อน
 - `apps/masque-vease/src/lib/world/veaseWorld.ts` สร้างเมือง/ป้ายชื่อ CanvasTexture/NPC; `portraitScene.ts` แสดงตัวละครระยะใกล้ด้วย renderer เบา ไม่มี bloom; `town.ts` เป็น A*/collision/layout
-- `WALK_TO` สั่งเดินไป building ID คำสั่งใหม่ยกเลิกเส้นทางเก่าและตอบ `ARRIVED` พร้อมสถานะ cancelled เมื่อเดินถึงจึงเปิดเมนู MGC รองรับ reduced motion และ timeout
+- `WALK_TO` สั่งเดินไป building ID คำสั่งใหม่ยกเลิกเส้นทางเก่าและตอบ `ARRIVED` พร้อมสถานะ cancelled การเดินจาก UI ใช้เวลาประมาณ 0.45 วินาทีบวกเวลารอเฟรม/ข้อความ ส่วนแตะเดินปกติใช้ความเร็วเดิม รองรับ reduced motion และ timeout
+- เมืองมีหน้าต่างไฟ โคม ไฟเฉพาะจุด และประกายแบบ Points ไม่ใช้ bloom; backdrop จำกัดประมาณ 30fps และซ่อนป้ายชื่อ/ป้ายอาคารเพื่อลดความรก ไม่ใช่การรับประกัน FPS ทุกอุปกรณ์
 - สร้าง artwork ใหม่ในเครื่องด้วย `npm run art:world` ผ่าน Sharp: facade/roof/paving WebP, ภาพบ้านสำหรับแผนที่ และภาพตัวละครที่ trim transparency จาก assets เดิม เก็บใน `public/assets/world/`; ไม่ใช่ภาพจาก AI image-generation service
 - ภาพที่ MV deploy อยู่ใน `apps/masque-vease/public/assets/` หลังเปลี่ยนภาพจาก art scripts ที่ root ให้คัดลอกไฟล์ที่เปลี่ยนไปยัง MV ด้วย แต่ละ FE มี assets ของตัวเอง ไม่โหลดข้าม dev server
 - ต้องรองรับ WebGL 2; มีหน้า Retry เมื่อเปิด WebGL ไม่สำเร็จ ภาพคน/สัตว์เลี้ยงเป็นภาพ 2D พร้อม idle/walk bounce ไม่ใช่โมเดล 3D หรือ skeletal animation

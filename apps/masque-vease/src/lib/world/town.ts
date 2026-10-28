@@ -21,7 +21,7 @@ export const TOWN_MENUS: Record<string, string> = {
 export function townDestination(route: string): TownBuilding | undefined {
   const stops: Record<string, string> = {
     home: 'arcade', detail: 'arcade', ranking: 'arcade', shop: 'market', wallet: 'market',
-    avatar: 'atelier', profile: 'atelier', room: 'club', rewards: 'pass', battle: 'studio', admin: 'studio',
+    avatar: 'atelier', profile: 'atelier', room: 'club', rewards: 'pass', battle: 'studio', admin: 'studio', points: 'market', gacha: 'atelier',
   };
   return TOWN_BUILDINGS.find((building) => building.id === stops[route]);
 }

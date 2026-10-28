@@ -2,15 +2,19 @@
   import { Check, Coins, Sparkles } from '@lucide/svelte';
   import GameButton from './GameButton.svelte';
 
-  let { reward, days, claimed, onClaim }: {
+  let { reward, days, claimed, onClaim, compact = false }: {
     reward: number;
     days: { label: string; done: boolean; today: boolean }[];
     claimed: boolean;
     onClaim: () => void;
+    compact?: boolean;
   } = $props();
   let doneCount = $derived(days.filter((day) => day.done).length);
 </script>
 
+{#if compact}
+  <section class="grid min-w-0 gap-2 rounded-lg border border-white bg-white/85 p-3" aria-label="เช็กอินรายวัน"><div class="flex items-center justify-between gap-2"><div class="min-w-0"><h3 class="!text-xs !text-[#365c7a]">เช็กอินรายวัน</h3><span class="text-[10px] font-semibold text-amber-700">+{reward} MP · {doneCount}/7 วัน</span></div><button class="flex min-h-9 shrink-0 items-center gap-1 rounded-md bg-[#5e55b3] px-2 text-[10px] font-semibold text-white disabled:bg-[#bcc7dc]" disabled={claimed} onclick={onClaim}>{#if claimed}<Check size={12} />รับแล้ว{:else}รับเลย{/if}</button></div><div class="grid grid-cols-7 gap-1">{#each days as day (day.label)}<span class={['grid h-7 place-items-center rounded text-[9px] font-semibold', day.done ? 'bg-sky-600 text-white' : day.today ? 'bg-amber-200 text-amber-900' : 'bg-sky-50 text-[#8296a7]']}>{#if day.done}<Check size={11} />{:else}{day.label}{/if}</span>{/each}</div></section>
+{:else}
 <section class="checkin" class:claimed aria-label="เช็กอินรายวัน">
   <span class="shine" aria-hidden="true"></span>
   <div class="head">
@@ -30,7 +34,7 @@
   </div>
 
   <ol class="days" aria-label="ประวัติเช็กอินสัปดาห์นี้">
-    {#each days as day}
+    {#each days as day (day.label)}
       <li class:done={day.done} class:today={day.today} class:ready={day.today && !day.done}>
         <small class="lbl">{day.label}</small>
         <span class="stamp">
@@ -41,6 +45,7 @@
     {/each}
   </ol>
 </section>
+{/if}
 
 <style>
   .checkin { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; padding: 11px 11px 10px; overflow: hidden; border: 2.5px solid #fff; border-radius: 22px; background: linear-gradient(155deg, #fffdf6 0%, #eefcf4 52%, #e6f4ff 100%); box-shadow: 0 7px 0 -3px #9fd9bb, 0 12px 18px rgb(40 120 100 / 14%); isolation: isolate; }

@@ -25,6 +25,15 @@ export const PLAYER_MOCK_CONFIG = {
 
 export const EXCHANGE_RATE = 10;
 
+export const POINT_PACKS = [
+  { id: 'pocket', cost: 99, points: 1500, bonus: 10, art: 'pocket', featured: true },
+  { id: 'pouch', cost: 199, points: 3200, bonus: 40, art: 'pouch' },
+  { id: 'chest', cost: 299, points: 5000, bonus: 120, art: 'chest' },
+  { id: 'treasure', cost: 499, points: 9000, bonus: 300, art: 'treasure' },
+  { id: 'tower', cost: 699, points: 13500, bonus: 500, art: 'tower' },
+  { id: 'royal', cost: 999, points: 20000, bonus: 1000, art: 'royal', best: true },
+] as const;
+
 export const VIP_PACKAGES: VipPackage[] = [
   { id: 'five-day', label: '5-Day VIP Pass', durationDays: 5, cost: 180, reward: 'Pet Gacha Ticket x1', bonusPoints: 0, bonusTickets: 1 },
   { id: 'seven-day', label: '7-Day VIP Pass', durationDays: 7, cost: 240, reward: 'Masque Points +80', bonusPoints: 80, bonusTickets: 0 },

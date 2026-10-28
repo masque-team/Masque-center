@@ -11,6 +11,7 @@
   let mode = $state<SceneMode>(query.get('mode') === 'portrait' ? 'portrait' : query.get('mode') === 'wardrobe' ? 'wardrobe' : 'town');
   let initialized = $state(!embedded);
   let active = $state(true);
+  let focusRoute = $state('home');
   let sceneState = $state<SceneState>({
     appearance: { name: 'Mali', level: 18, avatarId: 'mali', petId: 'pudding', wingId: null, frameId: null, vip: false },
     owned: { avatarIds: ['mali', 'nami'], petIds: ['pudding', 'cloud'], wingIds: ['sky-feather'] },
@@ -96,6 +97,7 @@
         case 'STATE': sceneState = message.payload.state; break;
         case 'MODE': if (message.payload.mode !== mode) { cancelWalk(); dirty = false; mode = message.payload.mode; } break;
         case 'ACTIVE': active = message.payload.active; break;
+        case 'FOCUS': focusRoute = message.payload.route; break;
         case 'WALK_TO':
           cancelWalk();
           if (mode !== 'town' || !sceneState.enabled) { post(packet('ERROR', { message: 'เปิดเมืองก่อนเดินทาง' }, message.id)); break; }
@@ -113,7 +115,7 @@
   });
   $effect(() => { if (!dirty) { const look = sceneState.appearance; draft = { avatarId: look.avatarId, petId: look.petId, wingId: look.wingId }; } });
   $effect(() => {
-    if (mode === 'town' && initialized && !TownScene) void import('./lib/MasqueVease.svelte').then((module) => { TownScene = module.default; }).catch(() => { error = 'โหลดเมืองไม่สำเร็จ'; });
+    if ((mode === 'town' || mode === 'backdrop') && initialized && !TownScene) void import('./lib/MasqueVease.svelte').then((module) => { TownScene = module.default; }).catch(() => { error = 'โหลดเมืองไม่สำเร็จ'; });
   });
   $effect(() => {
     const node = portraitHost;
@@ -145,15 +147,15 @@
     <div class="grid min-h-48 place-content-center gap-3 p-6 text-center" role="alert"><p>{error}</p><button class="mx-auto flex min-h-11 items-center gap-2" onclick={() => location.reload()}><RotateCcw size={16} />ลองอีกครั้ง</button></div>
   {:else if !initialized}
     <div class="grid h-full place-content-center" role="status"><LoaderCircle class="animate-spin" size={24} /></div>
-  {:else if mode === 'town'}
-    {#if TownScene}<TownScene player={townPlayer} vipActive={sceneState.appearance.vip} {active} {walkRequest} onArrived={arrived} onNavigate={navigate} onEquipPet={(petId) => requestOutfit({ ...sceneState.appearance, petId })} onToast={(message) => { notice = message; }} />{:else}<div class="grid h-full place-content-center" role="status"><LoaderCircle class="animate-spin" size={24} /></div>{/if}
+  {:else if mode === 'town' || mode === 'backdrop'}
+    {#if TownScene}<TownScene player={townPlayer} vipActive={sceneState.appearance.vip} activeRoute={mode === 'town' ? 'world' : focusRoute} {active} {walkRequest} onArrived={arrived} onNavigate={navigate} onEquipPet={(petId) => requestOutfit({ ...sceneState.appearance, petId })} onToast={(message) => { notice = message; }} />{:else}<div class="grid h-full place-content-center" role="status"><LoaderCircle class="animate-spin" size={24} /></div>{/if}
   {:else}
     <div bind:this={contentHost} class={mode === 'portrait' ? 'h-full' : ''}>
     <section class={['relative w-full overflow-hidden', mode === 'wardrobe' ? 'h-[310px]' : 'h-full']} aria-label="ตัวละครและสัตว์เลี้ยง">
       <div bind:this={portraitHost} class="absolute inset-0"></div>
       <div class="pointer-events-none absolute top-4 left-4 max-w-[calc(100%_-_32px)]"><p class="text-[10px] font-semibold text-[#70909f]">MASQUE VEASE</p><h1 class="truncate text-lg font-semibold">{sceneState.appearance.name}<span class="ml-2 text-xs font-normal">LV.{sceneState.appearance.level}</span></h1></div>
       {#if !portraitReady}<div class="absolute inset-0 grid place-content-center bg-[#eaf3f7]" role="status"><LoaderCircle class="animate-spin" size={22} /></div>{/if}
-      {#if mode === 'portrait'}<div class="absolute right-4 bottom-3 left-4 flex justify-between gap-2"><button class="flex min-h-10 items-center gap-1.5 rounded-md border border-white bg-white/85 px-3 text-xs font-semibold" onclick={() => navigate('avatar')}><Shirt size={16} />แต่งตัว</button><button class="flex min-h-10 items-center gap-1.5 rounded-md border border-white bg-white/85 px-3 text-xs font-semibold" onclick={() => navigate('world')}>เข้าเมือง<ArrowUpRight size={16} /></button></div>{/if}
+      {#if mode === 'portrait'}<div class="absolute right-4 bottom-3 left-4 flex justify-end"><button class="flex min-h-10 items-center gap-1.5 rounded-md border border-white bg-white/85 px-3 text-xs font-semibold" onclick={() => navigate('world')}>เข้าเมือง<ArrowUpRight size={16} /></button></div>{/if}
     </section>
     {#if mode === 'wardrobe'}
       <section class="border-t border-white bg-[#f7fafc] px-4 pt-3 pb-4" aria-label="ห้องแต่งตัว">

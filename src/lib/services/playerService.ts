@@ -79,6 +79,7 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
     };
   }
   result.demo.rankingResets ??= [];
+  result.demo.pointPackClaims ??= [];
   result.demo.arenaTickets ??= 0;
   result.demo.playTimeMs ??= {};
   result.demo.playCounts ??= result.demo.sessions.filter((session) => session.finished).reduce<Record<string, number>>((counts, session) => ({ ...counts, [session.gameId]: (counts[session.gameId] ?? 0) + 1 }), {});

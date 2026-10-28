@@ -20,6 +20,8 @@ Standalone appearance is session-only and never writes Game Center localStorage.
 ## Ownership
 
 - `portrait`: close Avatar/Pet/wings scene; no town, NPCs or pathfinding initialized.
+- `backdrop`: noninteractive town camera focused on the host's current storefront;
+  hides building/name badges, targets about 30fps, and sits behind transparent MGC UI.
 - `wardrobe`: same viewer, preview before explicit Save, ownership checked by MGC.
 - `town`: lazy-loaded town, A* walking, buildings, camera and mock citizens.
 
@@ -32,7 +34,7 @@ The complete outfit must pass MGC ownership checks before any selection is saved
 Shared package: `packages/vease-protocol` at repository root. No MGC app imports.
 
 - Handshake: `READY -> INIT -> ACK`; READY repeats until initialized.
-- Host: `STATE`, `MODE`, `ACTIVE`, `WALK_TO`, `EQUIP_RESULT`.
+- Host: `STATE`, `MODE`, `FOCUS`, `ACTIVE`, `WALK_TO`, `EQUIP_RESULT`.
 - Scene: `NAVIGATE`, `EQUIP_REQUEST`, `ARRIVED`, bounded `SIZE`, `ERROR`.
 - Every packet includes channel, version, unique request ID and validated payload.
 - Exact source window AND origin checks; never wildcard target origins.

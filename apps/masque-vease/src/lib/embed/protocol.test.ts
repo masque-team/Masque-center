@@ -9,6 +9,9 @@ describe('versioned iframe protocol', () => {
   it('accepts initialization without any economy or persistent player data', () => {
     expect(isHostMessage(packet('INIT', { state, mode: 'portrait' }))).toBe(true);
     expect(isHostMessage(packet('MODE', { mode: 'wardrobe' }))).toBe(true);
+    expect(isHostMessage(packet('MODE', { mode: 'backdrop' }))).toBe(true);
+    expect(isHostMessage(packet('FOCUS', { route: 'shop' }))).toBe(true);
+    expect(isHostMessage(packet('FOCUS', { route: 'https://evil.test' }))).toBe(false);
   });
   it('rejects unknown versions, modes, destinations and malformed snapshots', () => {
     expect(isHostMessage({ ...packet('STATE', { state }), version: 2 })).toBe(false);

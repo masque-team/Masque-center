@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { ArrowLeft, ArrowUpRight, Compass, Footprints, Gamepad2, House, LoaderCircle, LocateFixed, Map, MessageCircle, PawPrint, RotateCw, Send, Shirt, Smile, UsersRound, X, ZoomIn, ZoomOut } from '@lucide/svelte';
+  import { ArrowLeft, ArrowUpRight, Compass, Footprints, Gamepad2, House, LoaderCircle, LocateFixed, Map, MessageCircle, PawPrint, RotateCw, Send, Smile, UsersRound, X, ZoomIn, ZoomOut } from '@lucide/svelte';
   import { AVATARS, PETS } from './data/config';
   import AssetPortrait from './AssetPortrait.svelte';
   import { MOCK_CITIZENS, TOWN_BUILDINGS, TOWN_MENUS, townArrival } from './world/town';
@@ -132,7 +132,7 @@
       <div class="mx-auto grid max-w-[430px] items-end gap-3">
         <div class="pointer-events-auto relative grid gap-2">
           {#if emotesOpen}<div class="absolute right-0 bottom-[108px] flex gap-1 rounded-lg border border-white bg-white/95 p-2 shadow-lg" aria-label="อีโมจิ">{#each EMOTES as emote (emote)}<button class="grid size-10 place-items-center text-xl" aria-label={`ส่ง ${emote}`} onclick={() => say(emote)}>{emote}</button>{/each}</div>{/if}
-          <div class="flex justify-end gap-2"><button class="hud-button" title="อีโมจิ" aria-label="อีโมจิ" aria-pressed={emotesOpen} onclick={() => emotesOpen = !emotesOpen}><Smile size={21} /></button><button class="hud-button" title="สัตว์เลี้ยงเดินตาม" aria-label="เลือกสัตว์เลี้ยงเดินตาม" onclick={() => { closePanels(); panel = 'pets'; }}><PawPrint size={20} /></button><button class="hud-button" title="Avatar & Pets" aria-label="เปลี่ยน Avatar และ Pet" onclick={() => onNavigate('avatar')}><Shirt size={20} /></button><button class="hud-button" title="แต่งโปรไฟล์" aria-label="แต่งโปรไฟล์ของฉัน" onclick={() => onNavigate('room')}><House size={20} /></button></div>
+          <div class="flex justify-end gap-2"><button class="hud-button" title="อีโมจิ" aria-label="อีโมจิ" aria-pressed={emotesOpen} onclick={() => emotesOpen = !emotesOpen}><Smile size={21} /></button><button class="hud-button" title="สัตว์เลี้ยงเดินตาม" aria-label="เลือกสัตว์เลี้ยงเดินตาม" onclick={() => { closePanels(); panel = 'pets'; }}><PawPrint size={20} /></button><button class="hud-button" title="แต่งโปรไฟล์" aria-label="แต่งโปรไฟล์ของฉัน" onclick={() => onNavigate('room')}><House size={20} /></button></div>
           <form class="flex min-h-12 min-w-0 items-center gap-1 rounded-lg border border-white bg-white/85 p-1.5 shadow-sm backdrop-blur-md" onsubmit={(event) => { event.preventDefault(); sendChat(); }}><MessageCircle size={16} class="ml-1 hidden shrink-0 text-[#6e92a3] sm:block" /><input class="min-w-0 flex-1 bg-transparent px-1 text-xs outline-none placeholder:text-[#8aa1ac]" aria-label="ข้อความ Masque Vease" maxlength="60" placeholder="ทักทาย..." bind:value={message} onfocus={stopMoving} /><button class="grid size-9 shrink-0 place-items-center rounded-md bg-[#387f9c] text-white disabled:bg-[#b0c6d0]" type="submit" aria-label="ส่งข้อความ" disabled={!message.trim()}><Send size={16} /></button></form>
         </div>
       </div>
