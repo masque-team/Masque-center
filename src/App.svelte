@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
   import { SvelteDate } from 'svelte/reactivity';
-  import { Gamepad2, Swords, Trophy, UsersRound, ReceiptText, Settings2, ArrowUpRight, PawPrint } from '@lucide/svelte';
+  import { Gamepad2, Settings2, ArrowUpRight } from '@lucide/svelte';
   import AppHeader from './lib/components/AppHeader.svelte';
   import BottomNav from './lib/components/BottomNav.svelte';
   import DailyCheckinCard from './lib/components/DailyCheckinCard.svelte';
@@ -26,13 +26,13 @@
   import ShopPage from './lib/pages/ShopPage.svelte';
   import VeaseFrame from './lib/components/VeaseFrame.svelte';
   import type { SceneState } from '@masque/vease-protocol';
-  import { AVATARS, PETS, POINT_PACKS } from './lib/data/config';
+  import { AVATARS, POINT_PACKS } from './lib/data/config';
   import AssetPortrait from './lib/components/AssetPortrait.svelte';
   import { GAMES, GAME_BY_ID } from './lib/data/games';
   import { MOCK_RANKINGS } from './lib/data/mockRankings';
   import { equipOutfit, selectAvatar } from './lib/services/avatarService';
   import { isVip, nextRefillIn, refreshEnergy, refillEnergy } from './lib/services/energyService';
-  import { purchaseVip } from './lib/services/passService';
+  import { purchaseVip, vipOffer } from './lib/services/passService';
   import { equipPet } from './lib/services/petService';
   import { buyGachaCoupons, drawGachaBatch } from './lib/services/gachaService';
   import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
@@ -84,7 +84,6 @@
   let vipTopUpIntent = $state<string | null>(null);
   let currentGame = $derived(player.demo.config.games.find((game) => game.id === gameId) ?? GAME_BY_ID[gameId]);
   let homeAvatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
-  let homePet = $derived(PETS.find((item) => item.id === player.petId));
   let featuredGame = $derived(player.demo.config.games.find((game) => game.featured && game.published !== false) ?? player.demo.config.games.find((game) => game.published !== false) ?? GAMES[0]);
   let catalogGames = $derived(player.demo.config.games.filter((game) => game.published !== false).sort((left, right) => (left.displayOrder ?? 99) - (right.displayOrder ?? 99)));
   let filteredGames = $derived(homeGenre === 'all' ? catalogGames.filter((game) => game.id !== featuredGame.id) : catalogGames.filter((game) => game.genre === homeGenre));
@@ -256,7 +255,11 @@
   }
 
   function openVipConfirm(packageId: string): void {
-    if (vipActive) { showToast(`VIP Pass ใช้ได้ถึง ${new Date(player.vipExpiresAt!).toLocaleDateString('th-TH')} · ซื้อแพ็กใหม่ได้เมื่อหมดอายุ`); return; }
+    const offer = vipOffer(player, packageId, now);
+    if (!offer?.eligible) {
+      showToast(offer?.active ? 'เลือกอัปเกรดเป็น Pass เลเวลที่สูงกว่าได้' : 'แพ็ก VIP นี้ไม่เข้าเงื่อนไข');
+      return;
+    }
     vipTopUpIntent = null;
     modal = { kind: 'vip-confirm', packageId: packageId as VipPackage['id'] };
   }
@@ -308,8 +311,12 @@
 
   function confirmVip(): void {
     if (modal?.kind !== 'vip-confirm') return;
-    if (vipActive) { modal = { kind: 'notice', tone: 'info', title: 'VIP Pass กำลังใช้งาน', message: 'เลือกซื้อแพ็ก VIP ใหม่ได้เมื่อสิทธิ์ปัจจุบันหมดอายุ' }; return; }
     const packageId = modal.packageId;
+    const offer = vipOffer(player, packageId, now);
+    if (!offer?.eligible) {
+      modal = { kind: 'notice', tone: 'warn', title: 'อัปเกรด VIP ไม่สำเร็จ', message: 'เลือก Pass เลเวลที่สูงกว่าและตรวจสอบยอด Masque Points' };
+      return;
+    }
     const selected = player.demo.config.vipPlans.find((plan) => plan.id === packageId);
     const next = purchaseVip(player, packageId, now);
     if (!next) {
@@ -317,7 +324,7 @@
       return;
     }
     persist(next, `ซื้อ ${selected?.label ?? 'VIP Pass'}`);
-    modal = { kind: 'notice', tone: 'success', title: 'VIP Pass เปิดใช้งานแล้ว!', message: `ใช้ได้ถึง ${new Date(next.vipExpiresAt!).toLocaleDateString('th-TH')} · ${(selected?.startLevel ?? 1) > 1 ? `Pass LV.${selected!.startLevel} พร้อมกดรับรางวัล` : 'รับรางวัลจาก VIP Track ตาม XP'}` };
+    modal = { kind: 'notice', tone: 'success', title: offer.active ? 'อัปเกรด VIP Pass แล้ว!' : 'VIP Pass เปิดใช้งานแล้ว!', message: `${offer.active ? `อัปเกรดเป็น LV.${selected?.startLevel} · วัน VIP คงเดิม` : `ใช้ได้ถึง ${new Date(next.vipExpiresAt!).toLocaleDateString('th-TH')}`} · ${(selected?.startLevel ?? 1) > 1 ? `Pass LV.${selected!.startLevel} พร้อมกดรับรางวัล` : 'รับรางวัลจาก VIP Track ตาม XP'}` };
   }
 
   function confirmRefill(): void {
@@ -507,9 +514,9 @@
       <div class="page-shell">
         {#if page === 'home'}
           <div class="home">
-            <section class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 py-1" aria-label="Avatar และเช็กอิน"><button class="relative h-28 w-[72px] transition-transform active:scale-95" title="แต่งตัว Avatar" aria-label="แต่งตัว Avatar" onclick={() => navigate('avatar')}><AssetPortrait src={homeAvatar.imagePath} alt={homeAvatar.name} placeholder={homeAvatar.placeholder} kind="avatar" loading="eager" />{#if homePet}<span class="absolute -right-2 bottom-0 h-12 w-10"><AssetPortrait src={homePet.imagePath} alt={homePet.name} placeholder={homePet.placeholder} kind="pet" /></span>{/if}</button><DailyCheckinCard compact reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} /></section>
-            <AvatarGreeting avatarId={homeAvatar.id} displayName={player.displayName} />
-            <div class="flex items-center justify-between gap-3 pt-2"><div class="flex min-w-0 items-center gap-2"><img class="size-10 shrink-0 object-contain" src="assets/brand/masque-game-center-symbol.png" alt="" /><div><p class="text-[10px] font-semibold text-sky-700">MASQUE <span class="ml-1 rounded border border-sky-300 px-1 text-[9px]">DEMO</span></p><h1 class="text-xl font-bold leading-tight">Game Center</h1></div></div><button class="grid size-10 shrink-0 place-items-center rounded-md border border-white bg-white/60 text-sky-700 transition-transform active:scale-95 motion-reduce:transition-none" onclick={() => navigate('admin')} aria-label="เปิด Demo Admin" title="Demo Studio"><Settings2 size={18} /></button></div>
+            <AvatarGreeting avatarId={homeAvatar.id} petId={player.petId} displayName={player.displayName} onAvatarClick={() => navigate('avatar')} />
+            <DailyCheckinCard compact reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} />
+            <div class="flex items-center justify-between gap-3 pt-2"><div class="flex min-w-0 items-center gap-2.5"><img class="size-12 shrink-0 object-contain drop-shadow-[0_3px_5px_rgba(60,40,120,0.24)]" src="assets/brand/masque-game-center-symbol.png" alt="" /><div><p class="text-[10px] font-extrabold text-sky-700">MASQUE <span class="ml-1 rounded border border-sky-300 bg-white/80 px-1.5 text-[9px]">DEMO</span></p><h1 class="text-xl font-black leading-tight text-[#2b2468]">Game Center</h1></div></div><button class="grid size-10 shrink-0 place-items-center rounded-xl border-2 border-white bg-white/80 text-sky-700 shadow-[0_3px_0_#c6d8ec] transition-transform active:scale-95 motion-reduce:transition-none" onclick={() => navigate('admin')} aria-label="เปิด Demo Admin" title="Demo Studio"><Settings2 size={18} /></button></div>
             {#if homeGenre === 'all'}<section class="block">
               <FeaturedGameCard game={featuredGame} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${featuredGame.id}`)} />
               <p class="mt-3 flex items-center justify-between px-1 text-xs text-[var(--g-muted)]"><span>Personal Best · SIMULATED</span><strong>{(player.demo.scores[featuredGame.id] ?? 0).toLocaleString()}</strong></p>
@@ -526,7 +533,7 @@
             </button>
             <div class="space-y-2 border-y border-white/80 py-3"><div class="flex justify-between text-xs"><span>LV.{player.level} · Profile EXP</span><strong>{player.demo.profileXp % 100} / 100</strong></div><progress class="h-1.5 w-full accent-sky-600" value={player.demo.profileXp % 100} max="100" aria-label="Profile EXP"></progress></div>
             <nav class="grid grid-cols-4 gap-2 py-3" aria-label="กิจกรรม">
-              {#each [{ route: 'battle', label: 'Ranked', icon: Swords, color: 'text-rose-600' }, { route: 'ranking', label: 'Ranking', icon: Trophy, color: 'text-amber-600' }, { route: 'room', label: 'My Space', icon: UsersRound, color: 'text-sky-600' }, { route: 'wallet', label: 'Wallet', icon: ReceiptText, color: 'text-indigo-600' }] as item (item)}<button class="grid min-h-18 justify-items-center gap-1 rounded-lg border border-white/80 bg-white/45 py-3 text-xs font-semibold" onclick={() => navigate(item.route)}><item.icon size={23} class={item.color} />{item.label}</button>{/each}
+              {#each [{ route: 'battle', label: 'Ranked', art: 'assets/currency/arena-ticket.png' }, { route: 'ranking', label: 'Ranking', art: 'assets/badges/season-top-1.png' }, { route: 'room', label: 'My Space', art: 'assets/nav/nav-avatar.png' }, { route: 'wallet', label: 'Wallet', art: 'assets/currency/masque-point.png' }] as item (item.route)}<button class="grid min-h-20 justify-items-center gap-1 rounded-2xl border-2 border-white bg-gradient-to-b from-white/90 to-[#eef4ff]/90 py-2.5 text-xs font-extrabold text-[#2b2468] shadow-[0_4px_0_#c8d8ec] transition-transform active:translate-y-0.5 active:scale-95" onclick={() => navigate(item.route)}><img class="size-9 object-contain drop-shadow-[0_2px_4px_rgba(60,40,120,0.24)]" src={item.art} alt="" />{item.label}</button>{/each}
             </nav>
             <button class="flex w-full items-center justify-between gap-3 border-y border-white bg-white/35 px-2 py-3 text-left" onclick={() => navigate('rewards')}><span><small class="text-sky-700">CURRENT SEASON</small><strong class="block">{activePassSeason.name}</strong></span><ArrowUpRight size={22} /></button>
 
@@ -581,7 +588,7 @@
     </main>
   {/if}
   {#if page !== 'game'}<BottomNav {page} />{/if}
-  {#if !['game', 'avatar', 'gacha', 'points', 'rewards'].includes(page)}<button class="fixed z-30 flex min-h-12 items-center gap-2 rounded-full border-2 border-white bg-[#fff3cb] px-3 text-[#80540e] shadow-[0_4px_0_#d7ad55] transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="ไปตู้สุ่ม Avatar / Pet" aria-label="ไปตู้สุ่ม Avatar / Pet" onclick={() => navigate('gacha')}><span class="relative grid size-8 place-items-center rounded-full border border-white bg-[#ffdf8a]"><PawPrint size={18} />{#if player.gachaTickets > 0}<span class="absolute -top-2 -right-2 grid size-4 place-items-center rounded-full bg-[#e76e65] text-[9px] font-bold text-white">{player.gachaTickets}</span>{/if}</span><span class="grid text-left leading-tight"><strong class="text-[11px]">ตู้สุ่ม Avatar / Pet</strong><small class="text-[9px]">1 หรือ 10+1 ครั้ง</small></span></button>{/if}
+  {#if !['game', 'avatar', 'gacha', 'points', 'rewards'].includes(page)}<button class="fixed z-30 flex min-h-13 items-center gap-2.5 rounded-full border-2.5 border-white bg-gradient-to-r from-[#fff8db] via-[#ffe89e] to-[#ffd26a] pr-4 pl-2 text-[#5c3600] shadow-[0_5px_0_#c98c24,0_8px_18px_rgba(90,50,150,0.26)] transition-transform hover:scale-105 active:translate-y-0.5 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="ไปตู้สุ่ม Avatar / Pet" aria-label="ไปตู้สุ่ม Avatar / Pet" onclick={() => navigate('gacha')}><span class="relative grid size-10 place-items-center rounded-full border-2 border-white bg-gradient-to-b from-white to-[#dff3ff] shadow-inner"><img class="size-8 object-contain drop-shadow-[0_2px_3px_rgba(60,40,120,0.28)]" src="assets/gacha/gacha-capsule.png" alt="" />{#if player.gachaTickets > 0}<span class="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full border border-white bg-rose-500 text-[9px] font-black text-white shadow-xs">{player.gachaTickets}</span>{/if}</span><span class="grid text-left leading-tight"><strong class="text-xs font-black text-[#3b2166]">ตู้สุ่ม Avatar / Pet</strong><small class="text-[9px] font-extrabold text-[#8a5209]">✨ สุ่ม 1 หรือ 10+1 ครั้ง</small></span></button>{/if}
 </div>
 
 {#if page !== 'game'}<div class="landscape-notice" role="status"><strong>กรุณาหมุนมือถือเป็นแนวตั้ง</strong></div>{/if}

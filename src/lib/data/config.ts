@@ -105,8 +105,18 @@ export const PROFILE_BACKGROUNDS = [
 
 export const CURRENCY_ARTWORK = {
   points: 'assets/currency/masque-point.png',
+  aisPoints: 'assets/currency/ais-point.png',
   arenaTicket: 'assets/currency/arena-ticket.png',
   petGachaTicket: 'assets/currency/pet-gacha-ticket.png',
+  energyPotion: 'assets/currency/energy-potion.png',
+} as const;
+
+export const NAV_ARTWORK = {
+  home: 'assets/nav/nav-games.png',
+  world: 'assets/nav/nav-vease.png',
+  shop: 'assets/nav/nav-shop.png',
+  rewards: 'assets/nav/nav-pass.png',
+  avatar: 'assets/nav/nav-avatar.png',
 } as const;
 
 export const BADGE_ARTWORK: Record<string, string> = {

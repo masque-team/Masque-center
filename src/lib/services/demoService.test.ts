@@ -48,19 +48,35 @@ describe('shared demo economy', () => {
     expect(purchaseVip(high, 'monthly-boost-30')).toBeNull();
     expect(currentPass(purchaseVip(high, 'monthly')!).xp).toBe(4000);
   });
-  it('blocks early VIP renewal and boost purchases while an active Pass is running', () => {
+  it('allows active VIP tier upgrades at the delta price without extending expiry or regranting coupons', () => {
     let player = awardPassXp({ ...sample(), masquePoints: 5000 }, 1700);
     player = purchaseVip(player, 'monthly')!;
     player = claimPass(player, 'premium', 0)!;
-    const offer = vipOffer(player, 'monthly')!;
-    expect(offer.active).toBe(true);
-    expect(offer.levelAfter).toBe(17);
-    expect(offer.eligible).toBe(false);
+    const expiresBefore = player.vipExpiresAt!;
+    const renewOffer = vipOffer(player, 'monthly')!;
+    expect(renewOffer.active).toBe(true);
+    expect(renewOffer.levelAfter).toBe(17);
+    expect(renewOffer.eligible).toBe(false);
+    expect(renewOffer.cost).toBe(990);
     expect(purchaseVip(player, 'monthly')).toBeNull();
-    expect(purchaseVip(player, 'monthly-boost-20')).toBeNull();
-    expect(purchaseVip(player, 'monthly-boost-30')).toBeNull();
-    expect(player.vipExpiresAt).toBeGreaterThan(Date.now());
-    expect(currentPass(player).claims).toEqual(['premium-0']);
+    const couponBalance = player.gachaTickets;
+
+    const lv20Offer = vipOffer(player, 'monthly-boost-20')!;
+    expect(lv20Offer).toMatchObject({ active: true, eligible: true, levelAfter: 20, cost: 500 });
+    const lv20 = purchaseVip(player, 'monthly-boost-20')!;
+    expect(lv20.masquePoints).toBe(player.masquePoints - 500);
+    expect(lv20.vipExpiresAt).toBe(expiresBefore);
+    expect(lv20.gachaTickets).toBe(couponBalance);
+    expect(currentPass(lv20)).toMatchObject({ xp: 2000, claims: ['premium-0'] });
+    expect(purchaseVip(lv20, 'monthly-boost-20')).toBeNull();
+
+    const lv30Offer = vipOffer(lv20, 'monthly-boost-30')!;
+    expect(lv30Offer).toMatchObject({ active: true, eligible: true, levelAfter: 30, cost: 500 });
+    const lv30 = purchaseVip(lv20, 'monthly-boost-30')!;
+    expect(lv30.masquePoints).toBe(lv20.masquePoints - 500);
+    expect(lv30.vipExpiresAt).toBe(lv20.vipExpiresAt);
+    expect(lv30.gachaTickets).toBe(couponBalance);
+    expect(currentPass(lv30)).toMatchObject({ xp: 3000, claims: ['premium-0'] });
   });
   it('calculates advertised Energy and rewards from the actual configured VIP track', () => {
     const player = sample();
@@ -218,15 +234,17 @@ describe('shared demo economy', () => {
     const overflow = { ...player, energy: 20 };
     expect(refreshEnergy(overflow, Date.now() + 3_600_000).energy).toBe(20);
   });
-  it('does not bank full-cap refill time before VIP purchase and blocks active renewal', () => {
+  it('does not bank full-cap refill time and preserves partial timers when upgrading active VIP', () => {
     const player = sample(); player.masquePoints = 2000; player.energyUpdatedAt = Date.now() - 3_600_000;
     const vip = purchaseVip(player, 'monthly')!;
     expect(vip.energy).toBe(12);
     expect(vip.energyUpdatedAt).toBe(Date.now());
     expect(refreshEnergy(vip).energy).toBe(12);
     const partial = { ...vip, masquePoints: 2000, energy: 3, energyUpdatedAt: Date.now() - 20 * 60_000 };
-    expect(purchaseVip(partial, 'monthly')).toBeNull();
-    expect(partial.energyUpdatedAt).toBe(Date.now() - 20 * 60_000);
+    const upgraded = purchaseVip(partial, 'monthly-boost-20')!;
+    expect(upgraded.masquePoints).toBe(1500);
+    expect(upgraded.vipExpiresAt).toBe(partial.vipExpiresAt);
+    expect(upgraded.energyUpdatedAt).toBe(partial.energyUpdatedAt);
   });
   it('migrates the old unlimited-VIP refill clock without losing Energy or VIP days', () => {
     const player = sample(); player.vipExpiresAt = Date.now() + 86_400_000; player.energy = 14; player.energyUpdatedAt = player.vipExpiresAt;

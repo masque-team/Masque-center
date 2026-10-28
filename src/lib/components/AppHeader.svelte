@@ -29,7 +29,7 @@
   <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {countdown} {onRefill} />
 
   <button class="wallet" onclick={onShop} aria-label={`เติม Masque Points · ยอด ${player.masquePoints}`}>
-    <span class="coin" aria-hidden="true"><CurrencyIcon kind="points" size={25} /></span>
+    <span class="coin" aria-hidden="true"><CurrencyIcon kind="points" size={32} /></span>
     <strong>{player.masquePoints.toLocaleString('en-US')}</strong>
     <span class="plus" aria-hidden="true"><Plus size={16} strokeWidth={3.5} /></span>
   </button>
@@ -51,17 +51,15 @@
   .who strong { overflow: hidden; color: #2b2468; font-size: 14px; font-weight: 900; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
   .who small { color: #8a7fc4; font-size: 11px; font-weight: 800; }
 
-
-  .wallet { display: inline-flex; align-items: center; gap: 6px; justify-self: end; min-height: 44px; padding: 3px 4px 3px 4px; border: 2px solid #fff; border-radius: 99px; background: linear-gradient(180deg, #fff, #f1ecff); box-shadow: 0 3px 0 #cfc3f2, 0 6px 10px rgb(70 50 150 / 16%); }
+  .wallet { display: inline-flex; align-items: center; gap: 6px; justify-self: end; min-height: 44px; padding: 3px 5px 3px 4px; border: 2px solid #fff; border-radius: 99px; background: linear-gradient(180deg, #fffdf7, #f1ecff); box-shadow: 0 3px 0 #cfc3f2, 0 6px 10px rgb(70 50 150 / 16%); }
   .wallet:active { transform: translateY(2px); box-shadow: 0 1px 0 #cfc3f2; }
-  .coin { display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid #fff8d2; border-radius: 50%; color: #7a4a00; background: linear-gradient(160deg, #ffe58a, #ffb42b); box-shadow: 0 2px 0 #c4770d; font-size: 15px; font-weight: 900; }
+  .coin { display: grid; place-items: center; width: 32px; height: 32px; }
   .wallet strong { color: #2b2468; font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
   .plus { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: linear-gradient(160deg, #a78bfa, #6a4fd6); box-shadow: 0 2px 0 #4b32a8; }
 
-  @media (max-width: 420px) {
-    .bar { gap: 8px; }
-    .who strong { font-size: 13px; }
-    .wallet { gap: 4px; }
-    .wallet strong { font-size: 13px; }
+  @media (max-width: 350px) {
+    .bar { gap: 6px; }
+    .wallet { gap: 4px; padding-right: 4px; }
+    .wallet strong, .who strong { font-size: 13px; }
   }
 </style>

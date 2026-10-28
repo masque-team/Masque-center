@@ -105,20 +105,20 @@
         <VipPassOffer {player} packageId={vip.id} {now} onSelect={onPickVip} onConfirm={onConfirmVip} onTopUp={onOpenExchange} {onClose} />
 
       {:else if refill && modal.kind === 'refill-confirm'}
-        <div class="medal blue"><Zap size={34} fill="currentColor" /></div>
+        <div class="medal blue"><CurrencyIcon kind="energyPotion" size={40} /></div>
         <p class="eyebrow">ENERGY REFILL</p>
         <h2>เติมพลังงาน</h2>
         <div class="now"><span>ตอนนี้</span><b>{player.energy}/{ENERGY_CONFIG.max}</b></div>
         <div class="packs" role="radiogroup" aria-label="เลือกแพ็ก Energy">
           {#each ENERGY_CONFIG.refillPacks as pack (pack.id)}
             <button class="pack" class:picked={refill.id === pack.id} role="radio" aria-checked={refill.id === pack.id} onclick={() => onPickRefill(pack.id)}>
-              <Zap size={22} fill="currentColor" /><b>+{pack.energy}</b><small><Coins size={12} />{pack.cost} MP</small>
+              <CurrencyIcon kind="energyPotion" size={24} /><b>+{pack.energy}</b><small><CurrencyIcon kind="points" size={14} />{pack.cost} MP</small>
             </button>
           {/each}
         </div>
         <div class="receipt">
           <div><span>จะได้รับ</span><b>+{refill.energy} Energy</b></div>
-          <div><span>ใช้แต้ม</span><b class="cost"><Coins size={14} />{refill.cost} MP</b></div>
+          <div><span>ใช้แต้ม</span><b class="cost"><CurrencyIcon kind="points" size={16} />{refill.cost} MP</b></div>
           <div class="after"><span>Energy หลังเติม</span><b>{refillAfter}/{ENERGY_CONFIG.max}</b></div>
         </div>
         {#if refillShort > 0}<div class="short"><TriangleAlert size={16} />แต้มไม่พอ ขาดอีก <b>{refillShort.toLocaleString('en-US')}</b> MP</div>{/if}
@@ -129,7 +129,7 @@
         </div>
 
       {:else if modal.kind === 'exchange-confirm'}
-        <div class="medal green"><Coins size={34} /></div>
+        <div class="medal green"><CurrencyIcon kind="aisPoints" size={40} /></div>
         <p class="eyebrow">DEMO · AIS POINTS EXCHANGE</p>
         <h2>ยืนยันการแลกแต้ม</h2>
         <div class="swap"><div><small>ใช้</small><b>{exchangeAmount}</b><span>AIS</span></div><ArrowRight size={22} /><div class="gain"><small>ได้รับ</small><b>{exchangeAmount * EXCHANGE_RATE}</b><span>MP</span></div></div>
@@ -161,7 +161,7 @@
         <div class="medal green"><Gift size={34} /></div>
         <p class="eyebrow">DAILY CHECK-IN</p>
         <h2>รับรางวัลแล้ว!</h2>
-        <div class="bigreward"><Coins size={30} /><b>+{checkinReward}</b><span>Masque Points</span></div>
+        <div class="bigreward"><CurrencyIcon kind="points" size={32} /><b>+{checkinReward}</b><span>Masque Points</span></div>
         <p class="summary">กลับมาเช็กอินพรุ่งนี้เพื่อรับรางวัลต่อนะ</p>
         <div class="actions one"><GameButton variant="mint" size="lg" onclick={onClose}><Check size={18} strokeWidth={3.5} />ตกลง</GameButton></div>
 
