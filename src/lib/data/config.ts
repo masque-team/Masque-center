@@ -110,3 +110,10 @@ export const SHOP_ITEMS: { id: string; kind: 'avatar' | 'pet'; itemId: string; c
   { id: 'pet-mochi', kind: 'pet', itemId: 'mochi', cost: 150 },
   { id: 'pet-ember', kind: 'pet', itemId: 'ember-pet', cost: 150 },
 ];
+
+export const PASS_ARTWORK: Record<'standard' | 'boost' | 'crest' | 'banner', string | null> = {
+  standard: null,
+  boost: null,
+  crest: null,
+  banner: null,
+};

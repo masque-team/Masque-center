@@ -14,6 +14,107 @@
 - `public/` holds deployable art. Optimized WebP may be derived from PNG originals after review.
 - Do not overwrite current assets until dimensions, alignment and transparency have been checked.
 
+## Current Request: Game-Style Pass Art
+
+Generate this small set FIRST for the current Pass/shop design. The interface already has
+working previews made from existing wing PNGs and Lucide symbols. Those are placeholders,
+not the final painted Pass objects. No AI image-generation service was used for the preview.
+
+### First Batch: Four Images
+
+| Priority | Exact Filename | Canvas | Alpha | Composition / Use |
+| --- | --- | --- | --- | --- |
+| 1 | `vip-ticket-standard.png` | 1024 x 1024 | Yes | One sky-blue/ivory VIP admission ticket, original gold crown emblem, white feather edges, slight 3/4 view; package selector |
+| 2 | `vip-ticket-boost.png` | 1024 x 1024 | Yes | Same family and angle, upgraded gold/coral ticket bundle with small wing accents and a crystal; NO digits; LV.30 badge comes from UI |
+| 3 | `season-crest.png` | 512 x 512 | Yes | Original gold crown/wing season crest, compact readable silhouette; Pass banner and membership strip |
+| 4 | `season-keyart.png` | 1600 x 720 | No | Sunny sky/coral arcade-town terrace, quiet left 60% for text, open right for live reward Avatar; NO characters, UI or lettering |
+
+The two tickets must share one approved master: same object scale, attachment/visual center,
+lighting, camera and padding. Keep the whole ticket inside x=110..914 and y=110..914 on the
+1024px canvas. Do NOT trim. They display at about 96px high on mobile, so avoid tiny filigree.
+The crest displays around 48-72px; use a broad silhouette, not text or hairline detail.
+
+Deliver originals to `art-source/pass/`. Reviewed deployable files belong in
+`public/assets/pass/` in MGC. Do NOT put them into `dist/` or the MV project.
+
+### Mapping In The App
+
+`PASS_ARTWORK` in `src/lib/data/config.ts` currently has null values so the previews make
+no requests for missing images. After delivery, map the reviewed files like this:
+
+```ts
+standard: 'assets/pass/vip-ticket-standard.png',
+boost: 'assets/pass/vip-ticket-boost.png',
+crest: 'assets/pass/season-crest.png',
+banner: 'assets/pass/season-keyart.png',
+```
+
+Placing a PNG alone does not activate it; update this mapping and rebuild MGC.
+`PassArtwork.svelte` handles the ticket/crest preview and fallback. The banner remains
+an environment layer: the app overlays the actual LV.50 reward character and live labels.
+Disabled/selected/owned states, prices, days, level badges and buttons remain rendered by UI.
+
+### Optional Second Batch
+
+These are NOT wired into the first preview and should wait until the first four pass review:
+
+| Filename | Canvas | Alpha | Spec |
+| --- | --- | --- | --- |
+| `reward-pedestal.png` | 1024 x 512 | Yes | Low sky-white/gold reward plinth, top landing surface at y=230, empty above, no item or lettering |
+| `level-node-frame.png` | 512 x 512 | Yes | Small gold/ivory medallion frame, EMPTY transparent middle 50% for a dynamic level number, no digits or crown crossing the center |
+
+### Copyable Pass Prompts
+
+Attach the approved standard ticket when generating the boost variant.
+
+```text
+Create one ORIGINAL production-ready chibi mobile fantasy game inventory illustration.
+Asset: vip-ticket-standard.png. Exactly 1024x1024 PNG, real transparent alpha.
+One luxurious sky-blue and ivory admission ticket, original warm-gold crown emblem,
+small white feather edges, slightly tilted 3/4 view, clean dimensional bevels,
+polished soft painted shading, light from upper left. Center the complete object
+with identical 110px safe margins on all sides. Crisp readable silhouette at 96px.
+No text, letters, digits, prices, "VIP" label, buttons, scenery, background,
+checkerboard, watermark, extra objects, copyrighted game logos or contact sheet.
+```
+
+```text
+Use the attached approved standard Pass ticket as the exact visual-family reference.
+Asset: vip-ticket-boost.png. Exactly 1024x1024 PNG, real transparent alpha.
+An upgraded warm-gold/coral admission ticket bundle with subtle ivory wing accents
+and one small sky-blue crystal. Same camera, upper-left lighting, object scale,
+center and 110px safe margins as the standard. More premium, but still readable
+at 96px. No text, letters, digits, "30", "LV", prices, badges, scenery,
+background, checkerboard, watermark, existing game logo or collage.
+```
+
+```text
+Asset: season-crest.png. Exactly 512x512 PNG with real transparent alpha.
+One original friendly fantasy game season emblem: broad warm-gold crown,
+short ivory wings, a single sky-blue jewel, clean raised bevels and soft painted
+upper-left lighting. Compact balanced silhouette, centered with 12 percent padding.
+Readable at 48px. No text, numbers, banners with writing, game logos, background,
+checkerboard, watermark or multiple variations in the same file.
+```
+
+```text
+Asset: season-keyart.png. Exactly 1600x720 PNG, full continuous environment image.
+Original polished cute fantasy arcade-town terrace in soft daylight: sky-blue
+canal details, coral roofs, ivory stone and restrained gold decorations.
+Keep the left 60 percent quiet and low-detail for live interface text; keep the
+right side open so the app can overlay a full-body reward Avatar. No characters,
+pets, tickets, loot, text, logo, cards, buttons, borders, watermark or split panels.
+Not green-heavy, not purple-heavy, not dark, not blurred, no bokeh/orb decoration.
+```
+
+### Pass Art Review
+
+- Preview both tickets side by side at 96px before approving style consistency.
+- Check alpha against light sky and a dark checkerboard; no baked opaque backdrop.
+- Check all edges remain inside the canvas; no clipped feathers or tiny unreadable text.
+- Deliver four separate exact filenames, not one combined image.
+- Reject fake painted level numbers/prices. All product terms stay editable in code.
+
 ## Priority 1: Entry, Profile and Inventory
 
 | Filename | Size | Alpha | Use / Composition |

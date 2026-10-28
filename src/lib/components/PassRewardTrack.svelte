@@ -26,7 +26,7 @@
 </script>
 
 <section class="relative min-w-0" aria-label="เส้นทางรางวัล Pass">
-  <div bind:this={toolbar} class="sticky top-[130px] z-10 space-y-2 border-y border-white bg-[#eef4ff]/95 px-2 pt-2 backdrop-blur-md" aria-label="ควบคุมเส้นทาง Pass">
+  <div bind:this={toolbar} class="sticky top-[140px] z-10 space-y-2 border-y-2 border-white bg-[#e8f3fc]/95 px-2 pt-2 backdrop-blur-md" aria-label="ควบคุมเส้นทาง Pass">
     <div class="flex min-h-10 items-center justify-between gap-2">
       <div class="min-w-0 flex-1"><strong class="block text-xs tabular-nums text-[#4f4792]">LV.{level} <span class="text-[10px] font-normal text-[#8b98a9]">/ {season.free.length}</span></strong><span class="text-[9px] tabular-nums text-[#8b98a9]">{xp % 100} / 100 XP</span></div>
       <button class="grid size-10 shrink-0 place-items-center rounded-md border border-white bg-white text-sky-700 transition-transform active:scale-95 motion-reduce:transition-none" title={`ไปเลเวลปัจจุบัน ${level}`} aria-label="ไปเลเวลปัจจุบัน" onclick={() => current()}><LocateFixed size={18} /></button>
@@ -44,7 +44,7 @@
         {#each [{ track: 'free' as const, reward: freeReward }, { track: 'premium' as const, reward: season.premium[index] }] as cell (cell.track)}
           {@const done = claims.includes(`${cell.track}-${index}`)}
           {@const vipLocked = cell.track === 'premium' && !premium}
-          <article class={['my-2 grid min-w-0 justify-items-center rounded-lg border p-2 text-center', tier % 5 === 0 ? 'grid-rows-[72px_32px_14px_44px] border-amber-300 bg-[#fff9e8]/95' : cell.track === 'premium' ? 'grid-rows-[56px_32px_14px_44px] border-amber-100 bg-[#fffdf5]/95' : 'grid-rows-[56px_32px_14px_44px] border-white bg-white/95', currentTier ? 'ring-2 ring-amber-300/70' : '']} style:grid-column={cell.track === 'free' ? 1 : 3} style:grid-row={1} aria-label={`LV.${tier} ${cell.track === 'free' ? 'Free' : 'VIP'} ${cell.reward.title}`}>
+          <article class={['my-2 grid min-w-0 justify-items-center rounded-lg border-2 p-2 text-center', tier % 5 === 0 ? 'grid-rows-[72px_32px_14px_44px] border-[#f2cd7a] bg-[#fff7d9]/95 shadow-[0_4px_0_#dfb65e]' : cell.track === 'premium' ? 'grid-rows-[56px_32px_14px_44px] border-[#efdba8] bg-[#fffaf0]/95 shadow-[0_3px_0_#e5d3b1]' : 'grid-rows-[56px_32px_14px_44px] border-white bg-[#f7fcff]/95 shadow-[0_3px_0_#c8dce9]', currentTier ? 'ring-2 ring-amber-300/70' : '']} style:grid-column={cell.track === 'free' ? 1 : 3} style:grid-row={1} aria-label={`LV.${tier} ${cell.track === 'free' ? 'Free' : 'VIP'} ${cell.reward.title}`}>
             <div class="self-center"><RewardIcon type={cell.reward.type} itemId={cell.reward.itemId} size={tier % 5 === 0 ? 58 : 46} /></div>
             <strong class="line-clamp-2 self-center break-words text-[11px] font-semibold leading-4 text-[#40516e]">{cell.reward.title}</strong>
             <small class="text-[8px] text-[#9ba7b6]">{!done && ownsPassReward(player, cell.reward) ? `ของซ้ำ +${player.demo.config.duplicatePoints} MP` : tier % 5 === 0 ? 'ของเด่น' : ''}</small>

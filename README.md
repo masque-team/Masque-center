@@ -74,6 +74,10 @@ Config ใช้ `vipFreeEntry`, `vipEnergyBonus`, `continueEnergyCost` แท�
 
 ## Avatar & Pet Assets
 
+หน้า Pass และ popup ใช้ภาพรางวัลจริงเป็นจุดเด่น พร้อมบัตร VIP/แพ็กเร่งแบบภาพประกอบ แถบ XP และ reward tile มีขอบ/เงาแบบเกม รายการ PNG รอบนี้อยู่หัวข้อ **Current Request: Game-Style Pass Art** ใน [ART_GENERATION_BRIEF.md](doc/ART_GENERATION_BRIEF.md): บัตรปกติ, บัตร boost, ตราซีซัน และฉาก keyart ระหว่างรอใช้ PNG ปีกเดิมประกอบ Lucide เป็นตัวแทน ไม่ใช่ภาพ AI ใหม่
+
+`PASS_ARTWORK` ใน `src/lib/data/config.ts` เป็นจุดเปลี่ยนภาพหลังตรวจงาน gen; ตอนนี้เป็น null เพื่อไม่เรียกไฟล์ที่ยังไม่มี วางต้นฉบับใน `art-source/pass/` และไฟล์ deploy ที่ `public/assets/pass/` แล้วปรับ mapping/build ไม่ต้อง gen ราคา เลขเลเวล ปุ่ม หรือข้อความติดภาพ
+
 รายการ PNG ที่ต้องการ, ชื่อไฟล์, ขนาด, alpha, จุดยึดตัวละคร/ปีก และ prompt สำหรับสั่ง gen อยู่ใน [ART_GENERATION_BRIEF.md](doc/ART_GENERATION_BRIEF.md) แนะนำเริ่มจากโลโก้ Game Center, ฉากหน้าใส่ชื่อ, พื้นหลังโปรไฟล์ 3 แบบ และรูปบัตร Ranked ก่อน ระบบปัจจุบันเปลี่ยน Avatar ทั้งภาพ; การแยกหัว/ตัวเป็นข้อเสนอเฟสถัดไป ไม่ใช่ฟีเจอร์ที่ทำแล้ว
 
 เดโมใหม่สวม Pudding ให้เดินตามในเมือง ส่วน save เก่าที่ผู้เล่นถอด Pet ไว้จะไม่ถูกสวมทับ ออร่าเป็นเอฟเฟกต์ใน Three.js ตาม rarity หรือ Profile Level 20/35/50 และ VIP; ไม่เพิ่มความสามารถในเกม Pet ยังไม่มีระบบ XP/เลเวลแยก ปีก PNG ตัวอย่างสร้างด้วย `npm run art:cosmetics` (Sharp ไม่ใช่ AI image generation) และจะเขียนทับภาพปีกใน `public/assets/wings/` จึงไม่ควรรันเมื่อเปลี่ยนเป็นภาพ final แล้ว
