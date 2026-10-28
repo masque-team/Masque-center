@@ -35,7 +35,8 @@ export const POINT_PACKS = [
 ] as const;
 
 export const VIP_PACKAGES: VipPackage[] = [
-  { id: 'monthly', label: '30-Day VIP Pass', durationDays: 30, cost: 990, reward: 'Pet Gacha Tickets x2', bonusPoints: 0, bonusTickets: 2 },
+  { id: 'monthly', label: 'VIP Pass', durationDays: 30, cost: 990, reward: 'Pet Gacha Tickets x2', bonusPoints: 0, bonusTickets: 2, startLevel: 1 },
+  { id: 'monthly-boost-30', label: 'VIP Pass + LV.30', durationDays: 30, cost: 1990, reward: 'Pet Gacha Tickets x2', bonusPoints: 0, bonusTickets: 2, startLevel: 30 },
 ];
 
 export const BATTLE_PASS = {

@@ -126,6 +126,7 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   result.demo.config.decorPrice ??= 25;
   result.demo.config.games = result.demo.config.games.map((game, index) => ({ ...game, ...(game.id === 'memory' ? { cover: game.cover ?? 'mem.png' } : {}), published: game.published ?? true, displayOrder: game.displayOrder ?? index + 1 }));
   result.demo.config.vipPlans = result.demo.config.vipPlans.map((plan) => ({ ...plan, bonusPoints: plan.bonusPoints ?? (plan.id === 'seven-day' ? 80 : 0), bonusTickets: plan.bonusTickets ?? (plan.id === 'five-day' ? 1 : 0) }));
+  if (!result.demo.config.vipPlans.some((plan) => (plan.startLevel ?? 1) > 1)) result.demo.config.vipPlans.push(structuredClone(VIP_PACKAGES.find((plan) => plan.id === 'monthly-boost-30')!));
   result.displayName = queryName?.trim().replace(/\s+/g, ' ').slice(0, 40) || 'Guest Player';
   savePlayer(result);
   return result;

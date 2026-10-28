@@ -37,6 +37,8 @@ export function createDemo(): DemoState {
 
 export function demoNow(player: PlayerState): number { return Date.now() + player.demo.clockOffset; }
 export function validateConfig(config: DemoConfig): string | null {
+  if (!config.vipPlans.some((plan) => (plan.startLevel ?? 1) === 1)) return 'ต้องมีแพ็ก VIP ปกติสำหรับซื้อและเพิ่มเวลา';
+  if (config.vipPlans.some((plan) => !Number.isSafeInteger(plan.startLevel ?? 1) || (plan.startLevel ?? 1) < 1 || (plan.startLevel ?? 1) > PASS_RULES.levels)) return 'เลเวลเริ่มต้นของแพ็ก Pass ต้องอยู่ระหว่าง 1 ถึง 50';
   if (config.vipPlans.some((plan) => plan.durationDays !== PASS_RULES.days)) return 'VIP Pass ต้องมีอายุ 30 วัน';
   if (!Number.isSafeInteger(config.arenaTicketPrice) || config.arenaTicketPrice < 1) return 'ราคาบัตร Ranked ต้องเป็นจำนวนเต็มมากกว่า 0';
   const positive = [config.energyMax, config.regenMinutes, config.energyCost, config.continueEnergyCost, config.exchangeRate, config.missionTarget, config.missionXp, config.roomLimit];
@@ -200,7 +202,7 @@ export function finishGame(player: PlayerState, sessionId: string, score: number
 }
 export function buyPremium(player: PlayerState): PlayerState | null {
   if (hasPassAccess(player)) return null;
-  const plan = player.demo.config.vipPlans.find((item) => item.durationDays === PASS_RULES.days) ?? player.demo.config.vipPlans[0];
+  const plan = player.demo.config.vipPlans.find((item) => item.durationDays === PASS_RULES.days && (item.startLevel ?? 1) === 1) ?? player.demo.config.vipPlans[0];
   return plan ? purchaseVip(player, plan.id, demoNow(player)) : null;
 }
 export function claimPass(player: PlayerState, track: 'free' | 'premium', index: number): PlayerState | null {

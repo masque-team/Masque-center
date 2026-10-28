@@ -37,7 +37,9 @@ MGC เปิด MV ผ่าน iframe ไม่ import renderer ของ MV; 
 ## ฟีเจอร์
 
 - **Energy** เป็นยอดตัวเลขสะสมสำหรับทุกคน ฟื้น 1 หน่วยทุก 30 นาทีถึงเพดานปัจจุบัน: ฟรี 12 / VIP 18 (โบนัส MAX +6 ปรับได้ใน Studio) ซื้อหรือรับรางวัลเกินเพดานได้ ไม่ฟื้นเพิ่มขณะเต็ม และไม่ตัดยอดเมื่อ VIP หมดอายุ
-- **VIP Pass** แพ็กเดียว 30 วันนับจากซื้อ ราคาเดโม 990 MP ซื้อ/ต่ออายุจากหน้า Pass ยกเว้นเฉพาะค่าเข้าเกมปกติ ไม่ใช่ Energy ไม่จำกัด; ยังสะสม/ฟื้น/ซื้อ Energy ได้เหมือนเดิม วัน VIP ไม่รีเซ็ตตามซีซัน ซื้อทีหลังรับรางวัล VIP ย้อนหลังตามเลเวลได้
+- **VIP Pass** การ์ดแสดงซื้อ VIP หรือซื้อเวลาเพิ่มตามสถานะ ไม่เปลี่ยนเป็นปุ่มเติมแต้มเมื่อยอดไม่พอ กดแล้วเลือกแพ็ก/ดูราคา/สิทธิ์ใน popup เดิม: ปกติ 30 วัน 990 MP เริ่มอย่างน้อย LV.1 หรือ VIP + LV.30 ราคา 1,990 MP สำหรับผู้ยังไม่มี VIP และยังไม่ถึง LV.30; ราคาเดโมปรับใน Studio ได้
+- **ซื้อเวลาเพิ่ม** ผู้มี VIP เห็นเฉพาะแพ็กปกติ ต่อ 30 วันจากวันหมดอายุเดิม คง XP/claims/เลเวลทั้งหมด ไม่รับ LV.30 ซ้ำ ส่วนผู้หมด VIP แล้วเลือกแพ็กได้ตามเงื่อนไขเดิม แพ็กเร่งตั้ง XP อย่างน้อย 3,000 ของซีซันปัจจุบัน ไม่บวก 30 เลเวลทับและไม่เปลี่ยนเลเวลโปรไฟล์
+- **ผลประโยชน์ก่อนจ่าย** popup แสดงวันหมดอายุหลังซื้อ, เข้าเกม 0 Energy, MAX ฟื้นพลัง +6 ตาม config, ของแถมตอนซื้อ และจำนวน Energy/MP/ตั๋วที่ปลดล็อกให้กดรับ คำนวณจาก reward table จริง มีตาราง Energy สะสมที่ LV.1/10/20/30/50 ยอดเหล่านี้ไม่เติมเข้า Energy ทันที สิทธิ์รางวัลเก่าไม่ถูกโฆษณาให้ซื้อซ้ำ
 - **Pass / Missions** ซีซันอัตโนมัติรอบละ 30 วัน, 50 เลเวลหลัก (100 XP/เลเวล), Free/VIP tracks และ claims แยกตามรอบ ปุ่มรับทั้งหมดเก็บของที่ปลดล็อกได้ครั้งเดียว; หลักไมล์มี Avatar, Pet, ปีก, กรอบ, พื้นหลัง, บัตร Ranked และป้ายจบซีซัน ของซ้ำชดเชย MP ตาม config
 - **Bonus Levels** หลัง LV.50 ยังเก็บ XP ต่อได้ ทุกเลเวลโบนัสรับ 10 MP ยกเว้นเลเวลที่หาร 5 ลงตัวเป็นตั๋วกาชา 1 ใบ ไม่แจก cosmetic หายากแบบไม่จำกัด
 - **ภารกิจ** รายวันเริ่มต้นจบ 3 รอบรับ 200 XP, รายสัปดาห์เล่นต่างกัน 4 เกมรับ 500 XP และรายเกมเป้าสะสม 1/5/10/20/50/100/... รับ MP/XP เป้ารายเกมไม่รีเซ็ตตามซีซัน ส่วนรายวัน/รายสัปดาห์แยกตามรอบป้องกันรับซ้ำ
@@ -140,7 +142,7 @@ Migration เก็บ pass records เดิมและคัดลอกส�
 3. เปิดเกม กดเริ่ม ลองรีเฟรช แล้วใช้ **Simulate Finish**; Energy หักครั้งเดียวและคะแนน/EXP อัปเดต
 4. เปิด Ranking สลับ Season/Lifetime ดูคะแนนของตนเอง รางวัล Top 3 ใช้ MP เท่านั้น
 5. กด + ข้าง MP เพื่อเปิดแพ็กเติมแต้ม ลองซื้อแพ็กเดิมซ้ำเพื่อตรวจว่าโบนัสครั้งแรกไม่ซ้ำ; Shop → Energy ซื้อได้เกินเพดาน Regen
-6. ซื้อ VIP Pass 30 วันจากแท็บ Pass ตรวจ Badge/Energy และรับรางวัลที่ปลดล็อกไว้แล้ว ลองต่ออายุหรือเลื่อนเวลาจำลองข้ามซีซันเพื่อตรวจวัน VIP ที่เหลือ
+6. กดซื้อ VIP Pass ดูแพ็กปกติ/LV.30 และตารางผลประโยชน์ก่อนจ่าย ถ้าแต้มไม่พอเติมผ่าน Point Shop แล้วกลับมาแพ็กเดิมโดยยังต้องยืนยันซื้ออีกครั้ง ผู้มี VIP กดซื้อเวลาเพิ่มแล้วตรวจวันหมดอายุใหม่กับเลเวลที่คงเดิม
 7. ซื้อ Avatar/ปีกแล้วไป Avatar & Pets เพื่อสวม; กรอบรูปเลือกที่ My Space → แต่งโปรไฟล์ เลือก Pet ในเมืองได้จากปุ่มรูปอุ้งเท้า
 8. ที่ Pass → ภารกิจ เล่นเกมหนึ่งรอบ รับ MP/XP แล้วตรวจเป้ารายเกมเปลี่ยน 1 เป็น 5; เล่นครบ 3 รอบรับรายวัน และต่างกัน 4 เกมรับรายสัปดาห์ รางวัลเป็นทางเดินแนวตั้งต่อเนื่อง 1–50: ฟรีซ้าย, VIP ขวา, เส้นเลเวลอยู่กลาง ใช้ scroll หน้าเว็บปกติ ไม่มี scroll ซ้อน แถบ XP/รับทั้งหมด/ไปเลเวลปัจจุบันติดด้านบน และของเด่นทุก 5 เลเวลมีภาพใหญ่ขึ้น
 9. เปิด Demo Studio → Seasons เปลี่ยน Pass Season/Ranking ID หรือ Reset Ranking; Lifetime และ Pass Season อื่นยังอยู่
@@ -155,7 +157,7 @@ Migration เก็บ pass records เดิมและคัดลอกส�
 
 Reward-track presentation references the Free/Premium progression model in the [official VALORANT Battlepass FAQ](https://support.riotgames.com/en-us/valorant/gameplay/battlepass-faq). Masque uses its own artwork and a portrait-friendly vertical path with aligned Free/Level/VIP columns; no external game assets are bundled and the 30-day economy is unchanged by this UI refinement. Claiming a reward preserves the page position.
 
-`npm test` ตรวจ MGC 38 tests รวม VIP Energy ที่สะสม/ฟื้นตามปกติ, ค่าเข้าแยกจากค่าเล่นต่อ, overflow ตอนหมด VIP, migration นาฬิกาเก่า และระบบ Pass/Economy เดิม ส่วน `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route/focus allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
+`npm test` ตรวจ MGC 41 tests รวมแพ็กเริ่ม LV.1/LV.30, ซื้อเวลาเพิ่มไม่ลดเลเวล, ตัวเลขผลประโยชน์จากตารางจริง, VIP Energy และระบบ Pass/Economy เดิม ส่วน `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route/focus allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
 
 ## Masque Vease
 

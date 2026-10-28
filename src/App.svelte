@@ -77,6 +77,7 @@
   let joinCode = $state('');
   let gachaBusy = $state(false);
   let toast = $state('');
+  let vipTopUpIntent = $state<string | null>(null);
   let currentGame = $derived(player.demo.config.games.find((game) => game.id === gameId) ?? GAME_BY_ID[gameId]);
   let homeAvatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
   let homePet = $derived(PETS.find((item) => item.id === player.petId));
@@ -192,6 +193,7 @@
     clearIframeTimeout();
     const [routePath, hashQuery = ''] = window.location.hash.replace(/^#/, '').split('?');
     const [route, requestedGame] = routePath.split('/');
+    if (route !== 'points') vipTopUpIntent = null;
     const routes: Page[] = ['home', 'world', 'shop', 'rewards', 'ranking', 'avatar', 'profile', 'room', 'battle', 'wallet', 'admin', 'points', 'gacha'];
     if (route === 'detail' && requestedGame && Object.hasOwn(GAME_BY_ID, requestedGame)) {
       gameId = requestedGame as GameId;
@@ -249,6 +251,7 @@
   }
 
   function openVipConfirm(packageId: string): void {
+    vipTopUpIntent = null;
     modal = { kind: 'vip-confirm', packageId: packageId as VipPackage['id'] };
   }
 
@@ -257,14 +260,26 @@
   }
 
   function openExchange(): void {
+    if (modal?.kind === 'vip-confirm') vipTopUpIntent = modal.packageId;
     modal = null;
     navigate('points');
+  }
+
+  function returnFromPoints(): void {
+    const packageId = vipTopUpIntent;
+    vipTopUpIntent = null;
+    navigate(packageId ? 'rewards' : 'home');
+    if (packageId) openVipConfirm(packageId);
   }
 
   function purchasePoints(id: string): void {
     const pack = POINT_PACKS.find((item) => item.id === id);
     if (!pack) return;
-    requestAction('เติม Masque Points', `${pack.cost} AIS Points → ${pointPackReward(player, id).toLocaleString()} MP · DEMO`, 'ยืนยันซื้อแพ็ก', () => applyAction(buyPointPack(player, id), 'เติม Masque Points แล้ว'));
+    requestAction('เติม Masque Points', `${pack.cost} AIS Points → ${pointPackReward(player, id).toLocaleString()} MP · DEMO`, 'ยืนยันซื้อแพ็ก', () => {
+      const next = buyPointPack(player, id);
+      applyAction(next, 'เติม Masque Points แล้ว');
+      if (next && vipTopUpIntent) returnFromPoints();
+    });
   }
 
   function claimCheckin(): void {
@@ -275,13 +290,16 @@
 
   function confirmVip(): void {
     if (modal?.kind !== 'vip-confirm') return;
-    const next = purchaseVip(player, modal.packageId, now);
+    const active = vipActive;
+    const packageId = modal.packageId;
+    const selected = player.demo.config.vipPlans.find((plan) => plan.id === packageId);
+    const next = purchaseVip(player, packageId, now);
     if (!next) {
-      modal = { kind: 'notice', tone: 'warn', title: 'ซื้อ VIP ไม่สำเร็จ', message: 'Masque Points ไม่เพียงพอ' };
+      modal = { kind: 'notice', tone: 'warn', title: 'ซื้อ VIP ไม่สำเร็จ', message: 'ตรวจสอบยอดแต้มและเงื่อนไขแพ็กที่เลือก' };
       return;
     }
-    persist(next, 'ซื้อ VIP');
-    modal = { kind: 'notice', tone: 'success', title: 'VIP Pass เปิดใช้งานแล้ว!', message: 'สิทธิ์ VIP และรางวัล Pass เปิดใช้งานแล้ว ไม่ต้องซื้อแยก' };
+    persist(next, active ? 'ซื้อเวลา VIP เพิ่ม' : `ซื้อ ${selected?.label ?? 'VIP Pass'}`);
+    modal = { kind: 'notice', tone: 'success', title: active ? 'เพิ่มเวลา VIP แล้ว' : 'VIP Pass เปิดใช้งานแล้ว!', message: `${active ? 'ต่อจากวันหมดอายุเดิม' : 'เปิดสิทธิ์ VIP และรางวัลที่ปลดล็อก'} · ใช้ได้ถึง ${new Date(next.vipExpiresAt!).toLocaleDateString('th-TH')}${(selected?.startLevel ?? 1) > 1 ? ` · Pass LV.${selected!.startLevel} พร้อมกดรับรางวัล` : ''}` };
   }
 
   function confirmRefill(): void {
@@ -504,7 +522,6 @@
             onMission={(id) => applyAction(completeMission(player, id), 'รับรางวัลภารกิจแล้ว')}
             onWeekly={() => applyAction(claimWeeklyMission(player), 'รับ XP ประจำสัปดาห์แล้ว')}
             onPlay={(id) => navigate(id ? `detail/${id}` : 'home')}
-            onTopUp={openExchange}
           />
         {:else if page === 'battle'}
           <BattlePage {player} onShop={() => { shopTab = 'items'; navigate('shop'); }} onEnter={(id) => requestAction('เข้า Ranked', 'ใช้บัตรเข้า Ranked 1 ใบ · ไม่ใช้ Energy', 'เข้าเล่น Ranked', () => enterGame(id, 'ranked'))} />
@@ -515,7 +532,7 @@
             onClock={(hours) => { const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + hours * 3_600_000 } }; now = demoNow(next); persist(refreshEnergy(next, now), 'เวลาจำลอง · ฟื้น Energy'); showToast('ปรับเวลาจำลองแล้ว'); }}
             onSeed={() => applyAction({ ...player, masquePoints: player.masquePoints + 500, aisPoints: player.aisPoints + 100 }, 'DEMO · เติมทุนจำลอง')} />
         {:else if page === 'points'}
-          <PointShop {player} onBuy={purchasePoints} onBack={() => navigate('home')} />
+          <PointShop {player} onBuy={purchasePoints} onBack={returnFromPoints} />
         {:else if page === 'gacha'}
           <PetGacha {player} busy={gachaBusy} onDraw={startGacha} />
         {:else if page === 'profile' || page === 'room'}
@@ -538,12 +555,14 @@
   {modal}
   {player}
   {vipActive}
+  {now}
   exchangeAmount={exchangeAmount}
   checkinReward={CHECKIN_REWARD}
   onClose={() => (modal = null)}
   onPickRefill={(id) => (modal = { kind: 'refill-confirm', refillId: id })}
   onConfirmRefill={confirmRefill}
   onConfirmVip={confirmVip}
+  onPickVip={openVipConfirm}
   onConfirmExchange={confirmExchange}
   onConfirmItem={confirmItem}
   onConfirmAction={() => { const action = confirmAction; confirmAction = null; modal = null; action?.(); }}

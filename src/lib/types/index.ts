@@ -48,6 +48,7 @@ export interface VipPackage {
   reward: string;
   bonusPoints?: number;
   bonusTickets?: number;
+  startLevel?: number;
 }
 
 export interface RankingEntry {

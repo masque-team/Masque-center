@@ -3,18 +3,20 @@
   import AssetPortrait from './AssetPortrait.svelte';
   import GameButton from './GameButton.svelte';
   import RarityChip from './RarityChip.svelte';
+  import VipPassOffer from './VipPassOffer.svelte';
   import { AVATARS, PETS, WINGS } from '../data/config';
   import { rarityOf } from '../data/rarity';
   import type { ModalState, PlayerState } from '../types';
 
   let {
-    modal, player, vipActive = false, exchangeAmount, checkinReward,
+    modal, player, vipActive = false, now = Date.now(), exchangeAmount, checkinReward,
     onClose, onPickRefill, onConfirmRefill, onConfirmVip, onConfirmExchange,
-    onOpenRefill, onOpenVip, onOpenExchange, onWait, onConfirmItem, onConfirmAction = () => {},
+    onOpenRefill, onOpenVip, onOpenExchange, onWait, onConfirmItem, onConfirmAction = () => {}, onPickVip = () => {},
   }: {
     modal: ModalState;
     player: PlayerState;
     vipActive?: boolean;
+    now?: number;
     exchangeAmount: number;
     checkinReward: number;
     onClose: () => void;
@@ -28,6 +30,7 @@
     onWait: () => void;
     onConfirmItem: () => void;
     onConfirmAction?: () => void;
+    onPickVip?: (id: string) => void;
   } = $props();
 
   let SHOP_ITEMS = $derived(player.demo.config.shop);
@@ -38,7 +41,6 @@
   let refill = $derived(modal?.kind === 'refill-confirm' ? ENERGY_CONFIG.refillPacks.find((pack) => pack.id === modal.refillId) ?? null : null);
   let pet = $derived(modal?.kind === 'gacha-result' ? PETS.find((item) => item.id === modal.petId) ?? null : null);
   let petStyle = $derived(pet ? rarityOf(pet.rarity) : rarityOf('Common'));
-  let vipShort = $derived(vip ? Math.max(0, vip.cost - player.masquePoints) : 0);
   let refillShort = $derived(refill ? Math.max(0, refill.cost - player.masquePoints) : 0);
   let refillAfter = $derived(refill ? player.energy + refill.energy : player.energy);
   let celebrate = $derived(modal?.kind === 'gacha-result' || modal?.kind === 'checkin-success' || (modal?.kind === 'notice' && modal.tone === 'success'));
@@ -90,22 +92,7 @@
         {#if player.masquePoints < shopItem.cost}<div class="short">แต้มไม่พอ ขาดอีก {shopItem.cost - player.masquePoints} MP</div>{/if}
         <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton>{#if player.masquePoints < shopItem.cost}<GameButton variant="mint" onclick={onOpenExchange}>แลกแต้ม</GameButton>{:else}<GameButton variant="purple" onclick={onConfirmItem}>ยืนยันซื้อ</GameButton>{/if}</div>
       {:else if vip}
-        <div class="medal gold"><Crown size={34} fill="currentColor" /></div>
-        <p class="eyebrow">VIP PASS · ราคาตัวอย่าง</p>
-        <h2>{vip.label}</h2>
-        <ul class="perks"><li><Zap size={13} fill="currentColor" />{player.demo.config.vipFreeEntry ? 'เข้าเกมไม่เสีย Energy' : 'VIP Profile Badge'}</li><li><Check size={13} strokeWidth={3.5} />เพดานฟื้น Energy +{player.demo.config.vipEnergyBonus}</li><li><Check size={13} strokeWidth={3.5} />{vip.reward}</li></ul>
-        <div class="receipt">
-          <div><span>ระยะเวลา</span><b>{vip.durationDays} วัน</b></div>
-          <div><span>ของแถม</span><b>{vip.reward}</b></div>
-          <div><span>ราคา</span><b class="cost"><Coins size={14} />{vip.cost} MP</b></div>
-          <div class="after"><span>คงเหลือหลังซื้อ</span><b>{Math.max(0, player.masquePoints - vip.cost).toLocaleString('en-US')} MP</b></div>
-        </div>
-        {#if vipShort > 0}<div class="short"><TriangleAlert size={16} />แต้มไม่พอ ขาดอีก <b>{vipShort.toLocaleString('en-US')}</b> MP</div>{/if}
-        <div class="actions">
-          <GameButton variant="ghost" size="md" onclick={onClose}>ยกเลิก</GameButton>
-          {#if vipShort > 0}<GameButton variant="mint" size="md" onclick={onOpenExchange}><Coins size={16} />แลกแต้ม</GameButton>
-          {:else}<GameButton variant="gold" size="md" onclick={onConfirmVip}>ยืนยันซื้อ<ArrowRight size={16} /></GameButton>{/if}
-        </div>
+        <VipPassOffer {player} packageId={vip.id} {now} onSelect={onPickVip} onConfirm={onConfirmVip} onTopUp={onOpenExchange} {onClose} />
 
       {:else if refill && modal.kind === 'refill-confirm'}
         <div class="medal blue"><Zap size={34} fill="currentColor" /></div>
@@ -205,7 +192,6 @@
   .empty { filter: grayscale(0.3); }
 
   .perks { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
-  .perks li { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 99px; color: #8a5a06; background: #fff0c2; font-size: 12px; font-weight: 800; }
 
   .receipt { display: grid; gap: 7px; margin: 0 0 10px; padding: 11px 12px; border-radius: 16px; background: #f1ecff; text-align: left; }
   .receipt > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--g-muted); font-size: 13px; font-weight: 700; }

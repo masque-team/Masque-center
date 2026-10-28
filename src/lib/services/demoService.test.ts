@@ -5,7 +5,7 @@ import { awardPassXp, beginGame, buyDecor, buyPremium, claimMission, claimPass, 
 import { drawPet } from './petService';
 import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './walletService';
 import { getGameRanking } from './rankingService';
-import { purchaseVip } from './passService';
+import { passBenefitMilestones, purchaseVip, vipOffer } from './passService';
 import { equipOutfit } from './avatarService';
 import { claimBattlePassReward } from './rewardService';
 import { passProgress, passTrack, passWindow } from './battlePassService';
@@ -27,6 +27,43 @@ function finishedSample(): PlayerState {
 }
 
 describe('shared demo economy', () => {
+  it('offers normal and LV30 Pass packages without resetting earned XP or claims', () => {
+    const player = { ...sample(), masquePoints: 5000 };
+    const normal = purchaseVip(player, 'monthly')!;
+    expect(currentPass(normal).xp).toBe(100);
+    expect(normal.energy).toBe(player.energy);
+    expect(normal.masquePoints).toBe(4010);
+    const boost = purchaseVip(player, 'monthly-boost-30')!;
+    expect(currentPass(boost).xp).toBe(3000);
+    expect(currentPass(boost).claims).toEqual([]);
+    expect(boost.masquePoints).toBe(3010);
+    expect(boost.energy).toBe(player.energy);
+    expect(boost.level).toBe(player.level);
+    expect(purchaseVip(boost, 'monthly-boost-30')).toBeNull();
+    const high = awardPassXp(player, 4000);
+    expect(purchaseVip(high, 'monthly-boost-30')).toBeNull();
+    expect(currentPass(purchaseVip(high, 'monthly')!).xp).toBe(4000);
+  });
+  it('extends only VIP time for active members and keeps their level and claimed rewards', () => {
+    let player = awardPassXp({ ...sample(), masquePoints: 5000 }, 1700);
+    player = purchaseVip(player, 'monthly')!;
+    player = claimPass(player, 'premium', 0)!;
+    const offer = vipOffer(player, 'monthly')!;
+    expect(offer.active).toBe(true);
+    expect(offer.levelAfter).toBe(17);
+    const renewed = purchaseVip(player, 'monthly')!;
+    expect(renewed.vipExpiresAt! - player.vipExpiresAt!).toBe(30 * 86_400_000);
+    expect(currentPass(renewed)).toEqual(currentPass(player));
+    expect(renewed.energy).toBe(player.energy);
+  });
+  it('calculates advertised Energy and rewards from the actual configured VIP track', () => {
+    const player = sample();
+    const milestone = passBenefitMilestones(player).find((item) => item.level === 30)!;
+    const expected = currentSeason(player).premium.slice(0, 30).filter((reward) => reward.type === 'energy').reduce((sum, reward) => sum + (reward.amount ?? 0), 0);
+    expect(milestone.vipEnergy).toBe(expected);
+    expect(milestone.freeEnergy).toBeGreaterThan(0);
+    expect(vipOffer(player, 'unknown')).toBeNull();
+  });
   it('atomically equips owned outfit items without charging currency or changing inventory', () => {
     const player = sample(); player.demo.wings = ['sky-feather'];
     const next = equipOutfit(player, { avatarId: 'mali', petId: 'cloud', wingId: 'sky-feather' })!;
@@ -194,7 +231,7 @@ describe('progression and duplicate protection', () => {
     expect(currentSeason(player).id).not.toBe(oldId);
     expect(currentPass(player).xp).toBe(0);
     expect(claimPass(player, 'free', 0)).toBeNull();
-    expect(player.demo.passes[oldId]).toMatchObject({ xp: 200, claims: ['free-0'] });
+    expect(player.demo.passes[oldId]).toMatchObject({ xp: 300, claims: ['free-0'] });
     expect(player.level).toBe(profileLevel);
     expect(player.vipExpiresAt).toBe(expires);
     expect(expires! - Date.now()).toBe(28 * 86_400_000);

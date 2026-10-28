@@ -61,6 +61,7 @@
       {#each draft.vipPlans as plan (plan.id)}
         <fieldset class="space-y-2 border-t border-white pt-3"><legend class="text-sm font-bold">{plan.label}</legend>
           <label class="grid gap-1 text-xs">ชื่อแพ็กเกจ<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" required bind:value={plan.label} /></label>
+          <label class="grid gap-1 text-xs">เลเวลเริ่มต้นเมื่อซื้อครั้งแรก<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" type="number" readonly value={plan.startLevel ?? 1} /></label>
           <div class="grid grid-cols-2 gap-3"><label class="grid gap-1 text-xs">ระยะเวลา (วัน)<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" type="number" min="30" max="30" readonly required bind:value={plan.durationDays} /></label><label class="grid gap-1 text-xs">ราคา MP<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" type="number" min="0" required bind:value={plan.cost} /></label><label class="grid gap-1 text-xs">โบนัส MP<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" type="number" min="0" required bind:value={plan.bonusPoints} /></label><label class="grid gap-1 text-xs">โบนัส Gacha Tickets<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" type="number" min="0" required bind:value={plan.bonusTickets} /></label></div>
         </fieldset>
       {/each}

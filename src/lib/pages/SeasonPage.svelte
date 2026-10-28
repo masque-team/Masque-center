@@ -9,11 +9,11 @@
   import { currentPass, currentSeason, dailyPassMission, gameMission, hasPassAccess, nextPassBonus, weeklyPassMission } from '../services/demoService';
   import type { GameId, PlayerState } from '../types';
 
-  let { player, now, vipActive = false, onClaim, onClaimAll, onBonus, onVip, onMission, onWeekly, onPlay, onTopUp }: {
+  let { player, now, vipActive = false, onClaim, onClaimAll, onBonus, onVip, onMission, onWeekly, onPlay }: {
     player: PlayerState; now: number; vipActive?: boolean;
     onClaim: (index: number, track: 'free' | 'premium') => void; onClaimAll: () => void; onBonus: () => void;
     onVip: (id: string) => void; onMission: (id?: GameId) => void; onWeekly: () => void;
-    onPlay: (id?: GameId) => void; onTopUp: () => void;
+    onPlay: (id?: GameId) => void;
   } = $props();
   let tab = $state<'rewards' | 'missions'>('rewards');
   let season = $derived(currentSeason(player, now));
@@ -28,7 +28,7 @@
   let nextMilestone = $derived(Math.min(50, Math.ceil((progress.mainLevel + 1) / 5) * 5));
   let milestone = $derived(season[premium ? 'premium' : 'free'][nextMilestone - 1]);
   let available = $derived((['free', 'premium'] as const).reduce((count, track) => count + (track === 'premium' && !premium ? 0 : season[track].filter((_, index) => pass.xp >= (index + 1) * PASS_RULES.xpPerLevel && !pass.claims.includes(`${track}-${index}`)).length), 0));
-  let plan = $derived(player.demo.config.vipPlans.find((item) => item.durationDays === 30) ?? player.demo.config.vipPlans[0]);
+  let plan = $derived(player.demo.config.vipPlans.find((item) => item.durationDays === 30 && (item.startLevel ?? 1) === 1) ?? player.demo.config.vipPlans[0]);
 </script>
 
 <div class="space-y-4 pb-6 text-[#2d4161]" data-testid="monthly-pass">
@@ -42,7 +42,7 @@
     <progress class="h-2 w-full accent-sky-600" value={progress.withinLevel} max={100} aria-label="XP สู่เลเวลถัดไป"></progress><div class="flex justify-between gap-2 text-[10px] text-[#7b8fa1]"><span>อีก {100 - progress.withinLevel} XP → LV.{progress.level + 1}</span><span>{progress.mainLevel}/50 ขั้นหลัก</span></div>
   </section>
 
-  {#if plan}<section class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-[#fff7da]/95 p-3" aria-label="VIP Pass 30 วัน"><div class="flex min-w-0 items-center gap-2"><Crown size={25} class="shrink-0 text-amber-500" /><div><h2 class="text-sm font-bold text-[#806020]">VIP Pass 30 วัน</h2><p class="text-[10px] text-[#9b885c]">{plan.cost.toLocaleString()} MP · {plan.reward}</p><small class="text-[9px] text-[#9b885c]">{vipActive && player.vipExpiresAt ? `ใช้ได้ถึง ${new Date(player.vipExpiresAt).toLocaleDateString('th-TH')}` : '30 วันนับจากซื้อ · รวมรางวัล VIP'}</small></div></div><GameButton size="sm" variant="gold" onclick={() => player.masquePoints < plan.cost ? onTopUp() : onVip(plan.id)}>{player.masquePoints < plan.cost ? 'เติมแต้ม' : vipActive ? 'ต่ออายุ' : 'เปิด VIP'}</GameButton></section>{/if}
+  {#if plan}<section class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-[#fff7da]/95 p-3" aria-label="VIP Pass 30 วัน"><div class="flex min-w-0 items-center gap-2"><Crown size={25} class="shrink-0 text-amber-500" /><div><h2 class="text-sm font-bold text-[#806020]">{vipActive ? 'VIP Pass กำลังใช้งาน' : 'VIP Pass 30 วัน'}</h2><p class="text-[10px] text-[#9b885c]">{player.demo.config.vipFreeEntry ? 'เข้าเกม 0 Energy · ' : ''}MAX Energy +{player.demo.config.vipEnergyBonus} · รางวัล VIP</p><small class="text-[9px] text-[#9b885c]">{vipActive && player.vipExpiresAt ? `ใช้ได้ถึง ${new Date(player.vipExpiresAt).toLocaleDateString('th-TH')}` : 'แพ็กปกติ / แพ็กเริ่ม LV.30'}</small></div></div><GameButton size="sm" variant="gold" onclick={() => onVip(plan.id)}>{vipActive ? 'ซื้อเวลาเพิ่ม' : 'ซื้อ VIP Pass'}</GameButton></section>{/if}
 
   <div class="sticky top-[76px] z-20 grid grid-cols-2 gap-1 rounded-lg border border-white bg-[#edf4ff]/95 p-1 backdrop-blur-md" role="tablist" aria-label="หมวด Pass">{#each [{ id: 'rewards' as const, label: 'รางวัล', icon: Gift }, { id: 'missions' as const, label: 'ภารกิจ', icon: Target }] as item (item.id)}<button class={['flex min-h-11 items-center justify-center gap-2 rounded-md text-xs font-semibold', tab === item.id ? 'bg-white text-indigo-800 shadow-sm' : 'text-[#7b8fa1]']} role="tab" aria-selected={tab === item.id} onclick={() => { tab = item.id; }}><item.icon size={16} />{item.label}</button>{/each}</div>
 
