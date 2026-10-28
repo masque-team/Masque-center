@@ -170,7 +170,7 @@ MV อยู่ใน `apps/masque-vease` ของ repo เดิม ดู [MV
 - หน้าเมนูใช้ `backdrop` เป็นฉากเมืองเต็มพื้นที่ใต้ UI โปร่งใส เลือกมุมร้านด้วย `FOCUS`; Home มี Avatar/เช็กอินด้านบน และให้เกมแนะนำอยู่ในจอแรก `#avatar` ใช้ `wardrobe` และ `#world` ใช้ `town` พร้อมเมนูล่างที่ไม่หาย
 - `src/lib/components/VeaseFrame.svelte` เป็น iframe bridge ของ MGC ใช้ iframe เดิมเปลี่ยนโหมด พักการวาดเมื่อพ้นจอ/แท็บ hidden และถอด MV เมื่อเข้าเกมจริง; wardrobe ส่งขนาดเนื้อหากลับเพื่อลด scroll ซ้อน
 - `apps/masque-vease/src/lib/world/veaseWorld.ts` สร้างเมือง/ป้ายชื่อ CanvasTexture/NPC; `portraitScene.ts` แสดงตัวละครระยะใกล้ด้วย renderer เบา ไม่มี bloom; `town.ts` เป็น A*/collision/layout
-- `WALK_TO` สั่งเดินไป building ID คำสั่งใหม่ยกเลิกเส้นทางเก่าและตอบ `ARRIVED` พร้อมสถานะ cancelled การเดินจาก UI ใช้เวลาประมาณ 0.45 วินาทีบวกเวลารอเฟรม/ข้อความ ส่วนแตะเดินปกติใช้ความเร็วเดิม รองรับ reduced motion และ timeout
+- `WALK_TO` สั่งเดินไป building ID คำสั่งใหม่ยกเลิกเส้นทางเก่าและตอบ `ARRIVED` พร้อมสถานะ cancelled การเลือกเมนูเดินที่ 4.5 หน่วย/วินาทีแล้วซูมตัวละครหน้าตึก 3D เมื่อถึงที่ ส่วนแตะเดินปกติใช้ความเร็วเดิม รองรับ reduced motion และ timeout 15 วินาที
 - เมืองมีหน้าต่างไฟ โคม ไฟเฉพาะจุด และประกายแบบ Points ไม่ใช้ bloom; backdrop จำกัดประมาณ 30fps และซ่อนป้ายชื่อ/ป้ายอาคารเพื่อลดความรก ไม่ใช่การรับประกัน FPS ทุกอุปกรณ์
 - สร้าง artwork ใหม่ในเครื่องด้วย `npm run art:world` ผ่าน Sharp: facade/roof/paving WebP, ภาพบ้านสำหรับแผนที่ และภาพตัวละครที่ trim transparency จาก assets เดิม เก็บใน `public/assets/world/`; ไม่ใช่ภาพจาก AI image-generation service
 - ภาพที่ MV deploy อยู่ใน `apps/masque-vease/public/assets/` หลังเปลี่ยนภาพจาก art scripts ที่ root ให้คัดลอกไฟล์ที่เปลี่ยนไปยัง MV ด้วย แต่ละ FE มี assets ของตัวเอง ไม่โหลดข้าม dev server

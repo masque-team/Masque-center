@@ -4,6 +4,8 @@ import { AVATARS, PETS, WINGS } from '../data/config';
 import { worldAura } from '../data/rarity';
 import { MOCK_CITIZENS, TOWN_BUILDINGS, TOWN_MENUS, findTownPath, moveInTown, townArrival, townDestination, type TownBuilding, type TownPoint } from './town';
 
+const MENU_WALK_SPEED = 4.5;
+
 export interface WorldAppearance {
   name: string;
   level: number;
@@ -67,6 +69,9 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let heading = Math.PI / 5;
   let zoom = 1;
+  let zoomTarget = 1;
+  let cameraDistance = 32;
+  let cameraHeight = 31;
   let frames = 0;
   let lastTime = performance.now();
   let lastReport = 0;
@@ -681,10 +686,21 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
       for (let index = 0; index < 48; index += 1) sparklePositions[index * 3 + 1] = 1.4 + (index * 0.7 + elapsed * 0.15) % 4;
       sparkleGeometry.attributes.position.needsUpdate = true;
     }
-    lookTarget.set(backdropTarget?.x ?? player.point.x, 0, backdropTarget?.z ?? player.point.z - 2);
+    lookTarget.set(player.point.x, 0, guided ? player.point.z : player.point.z - 2);
     cameraTarget.lerp(lookTarget, reducedMotion.matches ? 1 : 1 - Math.exp(-seconds * 5));
-    camera.position.set(cameraTarget.x + Math.sin(heading) * 32, 31, cameraTarget.z + Math.cos(heading) * 32);
-    lookTarget.copy(cameraTarget); lookTarget.y = guided ? 2 : 0.5;
+    const buildingDx = player.point.x - (backdropTarget?.x ?? player.point.x);
+    const buildingDz = player.point.z - (backdropTarget?.z ?? player.point.z);
+    const buildingDistance = Math.hypot(buildingDx, buildingDz) || 1;
+    const cameraOffsetX = guided && backdropTarget ? buildingDx / buildingDistance : Math.sin(heading);
+    const cameraOffsetZ = guided && backdropTarget ? buildingDz / buildingDistance : Math.cos(heading);
+    const targetCameraDistance = guided ? 10 : 32;
+    const targetCameraHeight = guided ? 8.5 : 31;
+    cameraDistance = reducedMotion.matches ? targetCameraDistance : THREE.MathUtils.damp(cameraDistance, targetCameraDistance, 4, seconds);
+    cameraHeight = reducedMotion.matches ? targetCameraHeight : THREE.MathUtils.damp(cameraHeight, targetCameraHeight, 4, seconds);
+    camera.position.set(cameraTarget.x + cameraOffsetX * cameraDistance, cameraHeight, cameraTarget.z + cameraOffsetZ * cameraDistance);
+    lookTarget.copy(cameraTarget); lookTarget.y = guided ? 2.25 : 0.5;
+    const nextZoom = reducedMotion.matches ? zoomTarget : THREE.MathUtils.damp(zoom, zoomTarget, 4, seconds);
+    if (Math.abs(nextZoom - zoom) > 0.001) { zoom = nextZoom; camera.zoom = zoom; camera.updateProjectionMatrix(); }
     camera.lookAt(lookTarget);
     renderer.render(scene, camera);
     if (!ready && loadedAssets >= requestedAssets) { ready = true; canvas.dataset.ready = 'true'; options.onReady(); }
@@ -698,6 +714,8 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
       canvas.dataset.walking = String(walkPath.length > 0);
       canvas.dataset.cameraX = cameraTarget.x.toFixed(3);
       canvas.dataset.cameraZ = cameraTarget.z.toFixed(3);
+      canvas.dataset.cameraZoom = zoom.toFixed(2);
+      canvas.dataset.cameraDistance = cameraDistance.toFixed(2);
       canvas.dataset.buildingBadges = String(TOWN_BUILDINGS.length);
       canvas.dataset.pet = appearance.petId ?? '';
       canvas.dataset.petX = companion?.point.x.toFixed(3) ?? '';
@@ -716,7 +734,8 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
     guideTo(route) {
       guided = route !== 'world';
       backdropTarget = guided ? townDestination(route) : undefined;
-      zoom = guided ? 1.55 : 1;
+      zoomTarget = guided ? 5 : 1;
+      if (reducedMotion.matches) zoom = zoomTarget;
       for (const badge of buildingBadges) badge.visible = !guided;
       for (const actor of actors) if (actor.nameplate) actor.nameplate.visible = !guided;
       canvas.dataset.route = route;
@@ -726,19 +745,16 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
         const arrival = townArrival(building);
         if (reducedMotion.matches) player.point = arrival;
         else if (walkTo(arrival)) {
-          let previous = player.point;
-          let length = 0;
-          for (const point of walkPath) { length += Math.hypot(point.x - previous.x, point.z - previous.z); previous = point; }
-          travelSpeed = Math.max(8, length / 0.45);
+          travelSpeed = MENU_WALK_SPEED;
         }
       }
       resize();
     },
     updateAppearance: setAppearance,
     updateTheme: setTheme,
-    zoom(amount) { zoom = THREE.MathUtils.clamp(zoom + amount, 0.65, 1.7); resize(); },
+    zoom(amount) { zoomTarget = THREE.MathUtils.clamp(zoomTarget + amount, 0.65, 1.7); if (reducedMotion.matches) zoom = zoomTarget; resize(); },
     rotate() { heading += Math.PI / 4; },
-    recenter() { heading = Math.PI / 5; zoom = 1; cameraTarget.set(player.point.x, 0, player.point.z - 2); resize(); },
+    recenter() { heading = Math.PI / 5; zoomTarget = 1; if (reducedMotion.matches) zoom = zoomTarget; cameraTarget.set(player.point.x, 0, player.point.z - 2); resize(); },
     travel(id, cinematic = false) {
       const building = TOWN_BUILDINGS.find((entry) => entry.id === id);
       if (!building) return false;
@@ -746,12 +762,7 @@ export function createVeaseWorld(host: HTMLElement, options: WorldOptions): Veas
       stopWalking();
       if (reducedMotion.matches) { player.point = arrival; return true; }
       if (!walkTo(arrival)) return false;
-      if (cinematic) {
-        let previous = player.point;
-        let length = 0;
-        for (const point of walkPath) { length += Math.hypot(point.x - previous.x, point.z - previous.z); previous = point; }
-        travelSpeed = Math.max(10, length / 0.45);
-      }
+      if (cinematic) travelSpeed = MENU_WALK_SPEED;
       return true;
     },
     dispose() {

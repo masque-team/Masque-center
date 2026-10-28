@@ -35,7 +35,7 @@
     const command = packet('WALK_TO', { destination });
     pendingWalk = { id: command.id, destination, route };
     send(command);
-    walkTimer = setTimeout(() => { if (pendingWalk?.id === command.id) { cancelPending(); error = 'เดินทางไม่สำเร็จ กรุณาลองอีกครั้ง'; } }, 8000);
+    walkTimer = setTimeout(() => { if (pendingWalk?.id === command.id) { cancelPending(); error = 'เดินทางไม่สำเร็จ กรุณาลองอีกครั้ง'; } }, 15000);
     return true;
   }
   function armTimeout() {
