@@ -36,7 +36,7 @@
         <span class="absolute top-1/2 -right-3 h-8 w-2 rounded-full bg-[#e6ad48] shadow-[2px_2px_0_#fff]" aria-hidden="true"></span>
       </div>
     {/if}
-    <div class="absolute top-[23%] left-1/2 z-10 grid h-[44%] w-[40%] -translate-x-1/2 place-items-center">
+    <div class="absolute top-[18%] left-1/2 z-10 grid h-[48%] w-[52%] -translate-x-1/2 place-items-center">
       <div class="pet-preview h-full w-full"><AssetPortrait src={focus.imagePath} alt={focus.name} placeholder={focus.placeholder} kind="pet" /></div>
     </div>
     {#if busy}

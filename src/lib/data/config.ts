@@ -90,8 +90,8 @@ export const PETS = [
 export const PET_GACHA_COST = 90;
 
 export const GACHA_ARTWORK: Record<'machine' | 'capsule', string | null> = {
-  machine: null,
-  capsule: null,
+  machine: 'assets/gacha/pet-gacha-machine.png',
+  capsule: 'assets/gacha/gacha-capsule.png',
 };
 
 export const PROFILE_BACKGROUNDS = [

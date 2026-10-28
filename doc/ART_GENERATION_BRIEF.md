@@ -16,8 +16,8 @@
 
 ## GPT Batch Prompts: 10 Separate Images
 
-There are 28 planned outputs below: the 25 core assets in Priority 1 and Priority 2, two
-optional Gacha upgrades, and a symbol-only brand mark requested alongside the Game Center logo.
+There are 28 outputs below: the 25 core assets in Priority 1 and Priority 2, two Gacha assets,
+and a symbol-only brand mark requested alongside the Game Center logo.
 Run the three prompts one at a time. Each prompt asks for up to 10 individual image files, never
 one combined sheet. If the image tool cannot return separate files, ask it to render them one by
 one within that batch. The four Pass images already installed in `public/assets/pass/` are not
@@ -34,7 +34,8 @@ as `mali-1.png` and maps their number through a fixed order. It will silently ig
 names like `mali-default.png`, `mali-festival.png` or `pudding.png`; do NOT run `npm run art` on
 these batches. Avatar and Pet images also need explicit runtime IDs/mapping, and outfit variants
 are future art until the UI exposes them. Keep these originals in `art-source/` until that
-integration is planned. Gacha files stay optional until `GACHA_ARTWORK` is mapped.
+integration is planned. The Batch 3 Gacha files are now supplied and active; do not generate them
+again unless replacing a specific asset.
 
 ### Batch 1: Brand, Entry, Profile and Currency (10)
 
@@ -182,7 +183,10 @@ Verify all 10 are separate files with real alpha. Overlay the three Mali images 
 their face size, feet baseline, body position and back attachment point must align exactly.
 ```
 
-### Batch 3: Remaining Avatar, Wings, Pets and Gacha (8)
+### Batch 3: Remaining Avatar, Wings, Pets and Gacha (8) — Supplied
+
+This batch was delivered on 2026-10-28 and is now installed. Do not run this prompt again unless
+you intend to replace a specific image.
 
 Attach current references from `public/assets/avatars/luna.webp`, `public/assets/pets/`, and
 `public/assets/wings/` for the matching named assets. Do not invent a replacement identity where
@@ -251,8 +255,8 @@ Before delivery, confirm exactly eight individual files, matching filenames and 
 transparent alpha, no clipped edges and no reference character identity drift.
 ```
 
-The symbol-only logo and both Gacha images are optional improvements to existing fallbacks. Do
-not let them block work on the 25 core priority assets. The two optional Pass assets, optional
+The symbol-only logo is an optional improvement to an existing fallback. Do not let it block work
+on the 25 core priority assets. The two optional Pass assets, optional
 moon-moth wings and modular Avatar rig later in this brief are intentionally excluded from these
 three batches.
 
@@ -355,11 +359,10 @@ Not green-heavy, not purple-heavy, not dark, not blurred, no bokeh/orb decoratio
 - Deliver four separate exact filenames, not one combined image.
 - Reject fake painted level numbers/prices. All product terms stay editable in code.
 
-## Recommended Next: Pet Gacha Art
+## Pet Gacha Art
 
-The Gacha screen now has a CSS-built machine and uses the existing Pet portraits. These two
-transparent assets are optional art upgrades, not blockers; the UI has a fallback until the
-files are delivered.
+The two supplied transparent assets are installed and active in the Gacha screen. The UI keeps
+its CSS/illustration fallback if either image fails to load.
 
 | Priority | Exact Filename | Canvas | Alpha | Composition / Use |
 | --- | --- | --- | --- | --- |
@@ -372,8 +375,8 @@ window. The app overlays the currently previewed Pet there. The single capsule s
 about 12% padding and remain readable at 40px. Keep labels, rarity, price, ticket count and
 odds as live UI text, not painted into either PNG.
 
-Originals go in `art-source/gacha/`; reviewed runtime files go in MGC `public/assets/gacha/`.
-The optional `GACHA_ARTWORK` mapping in `src/lib/data/config.ts` is currently null:
+Originals are preserved in `art-source/gacha/`; runtime files are in MGC `public/assets/gacha/`.
+`GACHA_ARTWORK` in `src/lib/data/config.ts` maps them like this:
 
 ```ts
 machine: 'assets/gacha/pet-gacha-machine.png',
