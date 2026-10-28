@@ -1,16 +1,17 @@
 <script lang="ts">
   import { ArrowRight, Check, Clock3, Coins, Crown, Gift, Sparkles, TriangleAlert, X, Zap } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
+  import CurrencyIcon from './CurrencyIcon.svelte';
   import GameButton from './GameButton.svelte';
   import RarityChip from './RarityChip.svelte';
+  import RewardIcon from './RewardIcon.svelte';
   import VipPassOffer from './VipPassOffer.svelte';
   import { AVATARS, PETS, WINGS } from '../data/config';
-  import { rarityOf } from '../data/rarity';
   import type { ModalState, PlayerState } from '../types';
 
   let {
     modal, player, vipActive = false, now = Date.now(), exchangeAmount, checkinReward,
-    onClose, onPickRefill, onConfirmRefill, onConfirmVip, onConfirmExchange,
+    onClose, onPickRefill, onConfirmRefill, onConfirmVip, onConfirmExchange, onConfirmGachaCoupons,
     onOpenRefill, onOpenVip, onOpenExchange, onWait, onConfirmItem, onConfirmAction = () => {}, onPickVip = () => {},
   }: {
     modal: ModalState;
@@ -24,6 +25,7 @@
     onConfirmRefill: () => void;
     onConfirmVip: () => void;
     onConfirmExchange: () => void;
+    onConfirmGachaCoupons: () => void;
     onOpenRefill: () => void;
     onOpenVip: () => void;
     onOpenExchange: () => void;
@@ -39,8 +41,8 @@
   let VIP_PACKAGES = $derived(player.demo.config.vipPlans);
   let vip = $derived(modal?.kind === 'vip-confirm' ? VIP_PACKAGES.find((pack) => pack.id === modal.packageId) ?? null : null);
   let refill = $derived(modal?.kind === 'refill-confirm' ? ENERGY_CONFIG.refillPacks.find((pack) => pack.id === modal.refillId) ?? null : null);
-  let pet = $derived(modal?.kind === 'gacha-result' ? PETS.find((item) => item.id === modal.petId) ?? null : null);
-  let petStyle = $derived(pet ? rarityOf(pet.rarity) : rarityOf('Common'));
+  let couponCost = $derived(modal?.kind === 'gacha-coupon-confirm' ? player.demo.config.gachaCost * modal.quantity : 0);
+  let couponShort = $derived(Math.max(0, couponCost - player.masquePoints));
   let refillShort = $derived(refill ? Math.max(0, refill.cost - player.masquePoints) : 0);
   let refillAfter = $derived(refill ? player.energy + refill.energy : player.energy);
   let celebrate = $derived(modal?.kind === 'gacha-result' || modal?.kind === 'checkin-success' || (modal?.kind === 'notice' && modal.tone === 'success'));
@@ -91,6 +93,14 @@
         <p class="summary">ซื้อเข้าคอลเลกชัน · ราคาตัวอย่าง</p>
         {#if player.masquePoints < shopItem.cost}<div class="short">แต้มไม่พอ ขาดอีก {shopItem.cost - player.masquePoints} MP</div>{/if}
         <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton>{#if player.masquePoints < shopItem.cost}<GameButton variant="mint" onclick={onOpenExchange}>แลกแต้ม</GameButton>{:else}<GameButton variant="purple" onclick={onConfirmItem}>ยืนยันซื้อ</GameButton>{/if}</div>
+      {:else if modal.kind === 'gacha-coupon-confirm'}
+        <div class="medal gold"><CurrencyIcon kind="petGachaTicket" size={38} /></div>
+        <p class="eyebrow">AVATAR · PET GACHA</p>
+        <h2>ซื้อคูปองสุ่ม</h2>
+        <p class="summary">{modal.quantity} คูปอง · {modal.quantity === 10 ? 'เปิด 10 ครั้ง รับโบนัสเพิ่ม 1 ครั้ง' : 'เปิดได้ 1 ครั้ง'} · ใช้ได้ทั้งตู้ Avatar และ Pet</p>
+        <div class="receipt"><div><span>ราคา</span><b>{couponCost.toLocaleString()} MP</b></div><div><span>ยอดปัจจุบัน</span><b>{player.masquePoints.toLocaleString()} MP</b></div><div class="after"><span>คูปองหลังซื้อ</span><b>{player.gachaTickets + modal.quantity} ใบ</b></div></div>
+        {#if couponShort > 0}<div class="short"><TriangleAlert size={16} />ขาดอีก <b>{couponShort.toLocaleString()}</b> MP</div>{/if}
+        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton>{#if couponShort > 0}<GameButton variant="mint" onclick={onOpenExchange}><Coins size={16} />เติม MP</GameButton>{:else}<GameButton variant="gold" onclick={onConfirmGachaCoupons}><CurrencyIcon kind="petGachaTicket" size={20} />ซื้อคูปอง</GameButton>{/if}</div>
       {:else if vip}
         <VipPassOffer {player} packageId={vip.id} {now} onSelect={onPickVip} onConfirm={onConfirmVip} onTopUp={onOpenExchange} {onClose} />
 
@@ -130,16 +140,22 @@
         </div>
         <div class="actions"><GameButton variant="ghost" size="md" onclick={onClose}>ยกเลิก</GameButton><GameButton variant="mint" size="md" onclick={onConfirmExchange}>ยืนยันแลก<ArrowRight size={16} /></GameButton></div>
 
-      {:else if pet && modal.kind === 'gacha-result'}
-        <div class="spotlight" style={`--glow:${petStyle.glow};--top:${petStyle.top};--bottom:${petStyle.bottom}`}>
-          <span class="rays" aria-hidden="true"></span>
-          <AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" loading="eager" className="reveal-pet" />
+      {:else if modal.kind === 'gacha-result'}
+        <p class="eyebrow">{modal.gachaKind === 'pet' ? 'PET GACHA' : 'AVATAR GACHA'}</p>
+        <h2>ผลสุ่ม {modal.results.length} ครั้ง</h2>
+        <p class="summary">ใช้ {modal.paidCoupons} คูปอง{modal.bonusDraws ? ` · โบนัสฟรี ${modal.bonusDraws} ครั้ง` : ''}</p>
+        <div class="grid grid-cols-4 gap-2 text-center">
+          {#each modal.results as result, index (`${index}-${result.kind}-${'itemId' in result ? result.itemId : 'energy'}`)}
+            {@const itemId = 'itemId' in result ? result.itemId : undefined}
+            {@const item = result.kind === 'pet' ? PETS.find((entry) => entry.id === itemId) : result.kind === 'avatar' ? AVATARS.find((entry) => entry.id === itemId) : undefined}
+            <div class="grid min-w-0 justify-items-center gap-1 rounded-md border border-white bg-[#f7fbff] p-1.5">
+              <RewardIcon type={result.kind} {itemId} size={38} />
+              <small class="line-clamp-2 text-[8px] font-semibold">{result.kind === 'energy' ? `Energy +${result.amount}` : item?.name ?? itemId}</small>
+              {#if result.kind !== 'energy'}<span class={['text-[8px] font-bold', result.duplicate ? 'text-amber-700' : 'text-sky-700']}>{result.duplicate ? `ซ้ำ +${result.duplicatePoints ?? player.demo.config.duplicatePoints} MP` : 'NEW'}</span>{/if}
+            </div>
+          {/each}
         </div>
-        <div class="newtag" class:dup={modal.duplicate}>{modal.duplicate ? `ซ้ำ! คืน ${player.demo.config.duplicatePoints} MP` : 'NEW!'}</div>
-        <h2>{pet.name}</h2>
-        <RarityChip rarity={pet.rarity} size="md" />
-        <p class="summary">{modal.duplicate ? 'ได้ Pet ตัวนี้อยู่แล้ว คืนแต้มตามกติกาเดโม' : 'เพิ่มเข้า Pet Collection แล้ว เลือกใช้งานได้ที่ Avatar & Pets'}</p>
-        <div class="actions one"><GameButton variant="gold" size="lg" onclick={onClose}><Sparkles size={18} />เยี่ยมเลย</GameButton></div>
+        <div class="actions one"><GameButton variant="gold" size="lg" onclick={onClose}><Sparkles size={18} />ตกลง</GameButton></div>
 
       {:else if modal.kind === 'checkin-success'}
         <div class="medal green"><Gift size={34} /></div>

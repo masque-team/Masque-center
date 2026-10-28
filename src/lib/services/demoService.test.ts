@@ -3,6 +3,7 @@ import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './p
 import { energyCapacity, nextRefillIn, refreshEnergy, refillEnergy, spendContinueEnergy, spendGameEnergy } from './energyService';
 import { awardPassXp, beginGame, buyDecor, buyPremium, claimMission, claimPass, claimPassBonus, claimRankingReward, claimWeeklyMission, currentPass, currentSeason, dayKey, finishGame, gameMission, hasPassAccess, ledger, nextPassBonus, recordPlayTime, startBattle, validateConfig, weeklyPassMission } from './demoService';
 import { drawPet } from './petService';
+import { buyGachaCoupons, drawGachaBatch, getGachaOdds } from './gachaService';
 import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './walletService';
 import { getGameRanking } from './rankingService';
 import { passBenefitMilestones, purchaseVip, vipOffer } from './passService';
@@ -33,6 +34,9 @@ describe('shared demo economy', () => {
     expect(currentPass(normal).xp).toBe(100);
     expect(normal.energy).toBe(player.energy);
     expect(normal.masquePoints).toBe(4010);
+    const boostTwenty = purchaseVip(player, 'monthly-boost-20')!;
+    expect(currentPass(boostTwenty).xp).toBe(2000);
+    expect(boostTwenty.masquePoints).toBe(3510);
     const boost = purchaseVip(player, 'monthly-boost-30')!;
     expect(currentPass(boost).xp).toBe(3000);
     expect(currentPass(boost).claims).toEqual([]);
@@ -44,17 +48,19 @@ describe('shared demo economy', () => {
     expect(purchaseVip(high, 'monthly-boost-30')).toBeNull();
     expect(currentPass(purchaseVip(high, 'monthly')!).xp).toBe(4000);
   });
-  it('extends only VIP time for active members and keeps their level and claimed rewards', () => {
+  it('blocks early VIP renewal and boost purchases while an active Pass is running', () => {
     let player = awardPassXp({ ...sample(), masquePoints: 5000 }, 1700);
     player = purchaseVip(player, 'monthly')!;
     player = claimPass(player, 'premium', 0)!;
     const offer = vipOffer(player, 'monthly')!;
     expect(offer.active).toBe(true);
     expect(offer.levelAfter).toBe(17);
-    const renewed = purchaseVip(player, 'monthly')!;
-    expect(renewed.vipExpiresAt! - player.vipExpiresAt!).toBe(30 * 86_400_000);
-    expect(currentPass(renewed)).toEqual(currentPass(player));
-    expect(renewed.energy).toBe(player.energy);
+    expect(offer.eligible).toBe(false);
+    expect(purchaseVip(player, 'monthly')).toBeNull();
+    expect(purchaseVip(player, 'monthly-boost-20')).toBeNull();
+    expect(purchaseVip(player, 'monthly-boost-30')).toBeNull();
+    expect(player.vipExpiresAt).toBeGreaterThan(Date.now());
+    expect(currentPass(player).claims).toEqual(['premium-0']);
   });
   it('calculates advertised Energy and rewards from the actual configured VIP track', () => {
     const player = sample();
@@ -110,6 +116,21 @@ describe('shared demo economy', () => {
     expect(migrated.aisPoints).toBe(saved.aisPoints);
     expect(migrated.masquePoints).toBe(saved.masquePoints);
   });
+  it('moves the legacy Bird feature to Memory without overriding a custom featured game', () => {
+    const legacy = sample();
+    legacy.demo.config.games = legacy.demo.config.games.map((game) => ({ ...game, featured: game.id === 'bird', editorialTag: game.id === 'bird' ? 'hot' : game.editorialTag }));
+    savePlayer(legacy);
+    const migrated = loadPlayer(null);
+    expect(migrated.demo.config.games.find((game) => game.id === 'memory')).toMatchObject({ featured: true, editorialTag: 'hot' });
+    expect(migrated.demo.config.games.find((game) => game.id === 'bird')).toMatchObject({ featured: false, editorialTag: 'new' });
+
+    const custom = sample();
+    custom.demo.config.games = custom.demo.config.games.map((game) => ({ ...game, featured: game.id === 'mole' }));
+    savePlayer(custom);
+    const preserved = loadPlayer(null);
+    expect(preserved.demo.config.games.find((game) => game.id === 'mole')?.featured).toBe(true);
+    expect(preserved.demo.config.games.find((game) => game.id === 'memory')?.featured).toBe(false);
+  });
   it('allows purchased overflow and pauses free regeneration above cap', () => {
     const next = refillEnergy(sample(), 8, 70)!;
     expect(next.energy).toBe(20);
@@ -149,6 +170,29 @@ describe('shared demo economy', () => {
     expect(result.player.masquePoints).toBe(350);
     expect(result.player.petId).toBeNull();
   });
+  it('requires Gacha coupons and grants the 10+1 draw without charging the bonus coupon', () => {
+    const player = sample(); player.masquePoints = 2000; player.gachaTickets = 0;
+    expect(drawGachaBatch(player, 'pet', 1, () => 0)).toBeNull();
+    const coupons = buyGachaCoupons(player, 10)!;
+    expect(coupons.gachaTickets).toBe(10);
+    expect(coupons.masquePoints).toBe(1100);
+    const batch = drawGachaBatch(coupons, 'pet', 10, () => 0)!;
+    expect(batch.results).toHaveLength(11);
+    expect(batch.paidCoupons).toBe(10);
+    expect(batch.bonusDraws).toBe(1);
+    expect(batch.player.gachaTickets).toBe(0);
+    expect(getGachaOdds(player, 'pet').some((item) => item.kind === 'energy' && item.rate > 0)).toBe(true);
+    expect(getGachaOdds(player, 'avatar').some((item) => item.kind === 'avatar' && item.featured)).toBe(true);
+  });
+  it('can award Energy instead of an Avatar/Pet from either Gacha cabinet', () => {
+    const player = sample(); player.energy = 0; player.gachaTickets = 1;
+    for (const kind of ['pet', 'avatar'] as const) {
+      const batch = drawGachaBatch({ ...player, gachaTickets: 1 }, kind, 1, () => 0.999999)!;
+      expect(batch.results[0]).toMatchObject({ kind: 'energy', amount: 1 });
+      expect(batch.player.energy).toBe(1);
+      expect(batch.player.gachaTickets).toBe(0);
+    }
+  });
   it('expires VIP without affecting free/vip ranking fairness', () => {
     const next = purchaseVip({ ...sample(), masquePoints: 2000 }, 'monthly')!;
     expect(spendGameEnergy(next)!.energy).toBe(12);
@@ -174,14 +218,15 @@ describe('shared demo economy', () => {
     const overflow = { ...player, energy: 20 };
     expect(refreshEnergy(overflow, Date.now() + 3_600_000).energy).toBe(20);
   });
-  it('does not bank full-cap refill time before VIP purchase and keeps partial timers on renewal', () => {
+  it('does not bank full-cap refill time before VIP purchase and blocks active renewal', () => {
     const player = sample(); player.masquePoints = 2000; player.energyUpdatedAt = Date.now() - 3_600_000;
     const vip = purchaseVip(player, 'monthly')!;
     expect(vip.energy).toBe(12);
     expect(vip.energyUpdatedAt).toBe(Date.now());
     expect(refreshEnergy(vip).energy).toBe(12);
     const partial = { ...vip, masquePoints: 2000, energy: 3, energyUpdatedAt: Date.now() - 20 * 60_000 };
-    expect(purchaseVip(partial, 'monthly')?.energyUpdatedAt).toBe(partial.energyUpdatedAt);
+    expect(purchaseVip(partial, 'monthly')).toBeNull();
+    expect(partial.energyUpdatedAt).toBe(Date.now() - 20 * 60_000);
   });
   it('migrates the old unlimited-VIP refill clock without losing Energy or VIP days', () => {
     const player = sample(); player.vipExpiresAt = Date.now() + 86_400_000; player.energy = 14; player.energyUpdatedAt = player.vipExpiresAt;
@@ -311,6 +356,7 @@ describe('progression and duplicate protection', () => {
     expect(currentSeason(restored).free).toHaveLength(50);
     expect(currentPass(restored)).toMatchObject({ xp: 330, premium: true, claims: ['free-0', 'premium-1'] });
     expect(restored.demo.config.vipPlans[0].durationDays).toBe(30);
+    expect(restored.demo.config.vipPlans.map((plan) => plan.id)).toEqual(expect.arrayContaining(['monthly', 'monthly-boost-20', 'monthly-boost-30']));
     expect(currentPass(loadPlayer(null)).xp).toBe(330);
     restored.demo.config.passSeasonId = 'loy-krathong';
     expect(currentPass(restored)).toMatchObject({ xp: 500, premium: true, claims: ['premium-0'] });

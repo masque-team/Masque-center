@@ -48,7 +48,17 @@
     <div class="min-w-0 flex-1 space-y-2"><div class="flex items-baseline justify-between gap-2 text-[10px]"><strong class="text-[#685799]">{progress.mainLevel}/50 ขั้นหลัก</strong><span class="tabular-nums text-[#8795a8]">{pass.xp.toLocaleString()} XP</span></div><progress class="h-3 w-full border border-white accent-sky-600" value={progress.withinLevel} max={100} aria-label="XP สู่เลเวลถัดไป"></progress><span class="block text-[9px] text-[#7b8fa1]">อีก {100 - progress.withinLevel} XP → LV.{progress.level + 1}</span></div>
   </section>
 
-  {#if plan}<section class="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border-2 border-white bg-[#fff3cb]/95 py-3 pr-3 pl-[66px] shadow-[0_4px_0_#e8c67d]" aria-label="VIP Pass 30 วัน"><span class="absolute top-1/2 left-1 block h-14 w-14 -translate-y-1/2"><PassArtwork kind="crest" /></span><div class="min-w-0"><h2 class="text-[13px] font-bold text-[#8f6524]">{vipActive ? 'VIP Pass กำลังใช้งาน' : 'VIP Pass 30 วัน'}</h2><p class="mt-1 text-[9px] text-[#a58b5e]">{player.demo.config.vipFreeEntry ? 'เข้าเกม 0 Energy · ' : ''}MAX +{player.demo.config.vipEnergyBonus}</p><small class="block text-[8px] text-[#a58b5e]">{vipActive && player.vipExpiresAt ? `ใช้ได้ถึง ${new Date(player.vipExpiresAt).toLocaleDateString('th-TH')}` : 'แพ็กปกติ / แพ็กเริ่ม LV.30'}</small></div><GameButton size="sm" variant="gold" onclick={() => onVip(plan.id)}>{vipActive ? 'ซื้อเวลาเพิ่ม' : 'ซื้อ VIP Pass'}</GameButton></section>{/if}
+  {#if plan}
+    <section class="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border-2 border-white bg-[#fff3cb]/95 py-3 pr-3 pl-[66px] shadow-[0_4px_0_#e8c67d]" aria-label="VIP Pass 30 วัน">
+      <span class="absolute top-1/2 left-1 block h-14 w-14 -translate-y-1/2"><PassArtwork kind="crest" /></span>
+      <div class="min-w-0">
+        <h2 class="text-[13px] font-bold text-[#8f6524]">{vipActive ? 'VIP Pass กำลังใช้งาน' : 'VIP Pass · 30 วัน'}</h2>
+        <p class="mt-1 text-[9px] text-[#866b3a]">{player.demo.config.vipFreeEntry ? 'เกมทั่วไปเข้าไม่หัก Energy' : 'ใช้ Energy ตามปกติ'} · MAX +{player.demo.config.vipEnergyBonus} · ของรางวัล VIP Track</p>
+        <small class="block text-[8px] text-[#a58b5e]">{vipActive && player.vipExpiresAt ? `ใช้ได้ถึง ${new Date(player.vipExpiresAt).toLocaleDateString('th-TH')} · ซื้อแพ็กใหม่ได้เมื่อหมดอายุ` : 'แพ็ก LV.1 / LV.20 / LV.30'}</small>
+      </div>
+      {#if vipActive}<span class="rounded-full border border-white bg-white/80 px-2 py-1 text-[9px] font-bold text-[#8f6524]">ACTIVE</span>{:else}<GameButton size="sm" variant="gold" onclick={() => onVip(plan.id)}>เลือกแพ็ก</GameButton>{/if}
+    </section>
+  {/if}
 
   <div class="sticky top-[76px] z-20 grid grid-cols-2 gap-1 rounded-lg border-2 border-white bg-[#e7f2fc]/95 p-1 pb-2 backdrop-blur-md" role="tablist" aria-label="หมวด Pass">{#each [{ id: 'rewards' as const, label: 'รางวัล', icon: Gift }, { id: 'missions' as const, label: 'ภารกิจ', icon: Target }] as item (item.id)}<button class={['flex min-h-11 items-center justify-center gap-2 rounded-md text-xs font-semibold transition-[transform,background-color] duration-150 active:translate-y-0.5 motion-reduce:transition-none', tab === item.id ? 'bg-[#63a9ca] text-white shadow-[0_3px_0_#3d82a6]' : 'text-[#7b8fa1]']} role="tab" aria-selected={tab === item.id} onclick={() => { tab = item.id; }}><item.icon size={16} />{item.label}</button>{/each}</div>
 

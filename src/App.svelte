@@ -6,6 +6,7 @@
   import AppHeader from './lib/components/AppHeader.svelte';
   import BottomNav from './lib/components/BottomNav.svelte';
   import DailyCheckinCard from './lib/components/DailyCheckinCard.svelte';
+  import AvatarGreeting from './lib/components/AvatarGreeting.svelte';
   import GameDetailPage from './lib/pages/GameDetailPage.svelte';
   import FeaturedGameCard from './lib/components/FeaturedGameCard.svelte';
   import GameCard from './lib/components/GameCard.svelte';
@@ -32,11 +33,12 @@
   import { equipOutfit, selectAvatar } from './lib/services/avatarService';
   import { isVip, nextRefillIn, refreshEnergy, refillEnergy } from './lib/services/energyService';
   import { purchaseVip } from './lib/services/passService';
-  import { drawPet, equipPet } from './lib/services/petService';
+  import { equipPet } from './lib/services/petService';
+  import { buyGachaCoupons, drawGachaBatch } from './lib/services/gachaService';
   import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
   import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
   import { beginGame, claimAvailablePass, claimPass, claimPassBonus, claimMission as completeMission, claimWeeklyMission, currentSeason, demoNow, finishGame, ledger, recordPlayTime, validateConfig, claimRankingReward } from './lib/services/demoService';
-  import type { DemoConfig, GameId, GameMode, ModalState, Page, PlayerState, RankingPeriod, ShopTab, VipPackage } from './lib/types';
+  import type { DemoConfig, GameId, GameMode, GachaKind, ModalState, Page, PlayerState, RankingPeriod, ShopTab, VipPackage } from './lib/types';
   import './app.css';
 
   const WEEKDAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
@@ -54,6 +56,7 @@
   let mockScores = $derived({ bird: 0, mole: 0, run: 0, fruit: 0, timber: 0, duck: 0, memory: 0, ...player.demo.scores });
   let CHECKIN_REWARD = $derived(player.demo.config.checkinReward);
   let page = $state<Page>('home');
+  let homeGenre = $state('all');
   let pointsReturnRoute = $state<Page | null>(null);
   let sceneState = $derived(veaseState(player));
   let wardrobeHeight = $state(1000);
@@ -83,7 +86,8 @@
   let homeAvatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
   let homePet = $derived(PETS.find((item) => item.id === player.petId));
   let featuredGame = $derived(player.demo.config.games.find((game) => game.featured && game.published !== false) ?? player.demo.config.games.find((game) => game.published !== false) ?? GAMES[0]);
-  let catalogGames = $derived(player.demo.config.games.filter((game) => game.id !== featuredGame.id && game.published !== false).sort((left, right) => (left.displayOrder ?? 99) - (right.displayOrder ?? 99)));
+  let catalogGames = $derived(player.demo.config.games.filter((game) => game.published !== false).sort((left, right) => (left.displayOrder ?? 99) - (right.displayOrder ?? 99)));
+  let filteredGames = $derived(homeGenre === 'all' ? catalogGames.filter((game) => game.id !== featuredGame.id) : catalogGames.filter((game) => game.genre === homeGenre));
   let vipActive = $derived(isVip(player, now));
   let activePassSeason = $derived(currentSeason(player, now));
   let refillCountdown = $derived(nextRefillIn(player, now));
@@ -252,6 +256,7 @@
   }
 
   function openVipConfirm(packageId: string): void {
+    if (vipActive) { showToast(`VIP Pass ใช้ได้ถึง ${new Date(player.vipExpiresAt!).toLocaleDateString('th-TH')} · ซื้อแพ็กใหม่ได้เมื่อหมดอายุ`); return; }
     vipTopUpIntent = null;
     modal = { kind: 'vip-confirm', packageId: packageId as VipPackage['id'] };
   }
@@ -266,9 +271,14 @@
     navigate('points');
   }
 
-  function openGachaTopUp(): void {
-    pointsReturnRoute = 'gacha';
-    openExchange();
+  function openGachaCouponPurchase(quantity: 1 | 10, returnRoute: 'gacha' | 'shop' = 'gacha'): void {
+    pointsReturnRoute = returnRoute;
+    modal = { kind: 'gacha-coupon-confirm', quantity };
+  }
+
+  function closeModal(): void {
+    if (modal?.kind === 'gacha-coupon-confirm') pointsReturnRoute = null;
+    modal = null;
   }
 
   function returnFromPoints(): void {
@@ -298,7 +308,7 @@
 
   function confirmVip(): void {
     if (modal?.kind !== 'vip-confirm') return;
-    const active = vipActive;
+    if (vipActive) { modal = { kind: 'notice', tone: 'info', title: 'VIP Pass กำลังใช้งาน', message: 'เลือกซื้อแพ็ก VIP ใหม่ได้เมื่อสิทธิ์ปัจจุบันหมดอายุ' }; return; }
     const packageId = modal.packageId;
     const selected = player.demo.config.vipPlans.find((plan) => plan.id === packageId);
     const next = purchaseVip(player, packageId, now);
@@ -306,8 +316,8 @@
       modal = { kind: 'notice', tone: 'warn', title: 'ซื้อ VIP ไม่สำเร็จ', message: 'ตรวจสอบยอดแต้มและเงื่อนไขแพ็กที่เลือก' };
       return;
     }
-    persist(next, active ? 'ซื้อเวลา VIP เพิ่ม' : `ซื้อ ${selected?.label ?? 'VIP Pass'}`);
-    modal = { kind: 'notice', tone: 'success', title: active ? 'เพิ่มเวลา VIP แล้ว' : 'VIP Pass เปิดใช้งานแล้ว!', message: `${active ? 'ต่อจากวันหมดอายุเดิม' : 'เปิดสิทธิ์ VIP และรางวัลที่ปลดล็อก'} · ใช้ได้ถึง ${new Date(next.vipExpiresAt!).toLocaleDateString('th-TH')}${(selected?.startLevel ?? 1) > 1 ? ` · Pass LV.${selected!.startLevel} พร้อมกดรับรางวัล` : ''}` };
+    persist(next, `ซื้อ ${selected?.label ?? 'VIP Pass'}`);
+    modal = { kind: 'notice', tone: 'success', title: 'VIP Pass เปิดใช้งานแล้ว!', message: `ใช้ได้ถึง ${new Date(next.vipExpiresAt!).toLocaleDateString('th-TH')} · ${(selected?.startLevel ?? 1) > 1 ? `Pass LV.${selected!.startLevel} พร้อมกดรับรางวัล` : 'รับรางวัลจาก VIP Track ตาม XP'}` };
   }
 
   function confirmRefill(): void {
@@ -335,6 +345,19 @@
     modal = { kind: 'notice', tone: 'success', title: 'เพิ่มเข้าคอลเลกชันแล้ว', message: 'เลือกใช้งานได้ที่ Avatar & Pets' };
   }
 
+  function confirmGachaCoupons(): void {
+    if (modal?.kind !== 'gacha-coupon-confirm') return;
+    const quantity = modal.quantity;
+    const next = buyGachaCoupons(player, quantity);
+    if (!next) {
+      modal = { kind: 'notice', tone: 'warn', title: 'ซื้อคูปองไม่สำเร็จ', message: 'Masque Points ไม่พอ กรุณาเติมแต้มก่อน' };
+      return;
+    }
+    persist(next, `ซื้อคูปองสุ่ม ${quantity} ใบ`);
+    pointsReturnRoute = null;
+    modal = { kind: 'notice', tone: 'success', title: 'ซื้อคูปองสำเร็จ', message: `ได้รับ ${quantity} คูปอง · ใช้ได้ทั้งตู้ Avatar และ Pet` };
+  }
+
   function confirmExchange(): void {
     const amount = exchangeAmount;
     const next = exchangeAisPoints(player, amount);
@@ -360,20 +383,20 @@
     showToast(petId ? 'ใช้สัตว์เลี้ยงแล้ว' : 'ถอดสัตว์เลี้ยงแล้ว');
   }
 
-  function startGacha(): void {
+  function startGacha(kind: GachaKind, count: 1 | 10): void {
     if (gachaBusy) return;
-    if (player.gachaTickets <= 0 && player.masquePoints < player.demo.config.gachaCost) {
-      modal = { kind: 'notice', tone: 'warn', title: 'Masque Points ไม่พอ', message: 'แลก AIS Points ใน Shop เพื่อสุ่ม Pet ได้เลย' };
+    if (player.gachaTickets < count) {
+      openGachaCouponPurchase(count);
       return;
     }
     gachaBusy = true;
     gachaTimer = window.setTimeout(() => {
-      const result = drawPet(player);
+      const batch = drawGachaBatch(player, kind, count);
       gachaBusy = false;
-      if (!result) return;
-      persist(result.player, 'Pet Gacha');
-      modal = { kind: 'gacha-result', petId: result.petId, duplicate: result.duplicate };
-    }, 900);
+      if (!batch) return;
+      persist(batch.player, `${kind === 'pet' ? 'Pet' : 'Avatar'} Gacha · ${count}${batch.bonusDraws ? '+1' : ''}`);
+      modal = { kind: 'gacha-result', gachaKind: kind, results: batch.results, paidCoupons: batch.paidCoupons, bonusDraws: batch.bonusDraws };
+    }, count === 10 ? 1500 : 900);
   }
 
   function showToast(message: string): void {
@@ -463,6 +486,7 @@
     <GameScreen
       game={currentGame}
       {player}
+      countdown={formatCountdown(refillCountdown)}
       sessionId={activeSessionId}
       {vipActive}
       loading={gameLoading}
@@ -484,14 +508,16 @@
         {#if page === 'home'}
           <div class="home">
             <section class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 py-1" aria-label="Avatar และเช็กอิน"><button class="relative h-28 w-[72px] transition-transform active:scale-95" title="แต่งตัว Avatar" aria-label="แต่งตัว Avatar" onclick={() => navigate('avatar')}><AssetPortrait src={homeAvatar.imagePath} alt={homeAvatar.name} placeholder={homeAvatar.placeholder} kind="avatar" loading="eager" />{#if homePet}<span class="absolute -right-2 bottom-0 h-12 w-10"><AssetPortrait src={homePet.imagePath} alt={homePet.name} placeholder={homePet.placeholder} kind="pet" /></span>{/if}</button><DailyCheckinCard compact reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} /></section>
+            <AvatarGreeting avatarId={homeAvatar.id} displayName={player.displayName} />
             <div class="flex items-center justify-between gap-3 pt-2"><div class="flex min-w-0 items-center gap-2"><img class="size-10 shrink-0 object-contain" src="assets/brand/masque-game-center-symbol.png" alt="" /><div><p class="text-[10px] font-semibold text-sky-700">MASQUE <span class="ml-1 rounded border border-sky-300 px-1 text-[9px]">DEMO</span></p><h1 class="text-xl font-bold leading-tight">Game Center</h1></div></div><button class="grid size-10 shrink-0 place-items-center rounded-md border border-white bg-white/60 text-sky-700 transition-transform active:scale-95 motion-reduce:transition-none" onclick={() => navigate('admin')} aria-label="เปิด Demo Admin" title="Demo Studio"><Settings2 size={18} /></button></div>
-            <section class="block">
+            {#if homeGenre === 'all'}<section class="block">
               <FeaturedGameCard game={featuredGame} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${featuredGame.id}`)} />
               <p class="mt-3 flex items-center justify-between px-1 text-xs text-[var(--g-muted)]"><span>Personal Best · SIMULATED</span><strong>{(player.demo.scores[featuredGame.id] ?? 0).toLocaleString()}</strong></p>
-            </section>
+            </section>{/if}
             <section class="block">
-              <SectionHeading eyebrow="PICK YOUR NEXT PLAY" title="เกมทั้งหมด" chip={`${catalogGames.length + 1} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
-              <div class="game-list">{#each catalogGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 flex justify-between px-1 text-[11px] text-[var(--g-muted)]"><span>Personal Best</span><strong>{(player.demo.scores[game.id] ?? 0).toLocaleString()}</strong></p></div>{/each}</div>
+              <SectionHeading eyebrow="PICK YOUR NEXT PLAY" title={homeGenre === 'all' ? 'เกมทั้งหมด' : homeGenre} chip={`${homeGenre === 'all' ? catalogGames.length : filteredGames.length} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
+              <div class="flex gap-1 overflow-x-auto pb-2" role="group" aria-label="กรองประเภทเกม">{#each [{ id: 'all', label: 'ทั้งหมด' }, { id: 'Arcade', label: 'Arcade' }, { id: 'Action', label: 'Action' }, { id: 'Reaction', label: 'Reaction' }, { id: 'Runner', label: 'Runner' }, { id: 'Shooter', label: 'Shooter' }, { id: 'Memory', label: 'Memory' }] as filter (filter.id)}<button class={['min-h-9 shrink-0 rounded-full border px-3 text-[10px] font-semibold', homeGenre === filter.id ? 'border-sky-500 bg-sky-600 text-white' : 'border-white bg-white/70 text-[#71839a]']} aria-pressed={homeGenre === filter.id} onclick={() => homeGenre = filter.id}>{filter.label}</button>{/each}</div>
+              {#if filteredGames.length}<div class="game-list">{#each filteredGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 flex justify-between px-1 text-[11px] text-[var(--g-muted)]"><span>Personal Best</span><strong>{(player.demo.scores[game.id] ?? 0).toLocaleString()}</strong></p></div>{/each}</div>{:else}<p class="py-8 text-center text-xs text-[var(--g-muted)]">ไม่มีเกมในหมวดนี้</p>{/if}
             </section>
             <button class="flex min-h-16 items-center gap-3 rounded-lg border border-white/80 bg-white/55 px-3 text-left shadow-sm transition-transform active:scale-[0.99]" onclick={() => navigate('world')}>
               <span class="h-12 w-10 shrink-0"><AssetPortrait src={homeAvatar.imagePath} alt="" placeholder={homeAvatar.placeholder} kind="avatar" /></span>
@@ -511,12 +537,13 @@
           <ShopPage
             {player}
             {vipActive}
+            countdown={formatCountdown(refillCountdown)}
             bind:tab={shopTab}
             onBuy={(itemId) => (modal = { kind: 'item-confirm', itemId })}
             onRefill={openRefill}
-            onPass={() => navigate('rewards')}
             onBuyPointPack={purchasePoints}
             onBuyTickets={(quantity) => requestAction('ซื้อบัตรเข้า Ranked', `${quantity} ใบ · ${quantity * player.demo.config.arenaTicketPrice} MP`, 'ยืนยันซื้อบัตร', () => applyAction(buyArenaTickets(player, quantity), 'ซื้อบัตรเข้า Ranked แล้ว'))}
+            onBuyGachaCoupons={(quantity) => openGachaCouponPurchase(quantity, 'shop')}
           />
         {:else if page === 'rewards'}
           <PassPage
@@ -542,7 +569,7 @@
         {:else if page === 'points'}
           <PointShop {player} onBuy={purchasePoints} onBack={returnFromPoints} />
         {:else if page === 'gacha'}
-          <PetGacha {player} busy={gachaBusy} onDraw={startGacha} onTopUp={openGachaTopUp} />
+          <PetGacha {player} busy={gachaBusy} onDraw={startGacha} onBuyCoupons={(quantity) => openGachaCouponPurchase(quantity)} />
         {:else if page === 'profile' || page === 'room'}
           {#key page}<ProfilePage {player} editable={page === 'room'} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onSave={(style, frameId) => applyAction(customizeProfile(player, style, frameId), 'บันทึกโปรไฟล์แล้ว')} />{/key}
         {:else if page === 'ranking'}
@@ -554,7 +581,7 @@
     </main>
   {/if}
   {#if page !== 'game'}<BottomNav {page} />{/if}
-  {#if !['game', 'avatar', 'gacha', 'points', 'rewards'].includes(page)}<button class="fixed z-30 flex min-h-12 items-center gap-2 rounded-full border-2 border-white bg-[#fff3cb] px-3 text-[#80540e] shadow-[0_4px_0_#d7ad55] transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="ไปตู้สุ่ม Pet" aria-label="ไปตู้สุ่ม Pet" onclick={() => navigate('gacha')}><span class="relative grid size-8 place-items-center rounded-full border border-white bg-[#ffdf8a]"><PawPrint size={18} />{#if player.gachaTickets > 0}<span class="absolute -top-2 -right-2 grid size-4 place-items-center rounded-full bg-[#e76e65] text-[9px] font-bold text-white">{player.gachaTickets}</span>{/if}</span><span class="grid text-left leading-tight"><strong class="text-[11px]">ตู้สุ่ม Pet</strong><small class="text-[9px]">เปิดตู้ 1 ครั้ง</small></span></button>{/if}
+  {#if !['game', 'avatar', 'gacha', 'points', 'rewards'].includes(page)}<button class="fixed z-30 flex min-h-12 items-center gap-2 rounded-full border-2 border-white bg-[#fff3cb] px-3 text-[#80540e] shadow-[0_4px_0_#d7ad55] transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="ไปตู้สุ่ม Avatar / Pet" aria-label="ไปตู้สุ่ม Avatar / Pet" onclick={() => navigate('gacha')}><span class="relative grid size-8 place-items-center rounded-full border border-white bg-[#ffdf8a]"><PawPrint size={18} />{#if player.gachaTickets > 0}<span class="absolute -top-2 -right-2 grid size-4 place-items-center rounded-full bg-[#e76e65] text-[9px] font-bold text-white">{player.gachaTickets}</span>{/if}</span><span class="grid text-left leading-tight"><strong class="text-[11px]">ตู้สุ่ม Avatar / Pet</strong><small class="text-[9px]">1 หรือ 10+1 ครั้ง</small></span></button>{/if}
 </div>
 
 {#if page !== 'game'}<div class="landscape-notice" role="status"><strong>กรุณาหมุนมือถือเป็นแนวตั้ง</strong></div>{/if}
@@ -566,13 +593,14 @@
   {now}
   exchangeAmount={exchangeAmount}
   checkinReward={CHECKIN_REWARD}
-  onClose={() => (modal = null)}
+  onClose={closeModal}
   onPickRefill={(id) => (modal = { kind: 'refill-confirm', refillId: id })}
   onConfirmRefill={confirmRefill}
   onConfirmVip={confirmVip}
   onPickVip={openVipConfirm}
   onConfirmExchange={confirmExchange}
   onConfirmItem={confirmItem}
+  onConfirmGachaCoupons={confirmGachaCoupons}
   onConfirmAction={() => { const action = confirmAction; confirmAction = null; modal = null; action?.(); }}
   onOpenRefill={() => openRefill()}
   onOpenVip={() => { modal = null; openVipShop(); }}

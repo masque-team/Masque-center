@@ -197,7 +197,7 @@
           </ul>
           <div class="vip-buy">
             <span class="price"><Coins size={15} />{pack.cost}<small>MP</small></span>
-            <GameButton variant="gold" size="md" onclick={() => onVip(pack.id)}>{vipActive ? 'ต่ออายุ' : 'เปิด VIP'}</GameButton>
+            {#if vipActive}<span class="text-center text-[10px] font-semibold text-amber-800">VIP active · ซื้อแพ็กใหม่ได้เมื่อหมดอายุ</span>{:else}<GameButton variant="gold" size="md" onclick={() => onVip(pack.id)}>เลือกแพ็ก LV.{pack.startLevel ?? 1}</GameButton>{/if}
           </div>
         </article>
       {/each}

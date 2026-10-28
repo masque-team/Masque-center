@@ -128,8 +128,13 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   result.demo.ownedDecor ??= ['sofa', 'plant'];
   result.demo.config.decorPrice ??= 25;
   result.demo.config.games = result.demo.config.games.map((game, index) => ({ ...game, ...(game.id === 'memory' ? { cover: game.cover ?? 'mem.png' } : {}), published: game.published ?? true, displayOrder: game.displayOrder ?? index + 1 }));
+  if (result.demo.config.games.some((game) => game.id === 'bird' && game.featured) && !result.demo.config.games.some((game) => game.id === 'memory' && game.featured)) {
+    result.demo.config.games = result.demo.config.games.map((game) => game.id === 'memory' ? { ...game, featured: true, editorialTag: 'hot' } : game.id === 'bird' ? { ...game, featured: false, editorialTag: 'new' } : game);
+  }
   result.demo.config.vipPlans = result.demo.config.vipPlans.map((plan) => ({ ...plan, bonusPoints: plan.bonusPoints ?? (plan.id === 'seven-day' ? 80 : 0), bonusTickets: plan.bonusTickets ?? (plan.id === 'five-day' ? 1 : 0) }));
-  if (!result.demo.config.vipPlans.some((plan) => (plan.startLevel ?? 1) > 1)) result.demo.config.vipPlans.push(structuredClone(VIP_PACKAGES.find((plan) => plan.id === 'monthly-boost-30')!));
+  for (const plan of VIP_PACKAGES) {
+    if (!result.demo.config.vipPlans.some((existing) => existing.id === plan.id)) result.demo.config.vipPlans.push(structuredClone(plan));
+  }
   result.displayName = queryName?.trim().replace(/\s+/g, ' ').slice(0, 40) || 'Guest Player';
   savePlayer(result);
   return result;

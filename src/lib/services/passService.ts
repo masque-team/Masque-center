@@ -12,7 +12,7 @@ export function vipOffer(player: PlayerState, packageId: string, now = Date.now(
   const pass = currentPass(player, now);
   const level = passProgress(pass.xp).level;
   const boosted = startLevel > 1;
-  const eligible = !boosted || !active && level < startLevel;
+  const eligible = !active && (!boosted || level < startLevel);
   const xpAfter = active ? pass.xp : Math.max(pass.xp, startLevel * PASS_RULES.xpPerLevel);
   return { plan, active, boosted, eligible, level, levelAfter: passProgress(xpAfter).level, xpAfter, expiresAt: Math.max(now, player.vipExpiresAt ?? 0) + plan.durationDays * 86_400_000 };
 }

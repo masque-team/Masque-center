@@ -16,7 +16,7 @@
 <section class="vip" class:active={vipActive} aria-label="VIP Pass">
   <span class="crown" aria-hidden="true"><Crown size={30} fill="currentColor" /></span>
   <div class="body">
-    <h3>{vipActive ? 'VIP กำลังใช้งาน' : 'VIP Pass 5 / 7 วัน'}</h3>
+    <h3>{vipActive ? 'VIP กำลังใช้งาน' : 'VIP Pass · 30 วัน'}</h3>
     <p class="sub">{vipActive ? `สิทธิ์ถึง ${vipUntil}` : `เริ่มต้น ${startCost} MP · ราคาตัวอย่าง`}</p>
     <ul>
       <li><Zap size={12} fill="currentColor" />ยกเว้นค่าเข้าเกม</li>
@@ -25,7 +25,7 @@
     </ul>
   </div>
   <div class="cta">
-    <GameButton variant="gold" size="sm" onclick={onShop}>{vipActive ? 'ต่ออายุ' : 'ดูแพ็กเกจ'} <ArrowRight size={14} /></GameButton>
+    <GameButton variant="gold" size="sm" onclick={onShop}>{vipActive ? 'ดูสิทธิ์' : 'ดูแพ็กเกจ'} <ArrowRight size={14} /></GameButton>
     <button class="room" onclick={onRoom}><UsersRound size={14} />เล่นกับเพื่อน</button>
   </div>
 </section>

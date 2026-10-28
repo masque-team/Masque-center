@@ -36,15 +36,16 @@ MGC เปิด MV ผ่าน iframe ไม่ import renderer ของ MV; 
 
 ## ฟีเจอร์
 
-- **Energy** เป็นยอดตัวเลขสะสมสำหรับทุกคน ฟื้น 1 หน่วยทุก 30 นาทีถึงเพดานปัจจุบัน: ฟรี 12 / VIP 18 (โบนัส MAX +6 ปรับได้ใน Studio) ซื้อหรือรับรางวัลเกินเพดานได้ ไม่ฟื้นเพิ่มขณะเต็ม และไม่ตัดยอดเมื่อ VIP หมดอายุ
-- **VIP Pass** การ์ดแสดงซื้อ VIP หรือซื้อเวลาเพิ่มตามสถานะ ไม่เปลี่ยนเป็นปุ่มเติมแต้มเมื่อยอดไม่พอ กดแล้วเลือกแพ็ก/ดูราคา/สิทธิ์ใน popup เดิม: ปกติ 30 วัน 990 MP เริ่มอย่างน้อย LV.1 หรือ VIP + LV.30 ราคา 1,990 MP สำหรับผู้ยังไม่มี VIP และยังไม่ถึง LV.30; ราคาเดโมปรับใน Studio ได้
-- **ซื้อเวลาเพิ่ม** ผู้มี VIP เห็นเฉพาะแพ็กปกติ ต่อ 30 วันจากวันหมดอายุเดิม คง XP/claims/เลเวลทั้งหมด ไม่รับ LV.30 ซ้ำ ส่วนผู้หมด VIP แล้วเลือกแพ็กได้ตามเงื่อนไขเดิม แพ็กเร่งตั้ง XP อย่างน้อย 3,000 ของซีซันปัจจุบัน ไม่บวก 30 เลเวลทับและไม่เปลี่ยนเลเวลโปรไฟล์
+- **Energy** เป็นยอดตัวเลขสะสม ฟื้น +1 ทุก 30 นาที มี countdown ให้เห็นเมื่อยังไม่เต็มใน Header, Shop และหน้าเกม; เพดานเริ่มต้นฟรี 12 / VIP 18 (MAX +6) เติม/รับรางวัลเกินเพดานได้ และไม่ตัดยอดเมื่อ VIP หมดอายุ
+- **VIP Pass** ใช้ได้ 30 วัน: เกมทั่วไปยกเว้นค่าเข้า Energy (Ranked ยังใช้บัตร), MAX Energy +6 และปลดล็อกรางวัล VIP ตาม XP ใน Pass; แพ็กซื้อได้เมื่อยังไม่มี VIP/หมดอายุ: LV.1 990 MP, LV.20 1,490 MP หรือ LV.30 1,990 MP
+- **VIP Pass Value** หน้าเลือกแพ็กแสดง LV/XP ที่เพิ่มทันที, MP ที่จ่ายเพิ่มเทียบ LV.1 และ resource/cosmetic ที่ปลดล็อกจาก reward table จริง ไม่แสดงเปอร์เซ็นต์ส่วนลดที่ไม่มีราคาอ้างอิง ขณะ VIP active จะแสดงวันหมดอายุและไม่มีปุ่มซื้อ/ต่อก่อนหมด
 - **ผลประโยชน์ก่อนจ่าย** popup แสดงวันหมดอายุหลังซื้อ, เข้าเกม 0 Energy, MAX ฟื้นพลัง +6 ตาม config, ของแถมตอนซื้อ และจำนวน Energy/MP/ตั๋วที่ปลดล็อกให้กดรับ คำนวณจาก reward table จริง มีตาราง Energy สะสมที่ LV.1/10/20/30/50 ยอดเหล่านี้ไม่เติมเข้า Energy ทันที สิทธิ์รางวัลเก่าไม่ถูกโฆษณาให้ซื้อซ้ำ
 - **Pass / Missions** ซีซันอัตโนมัติรอบละ 30 วัน, 50 เลเวลหลัก (100 XP/เลเวล), Free/VIP tracks และ claims แยกตามรอบ ปุ่มรับทั้งหมดเก็บของที่ปลดล็อกได้ครั้งเดียว; หลักไมล์มี Avatar, Pet, ปีก, กรอบ, พื้นหลัง, บัตร Ranked และป้ายจบซีซัน ของซ้ำชดเชย MP ตาม config
 - **Bonus Levels** หลัง LV.50 ยังเก็บ XP ต่อได้ ทุกเลเวลโบนัสรับ 10 MP ยกเว้นเลเวลที่หาร 5 ลงตัวเป็นตั๋วกาชา 1 ใบ ไม่แจก cosmetic หายากแบบไม่จำกัด
 - **ภารกิจ** รายวันเริ่มต้นจบ 3 รอบรับ 200 XP, รายสัปดาห์เล่นต่างกัน 4 เกมรับ 500 XP และรายเกมเป้าสะสม 1/5/10/20/50/100/... รับ MP/XP เป้ารายเกมไม่รีเซ็ตตามซีซัน ส่วนรายวัน/รายสัปดาห์แยกตามรอบป้องกันรับซ้ำ
 - **Shop / Point Shop** แท็บของขาย/เติมแต้ม/Energy อยู่ตำแหน่งเดิม ไม่มีร้าน VIP ซ้ำ ปุ่ม + ข้างยอด MP เปิด `#points` โดยตรง เลือกแพ็ก 99/199/299/499/699/999 AIS Points ไม่มีช่องแลกจำนวนเอง โบนัส x2 ครั้งแรกคิดเฉพาะแต้มหลักและจำแยกต่อแพ็ก; ธุรกรรมยังเป็นเดโมในเครื่อง
-- **Avatar & Pets** แต่งตัวจาก Avatar; ปุ่มลอยรูปอุ้งเท้าเปิด `#gacha` แยกจากห้องแต่งตัว มีตั๋ว/MP และผลสุ่มแบบ Mock
+- **Avatar & Pets** แต่งตัวจาก Avatar; ตู้สุ่มมีแท็บ Avatar/Pet, Rate Up และ Energy เป็นผลลัพธ์ คูปอง 1 ใบสุ่ม 1 ครั้ง หรือใช้ 10 ใบเปิด 11 ครั้ง คูปองซื้อด้วย MP จาก popup เดียวกับ Shop; ไม่มีการตัด MP โดยตรงตอนสุ่ม
+- **Home Discovery** เกม Memory เป็น featured HOT มี filter ตาม Arcade/Action/Reaction/Runner/Shooter/Memory และ Avatar มีข้อความทักทายสลับเป็นระยะ
 - **Ranking** แยก Game ID และ Lifetime/Season พร้อมรางวัล MP สำหรับ Top 3 แบบจำลอง รับครั้งเดียวต่อเกม/Season; Free และ VIP ใช้กติกาเดียวกัน
 - **Battle Arena** ซื้อบัตรเข้า Ranked ด้วย MP (เริ่มต้น 30 MP/ใบ) แล้วใช้ 1 ใบเข้าเกม ไม่หัก Energy/MP ตอนเข้าและไม่หักบัตรซ้ำเมื่อ reload session เดิม; จบ Ranked เดโมได้ 70 MP/80 EXP เทียบกับ Casual 40 EXP; ส่ง `mode=ranked` ให้ URL เกม แต่โฮสต์ยังต้องรองรับโหมด/ผลยืนยันเอง
 - **Masque Vease / World** เมือง 3D แนวตั้งด้วย Three.js พร้อมบ้าน/ร้านค้า คลอง สะพาน น้ำพุ และตัวละคร 2D billboard แตะพื้นเพื่อเดินด้วย A* อ้อมสิ่งกีดขวาง ไม่มี joystick แตะอาคารเพื่อเปิดเมนูร้าน/เลือกเกม พร้อมกล้องตามตัวละคร, ซูม/หมุน, แผนที่, Emote/Chat และผู้เล่นจำลอง 6 คน
@@ -64,7 +65,7 @@ MGC เปิด MV ผ่าน iframe ไม่ import renderer ของ MV; 
 
 Ranked ยังคงใช้บัตร 1 ใบ ไม่ใช้ Energy ตอนเข้า ทั้งฟรีและ VIP ค่าเล่นต่ออยู่ใน `continueEnergyCost` และมี `spendContinueEnergy` แยกจาก `spendGameEnergy` แล้ว แต่ยังไม่มีปุ่ม resume, iframe message handler หรือการสั่งเกมให้เล่นต่อ เพราะเกมภายนอกยังไม่รองรับ ไม่ควรเรียกหักก่อนผู้เล่นยืนยันคำขอที่เกมรองรับจริง
 
-Config ใช้ `vipFreeEntry`, `vipEnergyBonus`, `continueEnergyCost` แทนความหมายเดิมของ `vipUnlimited` ตัว loader ย้าย save เก่าและแก้เวลา regen ที่เคยถูกพักถึงวันหมด VIP โดยรักษา Energy/วัน VIP เดิมไว้ การซื้อ/ต่ออายุไม่เติมพลังให้เต็มทันที และไม่รีเซ็ตเวลาที่ฟื้นค้างไว้เมื่อยังไม่เต็ม
+Config ใช้ `vipFreeEntry`, `vipEnergyBonus`, `continueEnergyCost` แทนความหมายเดิมของ `vipUnlimited` ตัว loader ย้าย save เก่าและแก้เวลา regen ที่เคยถูกพักถึงวันหมด VIP โดยรักษา Energy/วัน VIP เดิมไว้ การซื้อ Pass ไม่เติมพลังให้เต็มทันที และไม่รีเซ็ตเวลาที่ฟื้นค้างไว้เมื่อยังไม่เต็ม
 
 - เข้าแอปโดยไม่ใส่ `name` จะแสดงหน้าเริ่มเกม ให้กรอกชื่อก่อน ชื่อนี้อยู่ใน memory ของ session และไม่บันทึกใน `localStorage`; reload จะกลับมาหน้านี้
 - `?name=Mint` ข้ามหน้าเริ่มเกมและใช้ชื่อนี้ใน session โดยไม่รีเซ็ตยอดหรือบันทึกชื่อ
@@ -149,7 +150,7 @@ Migration เก็บ pass records เดิมและคัดลอกส�
 3. เปิดเกม กดเริ่ม ลองรีเฟรช แล้วใช้ **Simulate Finish**; Energy หักครั้งเดียวและคะแนน/EXP อัปเดต
 4. เปิด Ranking สลับ Season/Lifetime ดูคะแนนของตนเอง รางวัล Top 3 ใช้ MP เท่านั้น
 5. กด + ข้าง MP เพื่อเปิดแพ็กเติมแต้ม ลองซื้อแพ็กเดิมซ้ำเพื่อตรวจว่าโบนัสครั้งแรกไม่ซ้ำ; Shop → Energy ซื้อได้เกินเพดาน Regen
-6. กดซื้อ VIP Pass ดูแพ็กปกติ/LV.30 และตารางผลประโยชน์ก่อนจ่าย ถ้าแต้มไม่พอเติมผ่าน Point Shop แล้วกลับมาแพ็กเดิมโดยยังต้องยืนยันซื้ออีกครั้ง ผู้มี VIP กดซื้อเวลาเพิ่มแล้วตรวจวันหมดอายุใหม่กับเลเวลที่คงเดิม
+6. กดซื้อ VIP Pass ดูแพ็ก LV.1/LV.20/LV.30 และรางวัลที่ปลดล็อกจริงก่อนจ่าย ถ้าแต้มไม่พอเติมผ่าน Point Shop; ผู้มี VIP รอหมดอายุก่อนซื้อแพ็กใหม่
 7. ซื้อ Avatar/ปีกแล้วไป Avatar & Pets เพื่อสวม; กรอบรูปเลือกที่ My Space → แต่งโปรไฟล์ เลือก Pet ในเมืองได้จากปุ่มรูปอุ้งเท้า
 8. ที่ Pass → ภารกิจ เล่นเกมหนึ่งรอบ รับ MP/XP แล้วตรวจเป้ารายเกมเปลี่ยน 1 เป็น 5; เล่นครบ 3 รอบรับรายวัน และต่างกัน 4 เกมรับรายสัปดาห์ รางวัลเป็นทางเดินแนวตั้งต่อเนื่อง 1–50: ฟรีซ้าย, VIP ขวา, เส้นเลเวลอยู่กลาง ใช้ scroll หน้าเว็บปกติ ไม่มี scroll ซ้อน แถบ XP/รับทั้งหมด/ไปเลเวลปัจจุบันติดด้านบน และของเด่นทุก 5 เลเวลมีภาพใหญ่ขึ้น
 9. เปิด Demo Studio → Seasons เปลี่ยน Pass Season/Ranking ID หรือ Reset Ranking; Lifetime และ Pass Season อื่นยังอยู่
@@ -164,7 +165,7 @@ Migration เก็บ pass records เดิมและคัดลอกส�
 
 Reward-track presentation references the Free/Premium progression model in the [official VALORANT Battlepass FAQ](https://support.riotgames.com/en-us/valorant/gameplay/battlepass-faq). Masque uses its own artwork and a portrait-friendly vertical path with aligned Free/Level/VIP columns; no external game assets are bundled and the 30-day economy is unchanged by this UI refinement. Claiming a reward preserves the page position.
 
-`npm test` ตรวจ MGC 41 tests รวมแพ็กเริ่ม LV.1/LV.30, ซื้อเวลาเพิ่มไม่ลดเลเวล, ตัวเลขผลประโยชน์จากตารางจริง, VIP Energy และระบบ Pass/Economy เดิม ส่วน `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route/focus allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
+`npm test` ตรวจ MGC 46 tests รวม AIS seed 1,000, แพ็ก Pass LV.1/20/30, ปิด early renewal, Shop/background migration, coupon-only Gacha 10+1 และ Energy reward; `npm run test:mv` ตรวจ MV 15 tests รวม A*, origin/source, route/focus allowlist และขนาด iframe ใช้ `npm run check` / `npm run check:mv` ตรวจ types และ `npm run build` / `npm run build:mv` ตรวจ production bundles แยกกัน
 
 ## Masque Vease
 

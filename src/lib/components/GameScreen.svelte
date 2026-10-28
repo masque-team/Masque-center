@@ -5,11 +5,12 @@
   import { energyCapacity } from '../services/energyService';
   import type { Game, PlayerState } from '../types';
 
-  let { game, player, sessionId, vipActive, loading, fallback, version, onBack, onLoad, onError, onReload, onRefill, onFinish, finished }: {
+  let { game, player, sessionId, vipActive, countdown, loading, fallback, version, onBack, onLoad, onError, onReload, onRefill, onFinish, finished }: {
     game: Game;
     player: PlayerState;
     sessionId: string;
     vipActive: boolean;
+    countdown: string;
     loading: boolean;
     fallback: boolean;
     version: number;
@@ -30,7 +31,7 @@
   <header class="top">
     <button class="back" onclick={onBack} aria-label="กลับหน้าเกม"><ArrowLeft size={22} strokeWidth={2.8} /></button>
     <div class="copy"><strong>{game.name}</strong><small>{player.displayName} · LV.{player.level}</small></div>
-    <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {onRefill} />
+    <EnergyBadge energy={player.energy} {vipActive} countdown={countdown} max={energyCapacity(player, vipActive)} {onRefill} />
   </header>
   <div class="info">
     <span>{ranked ? 'RANKED · ใช้บัตรเข้า 1 ใบ · ไม่ใช้ Energy' : vipActive && player.demo.config.vipFreeEntry ? 'VIP · เข้าเกมไม่เสีย Energy' : `ใช้ ${player.demo.config.energyCost} Energy ต่อการเข้าเล่น`}</span>

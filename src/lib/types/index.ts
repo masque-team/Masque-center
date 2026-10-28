@@ -60,6 +60,12 @@ export interface RankingEntry {
 
 export type RankingPeriod = 'weekly' | 'allTime';
 export type GameMode = 'casual' | 'ranked';
+export type GachaKind = 'avatar' | 'pet';
+export type GachaDrawResult =
+  | { kind: 'energy'; amount: number; duplicate: false }
+  | { kind: 'avatar' | 'pet'; itemId: string; duplicate: boolean; duplicatePoints?: number };
+export interface GachaOddsItem { kind: GachaDrawResult['kind']; itemId?: string; title: string; weight: number; rate: number; featured?: boolean }
+export interface GachaBatchResult { player: PlayerState; results: GachaDrawResult[]; paidCoupons: number; bonusDraws: number }
 export interface ProfileStyle { backgroundId: string; bio: string; badgeIds: string[] }
 export interface ProfileBadge { id: string; title: string; earnedAt: number; seasonId?: string; gameId?: GameId }
 
@@ -73,7 +79,8 @@ export type ModalState =
   | { kind: 'refill-confirm'; refillId: string }
   | { kind: 'exchange-confirm' }
   | { kind: 'item-confirm'; itemId: string }
-  | { kind: 'gacha-result'; petId: string; duplicate: boolean }
+  | { kind: 'gacha-result'; gachaKind: GachaKind; results: GachaDrawResult[]; paidCoupons: number; bonusDraws: number }
+  | { kind: 'gacha-coupon-confirm'; quantity: 1 | 10 }
   | { kind: 'checkin-success' }
   | { kind: 'energy-empty' }
   | { kind: 'action-confirm'; title: string; message: string; label: string }

@@ -464,7 +464,7 @@ Festival and Mali Ranked are separate purchasable full-body Avatar variants; eac
 - Installed `wings/sky-feather.png`: white feathers with sky blue shading and silver edges.
 - Installed `wings/sunrise-seraph.png`: ivory/gold feathers with subtle coral jewel accents.
 - Optional later: `wings/moon-moth.png`, rose/silver fantasy moth wings, not neon purple.
-- Batch 2 wing PNGs replace the old demo wing assets in MGC/MV; those old demo files were
+- Batch 2 wing PNGs replace the old demo wing assets in MGC/MV.
 - `npm run art:cosmetics` overwrites the supplied wing files; do not run it over the final art.
 
 ### Pets

@@ -20,7 +20,7 @@
   const numericFields = [
     ['energyMax', 'เพดาน Energy ฟรี', 1], ['vipEnergyBonus', 'VIP เพิ่มเพดาน Energy', 0], ['regenMinutes', 'ฟื้น 1 Energy ทุก (นาที)', 1], ['energyCost', 'Energy ค่าเข้าเกม', 1], ['continueEnergyCost', 'Energy เล่นต่อ (เตรียมไว้)', 1],
     ['exchangeRate', 'MP ต่อ 1 AIS Point', 1], ['checkinReward', 'Check-in reward (MP)', 0], ['missionTarget', 'ภารกิจเล่นจบ (ครั้ง)', 1],
-    ['missionXp', 'ภารกิจให้ Pass XP', 1], ['gachaCost', 'Gacha (MP)', 0],
+    ['missionXp', 'ภารกิจให้ Pass XP', 1], ['gachaCost', 'คูปองสุ่ม 1 ใบ (MP)', 0],
     ['duplicatePoints', 'Pet ซ้ำคืน (MP)', 0], ['rankingPrize', 'Ranking prize (MP)', 0], ['arenaTicketPrice', 'บัตรเข้า Ranked (MP/ใบ)', 1], ['battlePrize', 'รางวัลจบ Ranked (MP)', 0],
   ] as const;
   function rewardItems(type: DemoReward['type']) {
