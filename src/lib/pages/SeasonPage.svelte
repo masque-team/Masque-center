@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { Check, CheckCheck, Clock3, Crown, Gift, Infinity, LockKeyhole, Sparkles, Target, Trophy } from '@lucide/svelte';
+  import { Check, CheckCheck, Clock3, Crown, Gift, Infinity, Sparkles, Target, Trophy } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
   import GameButton from '../components/GameButton.svelte';
   import RewardIcon from '../components/RewardIcon.svelte';
+  import PassRewardTrack from '../components/PassRewardTrack.svelte';
   import { AVATARS } from '../data/config';
   import { PASS_RULES, passProgress } from '../services/battlePassService';
-  import { currentPass, currentSeason, dailyPassMission, gameMission, hasPassAccess, nextPassBonus, ownsPassReward, weeklyPassMission } from '../services/demoService';
+  import { currentPass, currentSeason, dailyPassMission, gameMission, hasPassAccess, nextPassBonus, weeklyPassMission } from '../services/demoService';
   import type { GameId, PlayerState } from '../types';
 
   let { player, now, vipActive = false, onClaim, onClaimAll, onBonus, onVip, onMission, onWeekly, onPlay, onTopUp }: {
@@ -15,12 +16,10 @@
     onPlay: (id?: GameId) => void; onTopUp: () => void;
   } = $props();
   let tab = $state<'rewards' | 'missions'>('rewards');
-  let selection = $state<{ season: string; group: number } | null>(null);
   let season = $derived(currentSeason(player, now));
   let pass = $derived(currentPass(player, now));
   let premium = $derived(hasPassAccess(player, now));
   let progress = $derived(passProgress(pass.xp));
-  let group = $derived(selection?.season === season.id ? selection.group : Math.min(4, Math.floor(progress.mainLevel / 10)));
   let remaining = $derived(Math.max(0, Date.parse(`${season.ends}T00:00:00Z`) - now));
   let daily = $derived(dailyPassMission(player, now));
   let weekly = $derived(weeklyPassMission(player, now));
@@ -51,24 +50,7 @@
     <div class="flex items-center justify-between gap-2"><h2 class="text-sm font-bold">รางวัล 50 เลเวล</h2><button class="flex min-h-9 items-center gap-1 rounded-md border border-white bg-white/85 px-2 text-[10px] font-semibold text-sky-700 disabled:opacity-40" disabled={available === 0} onclick={onClaimAll}><CheckCheck size={14} />รับทั้งหมด{available ? ` (${available})` : ''}</button></div>
     {#if progress.complete}<section class="flex items-center gap-3 rounded-lg border border-sky-200 bg-white/85 p-3" aria-label="โบนัสหลังเลเวล 50"><RewardIcon type={bonus.reward.type} size={44} /><div class="min-w-0 flex-1"><h2 class="flex items-center gap-1 text-xs font-bold"><Infinity size={14} />โบนัส LV.{bonus.level}</h2><p class="mt-1 text-[10px] text-[#7b8fa1]">{bonus.reward.title} · {bonus.level * 100} XP</p></div><GameButton size="sm" disabled={!bonus.ready} onclick={onBonus}>รับโบนัส</GameButton></section>{/if}
     {#if milestone && !progress.complete}<div class="flex items-center gap-3 border-y border-amber-100 bg-white/65 px-2 py-3"><RewardIcon type={milestone.type} itemId={milestone.itemId} size={44} /><div class="min-w-0"><small class="text-[9px] font-semibold text-amber-600">NEXT MILESTONE · LV.{nextMilestone}</small><strong class="block break-words text-xs">{milestone.title}</strong></div></div>{/if}
-    <div class="sticky top-[130px] z-10 grid grid-cols-5 gap-1 border-y border-white bg-[#f0f5ff]/95 py-2 backdrop-blur-md" role="group" aria-label="ช่วงเลเวล">{#each [0, 1, 2, 3, 4] as index (index)}<button class={['min-h-9 rounded-md text-[10px] font-semibold tabular-nums', group === index ? 'bg-[#5e55b3] text-white' : 'bg-white/70 text-[#7b8fa1]']} aria-pressed={group === index} onclick={() => { selection = { season: season.id, group: index }; }}>{index * 10 + 1}–{index * 10 + 10}</button>{/each}</div>
-    <div class="grid grid-cols-[28px_1fr_1fr] gap-2 text-center text-[10px] font-bold"><span>LV</span><span>FREE</span><span class="flex items-center justify-center gap-1 text-amber-700"><Crown size={12} />VIP</span></div>
-    <div class="space-y-3" aria-label="ตารางรางวัล Pass">
-      {#each season.free.slice(group * 10, group * 10 + 10) as reward, offset (group * 10 + offset)}
-        {@const index = group * 10 + offset}
-        <div class="grid grid-cols-[28px_minmax(0,1fr)_minmax(0,1fr)] items-stretch gap-2"><span class={['flex items-center justify-center text-xs font-bold', (index + 1) % 5 === 0 ? 'text-amber-600' : 'text-[#8b98a9]']}>{index + 1}</span>
-          {#each [{ track: 'free' as const, reward }, { track: 'premium' as const, reward: season.premium[index] }] as cell (cell.track)}
-            {@const done = pass.claims.includes(`${cell.track}-${index}`)}
-            {@const locked = pass.xp < (index + 1) * 100 || cell.track === 'premium' && !premium}
-            <article class={['grid min-h-40 min-w-0 content-between justify-items-center gap-2 rounded-lg border p-2 text-center', (index + 1) % 5 === 0 ? 'border-amber-200 bg-[#fff9e7]/90' : 'border-white bg-white/80', locked ? 'opacity-65' : '']} aria-label={`LV.${index + 1} ${cell.track === 'free' ? 'Free' : 'VIP'} ${cell.reward.title}`}>
-              <RewardIcon type={cell.reward.type} itemId={cell.reward.itemId} size={48} /><strong class="break-words text-[11px] leading-snug">{cell.reward.title}</strong>
-              {#if !done && ownsPassReward(player, cell.reward)}<small class="text-[8px] text-[#8b98a9]">ของซ้ำ +{player.demo.config.duplicatePoints} MP</small>{/if}
-              {#if done}<span class="flex h-9 items-center gap-1 text-[10px] text-sky-700"><Check size={13} />รับแล้ว</span>{:else if locked}<span class="flex h-9 items-center gap-1 text-[10px] text-[#8b98a9]"><LockKeyhole size={12} />{cell.track === 'premium' && !premium ? 'VIP Pass' : `${(index + 1) * 100} XP`}</span>{:else}<GameButton size="sm" variant={cell.track === 'premium' ? 'gold' : 'purple'} onclick={() => onClaim(index, cell.track)}>รับรางวัล</GameButton>{/if}
-            </article>
-          {/each}
-        </div>
-      {/each}
-    </div>
+    {#key season.id}<PassRewardTrack {player} {season} xp={pass.xp} claims={pass.claims} {premium} level={progress.level} {onClaim} />{/key}
   {:else}
     <section class="grid gap-3" aria-label="ภารกิจ Pass">
       {#each [{ id: daily.id, title: 'ประจำวัน', description: `เล่นจบ ${daily.target} รอบ`, count: daily.count, target: daily.target, xp: daily.xp, action: () => onMission(), icon: Target }, { id: weekly.id, title: 'ประจำสัปดาห์', description: `เล่นต่างกัน ${weekly.target} เกม`, count: weekly.games.length, target: weekly.target, xp: weekly.xp, action: onWeekly, icon: Trophy }] as mission (mission.id)}
