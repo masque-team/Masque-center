@@ -54,6 +54,7 @@
   let mockScores = $derived({ bird: 0, mole: 0, run: 0, fruit: 0, timber: 0, duck: 0, memory: 0, ...player.demo.scores });
   let CHECKIN_REWARD = $derived(player.demo.config.checkinReward);
   let page = $state<Page>('home');
+  let pointsReturnRoute = $state<Page | null>(null);
   let sceneState = $derived(veaseState(player));
   let wardrobeHeight = $state(1000);
   let motionReduced = $state(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -193,7 +194,7 @@
     clearIframeTimeout();
     const [routePath, hashQuery = ''] = window.location.hash.replace(/^#/, '').split('?');
     const [route, requestedGame] = routePath.split('/');
-    if (route !== 'points') vipTopUpIntent = null;
+    if (route !== 'points') { vipTopUpIntent = null; pointsReturnRoute = null; }
     const routes: Page[] = ['home', 'world', 'shop', 'rewards', 'ranking', 'avatar', 'profile', 'room', 'battle', 'wallet', 'admin', 'points', 'gacha'];
     if (route === 'detail' && requestedGame && Object.hasOwn(GAME_BY_ID, requestedGame)) {
       gameId = requestedGame as GameId;
@@ -265,10 +266,17 @@
     navigate('points');
   }
 
+  function openGachaTopUp(): void {
+    pointsReturnRoute = 'gacha';
+    openExchange();
+  }
+
   function returnFromPoints(): void {
     const packageId = vipTopUpIntent;
+    const returnRoute = pointsReturnRoute;
     vipTopUpIntent = null;
-    navigate(packageId ? 'rewards' : 'home');
+    pointsReturnRoute = null;
+    navigate(packageId ? 'rewards' : returnRoute ?? 'home');
     if (packageId) openVipConfirm(packageId);
   }
 
@@ -278,7 +286,7 @@
     requestAction('เติม Masque Points', `${pack.cost} AIS Points → ${pointPackReward(player, id).toLocaleString()} MP · DEMO`, 'ยืนยันซื้อแพ็ก', () => {
       const next = buyPointPack(player, id);
       applyAction(next, 'เติม Masque Points แล้ว');
-      if (next && vipTopUpIntent) returnFromPoints();
+      if (next && (vipTopUpIntent || pointsReturnRoute)) returnFromPoints();
     });
   }
 
@@ -534,7 +542,7 @@
         {:else if page === 'points'}
           <PointShop {player} onBuy={purchasePoints} onBack={returnFromPoints} />
         {:else if page === 'gacha'}
-          <PetGacha {player} busy={gachaBusy} onDraw={startGacha} />
+          <PetGacha {player} busy={gachaBusy} onDraw={startGacha} onTopUp={openGachaTopUp} />
         {:else if page === 'profile' || page === 'room'}
           {#key page}<ProfilePage {player} editable={page === 'room'} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onSave={(style, frameId) => applyAction(customizeProfile(player, style, frameId), 'บันทึกโปรไฟล์แล้ว')} />{/key}
         {:else if page === 'ranking'}
@@ -546,7 +554,7 @@
     </main>
   {/if}
   {#if page !== 'game'}<BottomNav {page} />{/if}
-  {#if !['game', 'avatar', 'gacha', 'points', 'rewards'].includes(page)}<button class="fixed z-30 grid size-14 place-items-center rounded-full border-2 border-white bg-[#fff3cb] text-[#8b5a07] shadow-lg transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="Pet Gacha" aria-label="เปิด Pet Gacha" onclick={() => navigate('gacha')}><PawPrint size={26} />{#if player.gachaTickets > 0}<span class="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-rose-500 text-[10px] text-white">{player.gachaTickets}</span>{/if}</button>{/if}
+  {#if !['game', 'avatar', 'gacha', 'points', 'rewards'].includes(page)}<button class="fixed z-30 flex min-h-12 items-center gap-2 rounded-full border-2 border-white bg-[#fff3cb] px-3 text-[#80540e] shadow-[0_4px_0_#d7ad55] transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="ไปตู้สุ่ม Pet" aria-label="ไปตู้สุ่ม Pet" onclick={() => navigate('gacha')}><span class="relative grid size-8 place-items-center rounded-full border border-white bg-[#ffdf8a]"><PawPrint size={18} />{#if player.gachaTickets > 0}<span class="absolute -top-2 -right-2 grid size-4 place-items-center rounded-full bg-[#e76e65] text-[9px] font-bold text-white">{player.gachaTickets}</span>{/if}</span><span class="grid text-left leading-tight"><strong class="text-[11px]">ตู้สุ่ม Pet</strong><small class="text-[9px]">เปิดตู้ 1 ครั้ง</small></span></button>{/if}
 </div>
 
 {#if page !== 'game'}<div class="landscape-notice" role="status"><strong>กรุณาหมุนมือถือเป็นแนวตั้ง</strong></div>{/if}

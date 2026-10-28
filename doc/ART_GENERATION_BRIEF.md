@@ -16,9 +16,9 @@
 
 ## Current Request: Game-Style Pass Art
 
-Generate this small set FIRST for the current Pass/shop design. The interface already has
-working previews made from existing wing PNGs and Lucide symbols. Those are placeholders,
-not the final painted Pass objects. No AI image-generation service was used for the preview.
+These four supplied images are now installed in `public/assets/pass/` and active in the Pass/shop
+UI. The tickets and crest replace the earlier wing/Lucide placeholders; the key art remains a
+background layer with live interface text and reward art over it.
 
 ### First Batch: Four Images
 
@@ -39,8 +39,7 @@ Deliver originals to `art-source/pass/`. Reviewed deployable files belong in
 
 ### Mapping In The App
 
-`PASS_ARTWORK` in `src/lib/data/config.ts` currently has null values so the previews make
-no requests for missing images. After delivery, map the reviewed files like this:
+`PASS_ARTWORK` in `src/lib/data/config.ts` maps the supplied files like this:
 
 ```ts
 standard: 'assets/pass/vip-ticket-standard.png',
@@ -49,7 +48,6 @@ crest: 'assets/pass/season-crest.png',
 banner: 'assets/pass/season-keyart.png',
 ```
 
-Placing a PNG alone does not activate it; update this mapping and rebuild MGC.
 `PassArtwork.svelte` handles the ticket/crest preview and fallback. The banner remains
 an environment layer: the app overlays the actual LV.50 reward character and live labels.
 Disabled/selected/owned states, prices, days, level badges and buttons remain rendered by UI.
@@ -114,6 +112,55 @@ Not green-heavy, not purple-heavy, not dark, not blurred, no bokeh/orb decoratio
 - Check all edges remain inside the canvas; no clipped feathers or tiny unreadable text.
 - Deliver four separate exact filenames, not one combined image.
 - Reject fake painted level numbers/prices. All product terms stay editable in code.
+
+## Recommended Next: Pet Gacha Art
+
+The Gacha screen now has a CSS-built machine and uses the existing Pet portraits. These two
+transparent assets are optional art upgrades, not blockers; the UI has a fallback until the
+files are delivered.
+
+| Priority | Exact Filename | Canvas | Alpha | Composition / Use |
+| --- | --- | --- | --- | --- |
+| 1 | `pet-gacha-machine.png` | 1024 x 1024 | Yes | Compact sky-blue/coral/ivory capsule machine, front 3/4 view; empty clear display globe for the live Pet portrait to overlay |
+| 2 | `gacha-capsule.png` | 512 x 512 | Yes | One two-part plastic capsule with a clean center seam; spins over the Pet while drawing and in result reveal |
+
+Keep the machine within 60px of the 1024px canvas. Its display globe should be centered around
+x=512, y=400 and occupy roughly 420px vertically; do not paint a Pet or capsules inside that
+window. The app overlays the currently previewed Pet there. The single capsule should have
+about 12% padding and remain readable at 40px. Keep labels, rarity, price, ticket count and
+odds as live UI text, not painted into either PNG.
+
+Originals go in `art-source/gacha/`; reviewed runtime files go in MGC `public/assets/gacha/`.
+The optional `GACHA_ARTWORK` mapping in `src/lib/data/config.ts` is currently null:
+
+```ts
+machine: 'assets/gacha/pet-gacha-machine.png',
+capsule: 'assets/gacha/gacha-capsule.png',
+```
+
+### Copyable Pet Gacha Prompts
+
+```text
+Create one ORIGINAL production-ready cute mobile fantasy game capsule vending machine.
+Asset: pet-gacha-machine.png. Exactly 1024x1024 PNG with real transparent alpha.
+One compact tabletop machine, front slight 3/4 view, polished dimensional bevels,
+upper-left soft painted light. Use sky blue, coral pink, ivory and restrained warm gold.
+Keep the entire machine within 60px of the canvas edges. Center a large EMPTY clear-glass
+display globe around x=512,y=400, roughly 420px tall, with a quiet center so the app can
+overlay a live Pet portrait. Include a simple lower prize chute and one visible side knob.
+No Pet, no capsules inside the globe, no text, letters, prices, coins, ticket counts,
+rarity labels, buttons with writing, background, checkerboard, watermark or UI screenshot.
+```
+
+```text
+Create one ORIGINAL production-ready mobile fantasy game gacha capsule.
+Asset: gacha-capsule.png. Exactly 512x512 PNG with real transparent alpha.
+One large readable two-part toy capsule, front slight 3/4 view, a distinct horizontal
+center seam, sky-blue upper shell and coral/ivory lower shell with one small warm-gold
+clasp. Clean glossy plastic highlights and soft upper-left lighting. Center with 12 percent
+padding. No Pet, no text, letters, numbers, rarity marks, background, checkerboard,
+watermark, multiple capsules or contact sheet.
+```
 
 ## Priority 1: Entry, Profile and Inventory
 

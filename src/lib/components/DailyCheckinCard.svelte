@@ -10,10 +10,30 @@
     compact?: boolean;
   } = $props();
   let doneCount = $derived(days.filter((day) => day.done).length);
+  let progressPercent = $derived(days.length ? doneCount / days.length * 100 : 0);
 </script>
 
 {#if compact}
-  <section class="grid min-w-0 gap-2 rounded-lg border border-white bg-white/85 p-3" aria-label="เช็กอินรายวัน"><div class="flex items-center justify-between gap-2"><div class="min-w-0"><h3 class="!text-xs !text-[#365c7a]">เช็กอินรายวัน</h3><span class="text-[10px] font-semibold text-amber-700">+{reward} MP · {doneCount}/7 วัน</span></div><button class="flex min-h-9 shrink-0 items-center gap-1 rounded-md bg-[#5e55b3] px-2 text-[10px] font-semibold text-white disabled:bg-[#bcc7dc]" disabled={claimed} onclick={onClaim}>{#if claimed}<Check size={12} />รับแล้ว{:else}รับเลย{/if}</button></div><div class="grid grid-cols-7 gap-1">{#each days as day (day.label)}<span class={['grid h-7 place-items-center rounded text-[9px] font-semibold', day.done ? 'bg-sky-600 text-white' : day.today ? 'bg-amber-200 text-amber-900' : 'bg-sky-50 text-[#8296a7]']}>{#if day.done}<Check size={11} />{:else}{day.label}{/if}</span>{/each}</div></section>
+  <section class="compact-checkin relative isolate grid min-w-0 gap-2 overflow-hidden rounded-lg border-2 border-white bg-gradient-to-r from-[#fff4d5] via-white to-[#e8f7ff] p-3 shadow-[0_4px_0_#bfdce5]" aria-label="เช็กอินรายวัน">
+    <div class="flex min-w-0 items-center gap-2">
+      <span class="checkin-sparkle grid size-8 shrink-0 place-items-center rounded-lg border border-white bg-[#dff3fb] text-[#418eaa]" aria-hidden="true"><Sparkles size={16} /></span>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center justify-between gap-2"><h3 class="!text-xs !text-[#365c7a]">เช็กอินรายวัน</h3><span class="text-[10px] font-bold tabular-nums text-[#a46f19]">{doneCount}/7 วัน</span></div>
+        <p class="mt-0.5 !text-[10px] !text-[#6b8795]">รับฟรี <b>+{reward} MP</b> ทุกวัน</p>
+      </div>
+      <GameButton variant={claimed ? 'ghost' : 'gold'} size="sm" disabled={claimed} onclick={onClaim}>
+        {#if claimed}<Check size={13} />รับแล้ว{:else}เช็กอิน{/if}
+      </GameButton>
+    </div>
+    <div class="h-1 overflow-hidden rounded-full bg-[#dcecf2]" role="progressbar" aria-label="ความคืบหน้าเช็กอินประจำสัปดาห์" aria-valuemin={0} aria-valuemax={days.length} aria-valuenow={doneCount}><span class="block h-full rounded-full bg-gradient-to-r from-[#62b7d2] to-[#f3bb59] transition-[width] duration-500" style={`width:${progressPercent}%`}></span></div>
+    <div class="grid grid-cols-7 gap-1">
+      {#each days as day, index (day.label)}
+        <span class={['compact-day grid h-7 place-items-center rounded-md text-[9px] font-semibold', day.done ? 'bg-[#dff3fb] text-[#347d98]' : day.today ? 'bg-[#fff0c8] text-[#96640f]' : 'bg-white/75 text-[#8296a7]']} class:compact-ready={day.today && !day.done} class:compact-done={day.done} style={`--day-delay:${index * 55}ms`} aria-label={`${day.label}${day.today ? ' วันนี้' : ''}${day.done ? ' เช็กอินแล้ว' : ''}`}>
+          {#if day.done}<Check size={11} strokeWidth={3} />{:else if day.today}<Sparkles size={12} />{:else}{day.label}{/if}
+        </span>
+      {/each}
+    </div>
+  </section>
 {:else}
 <section class="checkin" class:claimed aria-label="เช็กอินรายวัน">
   <span class="shine" aria-hidden="true"></span>
@@ -28,14 +48,14 @@
       </div>
       <p>รับฟรี <b><Coins size={13} />+{reward} MP</b> ทุกวัน</p>
     </div>
-    <GameButton variant={claimed ? 'ghost' : 'mint'} size="sm" disabled={claimed} onclick={onClaim}>
+    <GameButton variant={claimed ? 'ghost' : 'gold'} size="sm" disabled={claimed} onclick={onClaim}>
       {#if claimed}<Check size={15} strokeWidth={3.5} />รับแล้ว{:else}เช็กอิน{/if}
     </GameButton>
   </div>
 
   <ol class="days" aria-label="ประวัติเช็กอินสัปดาห์นี้">
-    {#each days as day (day.label)}
-      <li class:done={day.done} class:today={day.today} class:ready={day.today && !day.done}>
+    {#each days as day, index (day.label)}
+      <li class:done={day.done} class:today={day.today} class:ready={day.today && !day.done} style={`--day-delay:${index * 55}ms`}>
         <small class="lbl">{day.label}</small>
         <span class="stamp">
           {#if day.done}<Check size={14} strokeWidth={3.6} />{:else}<Coins size={12} />{/if}
@@ -48,14 +68,14 @@
 {/if}
 
 <style>
-  .checkin { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; padding: 11px 11px 10px; overflow: hidden; border: 2.5px solid #fff; border-radius: 22px; background: linear-gradient(155deg, #fffdf6 0%, #eefcf4 52%, #e6f4ff 100%); box-shadow: 0 7px 0 -3px #9fd9bb, 0 12px 18px rgb(40 120 100 / 14%); isolation: isolate; }
+  .checkin { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; padding: 11px 11px 10px; overflow: hidden; border: 2.5px solid #fff; border-radius: 22px; background: linear-gradient(155deg, #fffdf6 0%, #eef8ff 52%, #fff1e9 100%); box-shadow: 0 7px 0 -3px #a8d7e5, 0 12px 18px rgb(55 112 139 / 14%); isolation: isolate; }
   .shine { position: absolute; z-index: -1; top: -36px; right: -24px; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, rgb(255 235 160 / 60%), transparent 70%); pointer-events: none; }
   .head { display: flex; align-items: center; gap: 9px; min-width: 0; }
   .copy { min-width: 0; flex: 1; display: grid; gap: 2px; }
   .title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  h3 { margin: 0; color: #1c5340; font-size: 15.5px; font-weight: 900; line-height: 1.15; }
-  .streak { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border: 1.5px solid #fff; border-radius: 99px; color: #197a56; background: #d4f5e4; font-size: 10.5px; font-weight: 900; }
-  p { display: flex; align-items: center; gap: 4px; margin: 0; color: #547d6e; font-size: 12px; font-weight: 700; }
+  h3 { margin: 0; color: #315a73; font-size: 15.5px; font-weight: 900; line-height: 1.15; }
+  .streak { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border: 1.5px solid #fff; border-radius: 99px; color: #397d97; background: #e0f3f9; font-size: 10.5px; font-weight: 900; }
+  p { display: flex; align-items: center; gap: 4px; margin: 0; color: #607e8b; font-size: 12px; font-weight: 700; }
   p b { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 99px; color: #9a5f00; background: #fff0bf; font-weight: 900; }
 
   .gift { position: relative; width: 46px; height: 46px; flex: 0 0 auto; }
@@ -73,20 +93,24 @@
   .stamp { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #b58826; background: #fff3cc; border: 1.5px solid #ffe299; }
   .amt { color: #8c96a9; font-size: 9.5px; font-weight: 800; line-height: 1; }
 
-  li.done { border-color: #b5ebd0; background: linear-gradient(180deg, #effcf5, #d5f6e5); }
-  li.done .lbl { color: #1c6b4d; }
-  li.done .stamp { color: #fff; border-color: #fff; background: linear-gradient(160deg, #62e3a6, #22b57d); box-shadow: 0 2px 0 #168a5f; }
-  li.done .amt { color: #197a56; }
+  li.done { border-color: #b9e3ed; background: linear-gradient(180deg, #f3fbfd, #dff3f8); }
+  li.done .lbl { color: #347d98; }
+  li.done .stamp { color: #fff; border-color: #fff; background: linear-gradient(160deg, #66c5dc, #398eae); box-shadow: 0 2px 0 #327b98; }
+  li.done .amt { color: #347d98; }
 
   li.today { border-color: #ffc23d; background: linear-gradient(180deg, #fffdf2, #ffefc2); box-shadow: 0 3px 0 -1px #e5b53d; }
   li.today .lbl { color: #9a5f00; font-weight: 900; }
   li.today .amt { color: #9a5f00; font-weight: 900; }
   li.ready { animation: pulse-tile 1.9s ease-in-out infinite; }
   li.ready .stamp { color: #7a4a00; border-color: #fff; background: linear-gradient(160deg, #ffe98a, #ffb42b); box-shadow: 0 2px 0 #c97f10; }
+  .checkin-sparkle { animation: twinkle 2s ease-in-out infinite; }
+  .compact-day.compact-ready { border: 1px solid #f1c766; animation: pulse-tile 1.7s ease-in-out infinite; }
+  .compact-day.compact-done, li.done .stamp { animation: checkin-pop 440ms cubic-bezier(0.2, 1.4, 0.5, 1) both; animation-delay: var(--day-delay, 0ms); }
 
   @keyframes wiggle { 0%, 80%, 100% { transform: rotate(0); } 85% { transform: rotate(-7deg); } 92% { transform: rotate(7deg); } }
   @keyframes twinkle { 0%, 100% { opacity: 0.35; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
   @keyframes pulse-tile { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-  @media (prefers-reduced-motion: reduce) { .gift, .gift i, li.ready { animation: none; } .lid { transition: none; } }
+  @keyframes checkin-pop { 0% { transform: scale(0.72); } 72% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .gift, .gift i, li.ready, .checkin-sparkle, .compact-day, .compact-day.compact-ready, .compact-day.compact-done, li.done .stamp { animation: none; } .lid { transition: none; } }
   @media (max-width: 340px) { .head { gap: 6px; } .gift { width: 40px; height: 40px; } .stamp { width: 21px; height: 21px; } h3 { font-size: 14.5px; } .amt { font-size: 9px; } }
 </style>

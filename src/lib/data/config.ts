@@ -89,6 +89,11 @@ export const PETS = [
 
 export const PET_GACHA_COST = 90;
 
+export const GACHA_ARTWORK: Record<'machine' | 'capsule', string | null> = {
+  machine: null,
+  capsule: null,
+};
+
 export const PROFILE_BACKGROUNDS = [
   { id: 'canal-day', name: 'Canal Day', imagePath: 'assets/world/house-coral.webp' },
   { id: 'cloud-club', name: 'Cloud Club', imagePath: 'assets/world/house-sky.webp' },
