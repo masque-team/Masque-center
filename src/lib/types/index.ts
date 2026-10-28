@@ -80,7 +80,7 @@ export type ModalState =
 
 export interface DemoReward {
   title: string;
-  type: 'points' | 'energy' | 'ticket' | 'avatar' | 'pet';
+  type: 'points' | 'energy' | 'ticket' | 'avatar' | 'pet' | 'arena-ticket' | 'wing' | 'frame' | 'background' | 'badge';
   amount?: number;
   itemId?: string;
 }
@@ -114,6 +114,7 @@ export interface DemoConfig {
   shop: { id: string; kind: 'avatar' | 'pet' | 'frame' | 'wing'; itemId: string; cost: number }[];
   seasons: DemoSeason[];
   passSeasonId: string;
+  passAutomatic?: boolean;
   rankingSeasonId: string;
   rankingPrize: number;
   battleEntry: number;
@@ -150,6 +151,9 @@ export interface DemoState {
   missionCounts: Record<string, number>;
   missionClaims: string[];
   pointPackClaims: string[];
+  passRevision?: number;
+  weeklyGames?: Record<string, GameId[]>;
+  backgrounds?: string[];
   frames: string[];
   frameId: string | null;
   wings: string[];

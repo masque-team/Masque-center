@@ -35,13 +35,12 @@ export const POINT_PACKS = [
 ] as const;
 
 export const VIP_PACKAGES: VipPackage[] = [
-  { id: 'five-day', label: '5-Day VIP Pass', durationDays: 5, cost: 180, reward: 'Pet Gacha Ticket x1', bonusPoints: 0, bonusTickets: 1 },
-  { id: 'seven-day', label: '7-Day VIP Pass', durationDays: 7, cost: 240, reward: 'Masque Points +80', bonusPoints: 80, bonusTickets: 0 },
+  { id: 'monthly', label: '30-Day VIP Pass', durationDays: 30, cost: 990, reward: 'Pet Gacha Tickets x2', bonusPoints: 0, bonusTickets: 2 },
 ];
 
 export const BATTLE_PASS = {
   xpPerLevel: 100,
-  totalLevels: 10,
+  totalLevels: 50,
   freeRewards: [
     { title: 'Energy +2', type: 'energy', amount: 2 },
     { title: 'Masque Points +25', type: 'points', amount: 25 },

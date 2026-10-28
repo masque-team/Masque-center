@@ -1,4 +1,5 @@
-import { AVATARS, BATTLE_PASS, ENERGY_CONFIG, PETS, SHOP_ITEMS, VIP_PACKAGES, WINGS } from '../data/config';
+import { AVATARS, BATTLE_PASS, ENERGY_CONFIG, PETS, PROFILE_BACKGROUNDS, SHOP_ITEMS, VIP_PACKAGES, WINGS } from '../data/config';
+import { PASS_RULES, passProgress, passTrack, passWindow } from './battlePassService';
 import { GAMES } from '../data/games';
 import { getGameRanking } from './rankingService';
 import { isVip, spendGameEnergy } from './energyService';
@@ -6,7 +7,7 @@ import { purchaseVip } from './passService';
 import type { DemoConfig, DemoReward, DemoState, GameId, GameMode, PlayerState } from '../types';
 
 export function createDemo(): DemoState {
-  return {
+  const demo: DemoState = {
     version: 1, clockOffset: 0, profileXp: 0, transactions: [], sessions: [], arenaTickets: 0, playTimeMs: {}, playCounts: {}, achievements: [], profile: { backgroundId: 'canal-day', bio: '', badgeIds: [] }, scores: {}, seasonScores: {}, rankingClaims: [], rankingResets: [], passes: {}, missionCounts: {}, missionClaims: [], pointPackClaims: [], frames: [], frameId: null, wings: [], wingId: null, ownedDecor: ['sofa', 'plant'], battles: [], room: null,
     config: {
       energyMax: 12, regenMinutes: 30, energyCost: 1, exchangeRate: 10, checkinReward: 35,
@@ -24,10 +25,19 @@ export function createDemo(): DemoState {
       roomLimit: 4, roomVipOnly: false, roomPrivate: true, decorPrice: 25, moderationRule: 'สุภาพ ไม่เปิดเผยข้อมูลส่วนตัว',
     },
   };
+  demo.passRevision = 2;
+  demo.weeklyGames = {};
+  demo.backgrounds = ['canal-day'];
+  demo.config.passAutomatic = true;
+  demo.config.missionTarget = 3;
+  demo.config.missionXp = PASS_RULES.dailyXp;
+  demo.config.seasons = demo.config.seasons.map((season) => ({ ...season, free: passTrack(season.free, 'free', season.theme), premium: passTrack(season.premium, 'premium', season.theme) }));
+  return demo;
 }
 
 export function demoNow(player: PlayerState): number { return Date.now() + player.demo.clockOffset; }
 export function validateConfig(config: DemoConfig): string | null {
+  if (config.vipPlans.some((plan) => plan.durationDays !== PASS_RULES.days)) return 'VIP Pass ต้องมีอายุ 30 วัน';
   if (!Number.isSafeInteger(config.arenaTicketPrice) || config.arenaTicketPrice < 1) return 'ราคาบัตร Ranked ต้องเป็นจำนวนเต็มมากกว่า 0';
   const positive = [config.energyMax, config.regenMinutes, config.energyCost, config.exchangeRate, config.missionTarget, config.missionXp, config.roomLimit];
   const nonnegative = [config.checkinReward, config.premiumPrice, config.gachaCost, config.duplicatePoints, config.rankingPrize, config.battleEntry, config.battlePrize, config.decorPrice, ...config.shop.map((item) => item.cost), ...config.energyPacks.map((pack) => pack.cost), ...config.vipPlans.flatMap((plan) => [plan.cost, plan.bonusPoints ?? 0, plan.bonusTickets ?? 0]), ...config.gachaPool.map((item) => item.weight)];
@@ -46,20 +56,26 @@ export function validateConfig(config: DemoConfig): string | null {
       if (!reward.title.trim()) return 'กรุณาตั้งชื่อรางวัล';
       if (reward.type === 'avatar' || reward.type === 'pet') {
         if (!(reward.type === 'avatar' ? AVATARS : PETS).some((item) => item.id === reward.itemId)) return 'กรุณาเลือก Item ของรางวัล';
+      } else if (['wing', 'frame', 'background', 'badge'].includes(reward.type)) {
+        const valid = reward.type === 'wing' ? WINGS.some((item) => item.id === reward.itemId) : reward.type === 'frame' ? ['ocean', 'sunrise'].includes(reward.itemId ?? '') : reward.type === 'background' ? PROFILE_BACKGROUNDS.some((item) => item.id === reward.itemId) : reward.itemId === 'season-explorer';
+        if (!valid) return 'Item ของรางวัลไม่ถูกต้อง';
       } else if (!Number.isSafeInteger(reward.amount) || (reward.amount ?? 0) < 1) return 'จำนวนรางวัลต้องมากกว่า 0';
     }
   }
   return null;
 }
-export function dayKey(player: PlayerState): string { return new Date(demoNow(player)).toLocaleDateString('en-CA'); }
-export function currentPass(player: PlayerState) {
-  return player.demo.passes[player.demo.config.passSeasonId] ?? { xp: 0, premium: false, claims: [] };
+export function dayKey(player: PlayerState, at = demoNow(player)): string { return new Date(at).toLocaleDateString('en-CA'); }
+export function currentPass(player: PlayerState, at = demoNow(player)) {
+  return player.demo.passes[currentSeason(player, at).id] ?? { xp: 0, premium: false, claims: [] };
 }
-export function currentSeason(player: PlayerState) {
-  return player.demo.config.seasons.find((season) => season.id === player.demo.config.passSeasonId) ?? player.demo.config.seasons[0];
+export function currentSeason(player: PlayerState, at = demoNow(player)) {
+  const template = player.demo.config.seasons.find((season) => season.id === player.demo.config.passSeasonId) ?? player.demo.config.seasons[0];
+  if (player.demo.config.passAutomatic === false) return template;
+  const window = passWindow(at);
+  return { ...template, id: `${template.id}:${window.starts}`, name: `S${window.index + 1} · ${template.name}`, starts: window.starts, ends: window.ends };
 }
-export function hasPassAccess(player: PlayerState): boolean {
-  return isVip(player, demoNow(player)) || currentPass(player).premium;
+export function hasPassAccess(player: PlayerState, at = demoNow(player)): boolean {
+  return isVip(player, at) || currentPass(player, at).premium;
 }
 export function gameMission(player: PlayerState, gameId: GameId) {
   const prefix = `game:${gameId}:`;
@@ -68,6 +84,44 @@ export function gameMission(player: PlayerState, gameId: GameId) {
   const targets = [1, 5, 10, 20, 50];
   return { id: `${prefix}${stage}`, stage, target: targets[stage] ?? 50 + (stage - 4) * 50, count: player.demo.playCounts[gameId] ?? 0, xp: Math.min(100, 20 + stage * 10), points: 10 + Math.min(stage, 10) * 5 };
 }
+export function dailyPassMission(player: PlayerState, at = demoNow(player)) {
+  const season = currentSeason(player, at);
+  const today = dayKey(player, at);
+  return { id: `${season.id}-${today}`, count: player.demo.missionCounts[`${season.id}:${today}`] ?? 0, target: player.demo.config.missionTarget, xp: player.demo.config.missionXp };
+}
+export function weeklyPassMission(player: PlayerState, at = demoNow(player)) {
+  const season = currentSeason(player, at);
+  const startsAt = Date.parse(`${season.starts}T00:00:00Z`);
+  const week = Math.max(0, Math.floor((at - startsAt) / (7 * 86_400_000)));
+  const id = `weekly:${season.id}:${week}`;
+  const games = player.demo.weeklyGames?.[id] ?? [];
+  return { id, games, target: Math.min(PASS_RULES.weeklyGames, player.demo.config.games.filter((game) => game.published !== false).length), xp: PASS_RULES.weeklyXp, endsAt: Math.min(startsAt + (week + 1) * 7 * 86_400_000, Date.parse(`${season.ends}T00:00:00Z`)) };
+}
+export function awardPassXp(player: PlayerState, amount: number): PlayerState {
+  if (!Number.isSafeInteger(amount) || amount <= 0) return player;
+  const id = currentSeason(player).id;
+  const pass = currentPass(player);
+  return { ...player, demo: { ...player.demo, passes: { ...player.demo.passes, [id]: { ...pass, xp: Math.min(Number.MAX_SAFE_INTEGER, pass.xp + amount) } } } };
+}
+export function claimWeeklyMission(player: PlayerState): PlayerState | null {
+  const mission = weeklyPassMission(player);
+  if (mission.games.length < mission.target || player.demo.missionClaims.includes(mission.id)) return null;
+  return awardPassXp({ ...player, demo: { ...player.demo, missionClaims: [...player.demo.missionClaims, mission.id] } }, mission.xp);
+}
+export function nextPassBonus(player: PlayerState, at = demoNow(player)) {
+  const pass = currentPass(player, at);
+  let level: number = PASS_RULES.levels + 1;
+  while (pass.claims.includes(`bonus-${level}`)) level += 1;
+  const reward: DemoReward = level % 5 === 0 ? { title: 'Pet Gacha Ticket', type: 'ticket', amount: 1 } : { title: 'Masque Points +10', type: 'points', amount: 10 };
+  return { level, reward, ready: passProgress(pass.xp).level >= level };
+}
+export function claimPassBonus(player: PlayerState): PlayerState | null {
+  const bonus = nextPassBonus(player);
+  if (!bonus.ready) return null;
+  const pass = currentPass(player);
+  const next = grantReward(player, bonus.reward);
+  return { ...next, demo: { ...next.demo, passes: { ...next.demo.passes, [currentSeason(player).id]: { ...pass, claims: [...pass.claims, `bonus-${bonus.level}`] } } } };
+}
 export function ledger(previous: PlayerState, next: PlayerState, label: string): PlayerState {
   const mp = next.masquePoints - previous.masquePoints;
   const ais = next.aisPoints - previous.aisPoints;
@@ -75,11 +129,33 @@ export function ledger(previous: PlayerState, next: PlayerState, label: string):
   if (!mp && !ais && !energy) return next;
   return { ...next, demo: { ...next.demo, transactions: [{ id: crypto.randomUUID(), at: demoNow(next), label, mp, ais, energy }, ...next.demo.transactions].slice(0, 150) } };
 }
+export function ownsPassReward(player: PlayerState, reward: DemoReward): boolean {
+  if (!reward.itemId) return false;
+  switch (reward.type) {
+    case 'avatar': return player.ownedAvatarIds.includes(reward.itemId);
+    case 'pet': return player.ownedPetIds.includes(reward.itemId);
+    case 'wing': return player.demo.wings.includes(reward.itemId);
+    case 'frame': return player.demo.frames.includes(reward.itemId);
+    case 'background': return (player.demo.backgrounds ?? PROFILE_BACKGROUNDS.map((item) => item.id)).includes(reward.itemId);
+    case 'badge': return player.demo.achievements.some((badge) => badge.id === `pass:${currentSeason(player).id}:explorer`);
+    default: return false;
+  }
+}
 export function grantReward(player: PlayerState, reward: DemoReward): PlayerState {
+  if (ownsPassReward(player, reward)) return { ...player, masquePoints: player.masquePoints + player.demo.config.duplicatePoints };
   const next = { ...player };
   if (reward.type === 'points') next.masquePoints += reward.amount ?? 0;
   if (reward.type === 'energy') next.energy += reward.amount ?? 0;
   if (reward.type === 'ticket') next.gachaTickets += reward.amount ?? 1;
+  if (reward.type === 'arena-ticket') next.demo = { ...next.demo, arenaTickets: next.demo.arenaTickets + (reward.amount ?? 1) };
+  if (reward.type === 'wing' && WINGS.some((item) => item.id === reward.itemId)) next.demo = { ...next.demo, wings: [...new Set([...next.demo.wings, reward.itemId!])] };
+  if (reward.type === 'frame' && ['ocean', 'sunrise'].includes(reward.itemId ?? '')) next.demo = { ...next.demo, frames: [...new Set([...next.demo.frames, reward.itemId!])] };
+  if (reward.type === 'background' && PROFILE_BACKGROUNDS.some((item) => item.id === reward.itemId)) next.demo = { ...next.demo, backgrounds: [...new Set([...(next.demo.backgrounds ?? ['canal-day']), reward.itemId!])] };
+  if (reward.type === 'badge' && reward.itemId === 'season-explorer') {
+    const season = currentSeason(player);
+    const id = `pass:${season.id}:explorer`;
+    if (!next.demo.achievements.some((badge) => badge.id === id)) next.demo = { ...next.demo, achievements: [...next.demo.achievements, { id, title: `${season.name} Explorer`, earnedAt: demoNow(player), seasonId: season.id }] };
+  }
   if (reward.type === 'avatar' && AVATARS.some((item) => item.id === reward.itemId) && !next.ownedAvatarIds.includes(reward.itemId!)) next.ownedAvatarIds = [...next.ownedAvatarIds, reward.itemId!];
   if (reward.type === 'pet' && PETS.some((item) => item.id === reward.itemId) && !next.ownedPetIds.includes(reward.itemId!)) next.ownedPetIds = [...next.ownedPetIds, reward.itemId!];
   return next;
@@ -112,39 +188,39 @@ export function finishGame(player: PlayerState, sessionId: string, score: number
   const playCounts = { ...player.demo.playCounts, [session.gameId]: (player.demo.playCounts[session.gameId] ?? 0) + 1 };
   if (Object.keys(playCounts).length >= 5 && !achievements.some((badge) => badge.id === 'explorer')) achievements.push({ id: 'explorer', title: '5-Game Explorer', earnedAt: demoNow(player) });
   const today = dayKey(player);
+  const passId = currentSeason(player).id;
+  const week = weeklyPassMission(player);
   return { ...player, masquePoints: player.masquePoints + reward.points, level: 18 + Math.floor(profileXp / 100), demo: { ...player.demo, profileXp, achievements, playCounts,
     sessions: player.demo.sessions.map((entry) => entry.id === sessionId ? { ...entry, finished: true, score } : entry),
     scores: { ...player.demo.scores, [session.gameId]: Math.max(score, player.demo.scores[session.gameId] ?? 0) },
     seasonScores: { ...player.demo.seasonScores, [seasonId]: { ...seasonScores, [session.gameId]: Math.max(score, seasonScores[session.gameId] ?? 0) } },
-    missionCounts: { ...player.demo.missionCounts, [today]: (player.demo.missionCounts[today] ?? 0) + 1 },
+    missionCounts: { ...player.demo.missionCounts, [today]: (player.demo.missionCounts[today] ?? 0) + 1, [`${passId}:${today}`]: (player.demo.missionCounts[`${passId}:${today}`] ?? 0) + 1 },
+    weeklyGames: { ...player.demo.weeklyGames, [week.id]: [...new Set([...week.games, session.gameId])] },
   } };
 }
 export function buyPremium(player: PlayerState): PlayerState | null {
   if (hasPassAccess(player)) return null;
-  const plan = player.demo.config.vipPlans.find((item) => item.durationDays === 7) ?? player.demo.config.vipPlans[0];
+  const plan = player.demo.config.vipPlans.find((item) => item.durationDays === PASS_RULES.days) ?? player.demo.config.vipPlans[0];
   return plan ? purchaseVip(player, plan.id, demoNow(player)) : null;
 }
 export function claimPass(player: PlayerState, track: 'free' | 'premium', index: number): PlayerState | null {
   const pass = currentPass(player);
   const reward = currentSeason(player)[track][index];
   const claimId = `${track}-${index}`;
-  if (!reward || pass.xp < index * 100 || pass.claims.includes(claimId) || (track === 'premium' && !hasPassAccess(player))) return null;
+  if (!Number.isSafeInteger(index) || !reward || pass.xp < (index + 1) * PASS_RULES.xpPerLevel || pass.claims.includes(claimId) || (track === 'premium' && !hasPassAccess(player))) return null;
   const next = grantReward(player, reward);
-  return { ...next, demo: { ...next.demo, passes: { ...next.demo.passes, [next.demo.config.passSeasonId]: { ...pass, claims: [...pass.claims, claimId] } } } };
+  return { ...next, demo: { ...next.demo, passes: { ...next.demo.passes, [currentSeason(player).id]: { ...pass, claims: [...pass.claims, claimId] } } } };
 }
 export function claimMission(player: PlayerState, gameId?: GameId): PlayerState | null {
   if (gameId) {
     if (!player.demo.config.games.some((game) => game.id === gameId && game.published !== false)) return null;
     const mission = gameMission(player, gameId);
     if (mission.count < mission.target) return null;
-    const pass = currentPass(player);
-    return { ...player, masquePoints: player.masquePoints + mission.points, demo: { ...player.demo, missionClaims: [...player.demo.missionClaims, mission.id], passes: { ...player.demo.passes, [player.demo.config.passSeasonId]: { ...pass, xp: Math.min(currentSeason(player).free.length * 100, pass.xp + mission.xp) } } } };
+    return awardPassXp({ ...player, masquePoints: player.masquePoints + mission.points, demo: { ...player.demo, missionClaims: [...player.demo.missionClaims, mission.id] } }, mission.xp);
   }
-  const today = dayKey(player);
-  const missionId = `${player.demo.config.passSeasonId}-${today}`;
-  if ((player.demo.missionCounts[today] ?? 0) < player.demo.config.missionTarget || player.demo.missionClaims.includes(missionId)) return null;
-  const pass = currentPass(player);
-  return { ...player, demo: { ...player.demo, missionClaims: [...player.demo.missionClaims, missionId], passes: { ...player.demo.passes, [player.demo.config.passSeasonId]: { ...pass, xp: Math.min(500, pass.xp + player.demo.config.missionXp) } } } };
+  const mission = dailyPassMission(player);
+  if (mission.count < mission.target || player.demo.missionClaims.includes(mission.id)) return null;
+  return awardPassXp({ ...player, demo: { ...player.demo, missionClaims: [...player.demo.missionClaims, mission.id] } }, mission.xp);
 }
 export function startBattle(player: PlayerState, gameId: GameId): PlayerState | null {
   return beginGame(player, gameId, 'ranked');
@@ -165,4 +241,11 @@ export function claimRankingReward(player: PlayerState, gameId: GameId): PlayerS
 export function buyDecor(player: PlayerState, kind: string): PlayerState | null {
   if (!['sofa', 'plant', 'lamp', 'music'].includes(kind) || player.demo.ownedDecor.includes(kind) || player.masquePoints < player.demo.config.decorPrice) return null;
   return { ...player, masquePoints: player.masquePoints - player.demo.config.decorPrice, demo: { ...player.demo, ownedDecor: [...player.demo.ownedDecor, kind] } };
+}
+export function claimAvailablePass(player: PlayerState): PlayerState | null {
+  let next = player;
+  for (const track of ['free', 'premium'] as const) {
+    for (let index = 0; index < currentSeason(player)[track].length; index += 1) next = claimPass(next, track, index) ?? next;
+  }
+  return next === player ? null : next;
 }

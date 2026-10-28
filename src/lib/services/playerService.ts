@@ -1,7 +1,8 @@
 import type { PlayerState } from '../types';
-import { ENERGY_CONFIG, PLAYER_MOCK_CONFIG, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
+import { ENERGY_CONFIG, PLAYER_MOCK_CONFIG, PROFILE_BACKGROUNDS, VIP_PACKAGES, WINGS } from '../data/config';
 import type { ProfileStyle } from '../types';
-import { createDemo } from './demoService';
+import { createDemo, currentSeason, dayKey } from './demoService';
+import { PASS_RULES, passTrack } from './battlePassService';
 
 const STORAGE_KEY = 'masquegame_center_v2';
 
@@ -70,6 +71,7 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   const result = player ?? createPlayer(queryName, aisPointSeed);
   if (!result.demo || result.demo.version !== 1) {
     result.demo = createDemo();
+    result.demo.passRevision = 1;
     result.demo.passes.songkran = {
       xp: Math.max(0, Math.min(500, result.battlePassXp)), premium: false,
       claims: result.claimedRewards.flatMap((claim) => {
@@ -79,6 +81,29 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
     };
   }
   result.demo.rankingResets ??= [];
+  result.demo.weeklyGames ??= {};
+  result.demo.backgrounds ??= PROFILE_BACKGROUNDS.map((background) => background.id);
+  if (result.demo.passRevision !== 2) {
+    const oldId = result.demo.config.passSeasonId;
+    const oldPass = result.demo.passes[oldId] ?? { xp: 0, premium: false, claims: [] };
+    result.demo.config.passAutomatic = true;
+    result.demo.config.seasons = result.demo.config.seasons.map((season) => ({ ...season, free: passTrack(season.free, 'free', season.theme), premium: passTrack(season.premium, 'premium', season.theme) }));
+    result.demo.config.vipPlans = result.demo.config.vipPlans.filter((plan) => plan.durationDays === PASS_RULES.days);
+    if (!result.demo.config.vipPlans.length) result.demo.config.vipPlans = structuredClone(VIP_PACKAGES);
+    if (result.demo.config.missionTarget === 1) result.demo.config.missionTarget = 3;
+    if (result.demo.config.missionXp === 100) result.demo.config.missionXp = PASS_RULES.dailyXp;
+    const active = currentSeason(result);
+    const id = active.id;
+    for (const template of result.demo.config.seasons) {
+      const previous = result.demo.passes[template.id];
+      if (previous) result.demo.passes[`${template.id}:${active.starts}`] ??= { ...previous, xp: previous.xp + PASS_RULES.xpPerLevel, claims: [...previous.claims] };
+    }
+    result.demo.passes[id] ??= { ...oldPass, xp: oldPass.xp + PASS_RULES.xpPerLevel, claims: [...oldPass.claims] };
+    const today = dayKey(result);
+    result.demo.missionCounts[`${id}:${today}`] ??= result.demo.missionCounts[today] ?? 0;
+    if (result.demo.missionClaims.includes(`${oldId}-${today}`)) result.demo.missionClaims.push(`${id}-${today}`);
+    result.demo.passRevision = 2;
+  }
   result.demo.pointPackClaims ??= [];
   result.demo.arenaTickets ??= 0;
   result.demo.playTimeMs ??= {};
@@ -111,6 +136,7 @@ export function savePlayer(player: PlayerState): void {
 
 export function customizeProfile(player: PlayerState, style: ProfileStyle, frameId: string | null): PlayerState | null {
   if (!PROFILE_BACKGROUNDS.some((background) => background.id === style.backgroundId) || style.bio.length > 140 || style.badgeIds.length > 3) return null;
+  if (!(player.demo.backgrounds ?? PROFILE_BACKGROUNDS.map((background) => background.id)).includes(style.backgroundId)) return null;
   if (new Set(style.badgeIds).size !== style.badgeIds.length || style.badgeIds.some((id) => !player.demo.achievements.some((badge) => badge.id === id))) return null;
   if (frameId && !player.demo.frames.includes(frameId)) return null;
   return { ...player, demo: { ...player.demo, profile: { ...style, bio: style.bio.trim(), badgeIds: [...style.badgeIds] }, frameId } };

@@ -35,7 +35,7 @@
   import { drawPet, equipPet } from './lib/services/petService';
   import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
   import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
-  import { beginGame, claimPass, claimMission as completeMission, currentPass, currentSeason, demoNow, finishGame, ledger, recordPlayTime, validateConfig, claimRankingReward } from './lib/services/demoService';
+  import { beginGame, claimAvailablePass, claimPass, claimPassBonus, claimMission as completeMission, claimWeeklyMission, currentSeason, demoNow, finishGame, ledger, recordPlayTime, validateConfig, claimRankingReward } from './lib/services/demoService';
   import type { DemoConfig, GameId, GameMode, ModalState, Page, PlayerState, RankingPeriod, ShopTab, VipPackage } from './lib/types';
   import './app.css';
 
@@ -83,7 +83,7 @@
   let featuredGame = $derived(player.demo.config.games.find((game) => game.featured && game.published !== false) ?? player.demo.config.games.find((game) => game.published !== false) ?? GAMES[0]);
   let catalogGames = $derived(player.demo.config.games.filter((game) => game.id !== featuredGame.id && game.published !== false).sort((left, right) => (left.displayOrder ?? 99) - (right.displayOrder ?? 99)));
   let vipActive = $derived(isVip(player, now));
-  let passLevel = $derived(Math.min(currentSeason(player).free.length, Math.floor(currentPass(player).xp / 100) + 1));
+  let activePassSeason = $derived(currentSeason(player, now));
   let refillCountdown = $derived(nextRefillIn(player, now));
   let checkedInToday = $derived(player.checkinDates.includes(todayKey(new Date(now))));
   let checkinDays = $derived(WEEKDAY_LABELS.map((label, index) => ({
@@ -476,7 +476,7 @@
             <nav class="grid grid-cols-4 gap-2 py-3" aria-label="กิจกรรม">
               {#each [{ route: 'battle', label: 'Ranked', icon: Swords, color: 'text-rose-600' }, { route: 'ranking', label: 'Ranking', icon: Trophy, color: 'text-amber-600' }, { route: 'room', label: 'My Space', icon: UsersRound, color: 'text-sky-600' }, { route: 'wallet', label: 'Wallet', icon: ReceiptText, color: 'text-indigo-600' }] as item (item)}<button class="grid min-h-18 justify-items-center gap-1 rounded-lg border border-white/80 bg-white/45 py-3 text-xs font-semibold" onclick={() => navigate(item.route)}><item.icon size={23} class={item.color} />{item.label}</button>{/each}
             </nav>
-            <button class="flex w-full items-center justify-between gap-3 border-y border-white bg-white/35 px-2 py-3 text-left" onclick={() => navigate('rewards')}><span><small class="text-sky-700">CURRENT SEASON</small><strong class="block">{currentSeason(player).name}</strong></span><ArrowUpRight size={22} /></button>
+            <button class="flex w-full items-center justify-between gap-3 border-y border-white bg-white/35 px-2 py-3 text-left" onclick={() => navigate('rewards')}><span><small class="text-sky-700">CURRENT SEASON</small><strong class="block">{activePassSeason.name}</strong></span><ArrowUpRight size={22} /></button>
 
           </div>
         {:else if page === 'detail'}
@@ -495,11 +495,16 @@
         {:else if page === 'rewards'}
           <PassPage
             {player}
+            {now}
             {vipActive}
             onClaim={(index, track) => applyAction(claimPass(player, track, index), 'รับรางวัล Battle Pass แล้ว')}
+            onClaimAll={() => applyAction(claimAvailablePass(player), 'รับรางวัลที่ปลดล็อกแล้ว')}
+            onBonus={() => applyAction(claimPassBonus(player), 'รับโบนัส Pass แล้ว')}
             onVip={openVipConfirm}
             onMission={(id) => applyAction(completeMission(player, id), 'รับรางวัลภารกิจแล้ว')}
+            onWeekly={() => applyAction(claimWeeklyMission(player), 'รับ XP ประจำสัปดาห์แล้ว')}
             onPlay={(id) => navigate(id ? `detail/${id}` : 'home')}
+            onTopUp={openExchange}
           />
         {:else if page === 'battle'}
           <BattlePage {player} onShop={() => { shopTab = 'items'; navigate('shop'); }} onEnter={(id) => requestAction('เข้า Ranked', 'ใช้บัตรเข้า Ranked 1 ใบ · ไม่ใช้ Energy', 'เข้าเล่น Ranked', () => enterGame(id, 'ranked'))} />
@@ -524,7 +529,7 @@
     </main>
   {/if}
   {#if page !== 'game'}<BottomNav {page} />{/if}
-  {#if !['game', 'avatar', 'gacha', 'points'].includes(page)}<button class="fixed z-30 grid size-14 place-items-center rounded-full border-2 border-white bg-[#fff3cb] text-[#8b5a07] shadow-lg transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="Pet Gacha" aria-label="เปิด Pet Gacha" onclick={() => navigate('gacha')}><PawPrint size={26} />{#if player.gachaTickets > 0}<span class="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-rose-500 text-[10px] text-white">{player.gachaTickets}</span>{/if}</button>{/if}
+  {#if !['game', 'avatar', 'gacha', 'points', 'rewards'].includes(page)}<button class="fixed z-30 grid size-14 place-items-center rounded-full border-2 border-white bg-[#fff3cb] text-[#8b5a07] shadow-lg transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="Pet Gacha" aria-label="เปิด Pet Gacha" onclick={() => navigate('gacha')}><PawPrint size={26} />{#if player.gachaTickets > 0}<span class="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-rose-500 text-[10px] text-white">{player.gachaTickets}</span>{/if}</button>{/if}
 </div>
 
 {#if page !== 'game'}<div class="landscape-notice" role="status"><strong>กรุณาหมุนมือถือเป็นแนวตั้ง</strong></div>{/if}
