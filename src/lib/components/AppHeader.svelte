@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Plus } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
+  import CurrencyIcon from './CurrencyIcon.svelte';
   import EnergyBadge from './EnergyBadge.svelte';
   import { AVATARS, PETS } from '../data/config';
   import { energyCapacity } from '../services/energyService';
@@ -28,7 +29,7 @@
   <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {countdown} {onRefill} />
 
   <button class="wallet" onclick={onShop} aria-label={`เติม Masque Points · ยอด ${player.masquePoints}`}>
-    <span class="coin" aria-hidden="true">M</span>
+    <span class="coin" aria-hidden="true"><CurrencyIcon kind="points" size={25} /></span>
     <strong>{player.masquePoints.toLocaleString('en-US')}</strong>
     <span class="plus" aria-hidden="true"><Plus size={16} strokeWidth={3.5} /></span>
   </button>

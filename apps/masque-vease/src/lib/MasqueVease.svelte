@@ -112,7 +112,7 @@
   <header class="pointer-events-none absolute inset-x-0 top-0 z-20 border-b border-white/60 bg-white/85 px-3 pt-[max(10px,env(safe-area-inset-top))] pb-3 backdrop-blur-md sm:px-6">
     <div class="flex items-center gap-2">
       <button class="hud-button pointer-events-auto shrink-0" title="กลับ Game Center" aria-label="กลับ Game Center" onclick={() => onNavigate('home')}><ArrowLeft size={21} /></button>
-      <div class="min-w-0 flex-1"><div class="flex items-center gap-1"><h1 class="text-[18px] font-bold leading-tight sm:text-2xl">Masque Vease</h1><span class="text-[9px] font-semibold text-[#668798]">DEMO</span></div><p class="mt-1 flex items-center gap-1 text-[10px] font-semibold text-[#668798]"><Compass size={11} />{snapshot.district}<span class="mx-1 opacity-40">/</span>{MOCK_CITIZENS.length} MOCK</p></div>
+      <div class="min-w-0 flex-1"><div class="flex items-center gap-1"><img class="h-7 w-32 object-contain object-left sm:h-8 sm:w-36" src="assets/brand/masque-vease-logo.png" alt="Masque Vease" /><span class="text-[9px] font-semibold text-[#668798]">DEMO</span></div><p class="mt-1 flex items-center gap-1 text-[10px] font-semibold text-[#668798]"><Compass size={11} />{snapshot.district}<span class="mx-1 opacity-40">/</span>{MOCK_CITIZENS.length} MOCK</p></div>
       <button class="hud-button pointer-events-auto shrink-0" disabled={!ready} title="ผู้เล่นจำลอง" aria-label="ผู้เล่นจำลอง" onclick={() => { closePanels(); panel = 'people'; }}><UsersRound size={20} /></button>
       <button class="hud-button pointer-events-auto shrink-0" disabled={!ready} title="แผนที่เมือง" aria-label="แผนที่เมือง" onclick={() => { closePanels(); panel = 'map'; }}><Map size={20} /></button>
     </div>

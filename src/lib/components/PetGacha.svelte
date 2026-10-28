@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { Check, Coins, LoaderCircle, PawPrint, Sparkles, Ticket } from '@lucide/svelte';
+  import { Check, LoaderCircle, PawPrint, Sparkles } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
+  import CurrencyIcon from './CurrencyIcon.svelte';
   import GameButton from './GameButton.svelte';
   import RarityChip from './RarityChip.svelte';
   import { GACHA_ARTWORK, PETS } from '../data/config';
@@ -53,18 +54,18 @@
   </div>
 
   <div class="grid grid-cols-2 gap-2">
-    <div class="flex items-center justify-between gap-2 rounded-md border border-white bg-white/70 px-3 py-2"><span class="flex items-center gap-1.5 text-[10px] font-semibold text-[#6b8795]"><Ticket size={14} />ตั๋วสุ่ม</span><strong class="text-xs tabular-nums text-[#3e7e98]">{player.gachaTickets}</strong></div>
-    <div class="flex items-center justify-between gap-2 rounded-md border border-white bg-white/70 px-3 py-2"><span class="flex items-center gap-1.5 text-[10px] font-semibold text-[#6b8795]"><Coins size={14} />Masque Points</span><strong class="text-xs tabular-nums text-[#9a6a18]">{player.masquePoints.toLocaleString()}</strong></div>
+    <div class="flex items-center justify-between gap-2 rounded-md border border-white bg-white/70 px-3 py-2"><span class="flex items-center gap-1.5 text-[10px] font-semibold text-[#6b8795]"><CurrencyIcon kind="petGachaTicket" size={17} />ตั๋วสุ่ม</span><strong class="text-xs tabular-nums text-[#3e7e98]">{player.gachaTickets}</strong></div>
+    <div class="flex items-center justify-between gap-2 rounded-md border border-white bg-white/70 px-3 py-2"><span class="flex items-center gap-1.5 text-[10px] font-semibold text-[#6b8795]"><CurrencyIcon kind="points" size={17} />Masque Points</span><strong class="text-xs tabular-nums text-[#9a6a18]">{player.masquePoints.toLocaleString()}</strong></div>
   </div>
 
   <div class="flex items-center justify-between gap-3 rounded-md border border-[#f2dfb6] bg-[#fff8e8] px-3 py-2.5">
     <span class="text-[10px] font-semibold text-[#7b7780]">ค่าเปิด 1 ครั้ง</span>
-    <strong class="flex items-center gap-1.5 text-xs text-[#8e651d]">{#if player.gachaTickets > 0}<Ticket size={14} />ตั๋ว Pet Gacha ×1{:else}<Coins size={14} />{player.demo.config.gachaCost} MP{/if}</strong>
+    <strong class="flex items-center gap-1.5 text-xs text-[#8e651d]">{#if player.gachaTickets > 0}<CurrencyIcon kind="petGachaTicket" size={18} />ตั๋ว Pet Gacha ×1{:else}<CurrencyIcon kind="points" size={18} />{player.demo.config.gachaCost} MP{/if}</strong>
   </div>
   <p class="-mt-2 text-[10px] text-[#718a96]">{#if player.gachaTickets > 0}ใช้ตั๋วก่อน · ไม่หัก MP{:else}ใช้ MP ต่อครั้ง · ของซ้ำคืน {player.demo.config.duplicatePoints} MP{/if} · ไม่สวมใส่ให้อัตโนมัติ</p>
 
   <GameButton variant="gold" size="lg" block disabled={!canDraw && !needsTopUp} onclick={() => needsTopUp ? onTopUp() : onDraw()}>
-    {#if busy}<LoaderCircle class="animate-spin" size={17} />กำลังสุ่ม{:else if total <= 0}ตู้ยังไม่มีรางวัล{:else if needsTopUp}<Coins size={17} />เติม MP เพื่อเปิดตู้{:else}<Sparkles size={17} />เปิดตู้ 1 ครั้ง{/if}
+    {#if busy}<LoaderCircle class="animate-spin" size={17} />กำลังสุ่ม{:else if total <= 0}ตู้ยังไม่มีรางวัล{:else if needsTopUp}<CurrencyIcon kind="points" size={20} />เติม MP เพื่อเปิดตู้{:else}<Sparkles size={17} />เปิดตู้ 1 ครั้ง{/if}
   </GameButton>
   {#if needsTopUp}<p class="-mt-2 text-center text-[10px] font-semibold text-[#b05c4b]">ยอด {player.masquePoints} MP · ต้องใช้ {player.demo.config.gachaCost} MP</p>{/if}
 

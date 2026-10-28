@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ArrowLeft, Coins, Crown, Gift, Sparkles } from '@lucide/svelte';
+  import CurrencyIcon from './CurrencyIcon.svelte';
   import { POINT_PACKS } from '../data/config';
   import { pointPackReward } from '../services/walletService';
   import type { PlayerState } from '../types';
@@ -10,7 +11,7 @@
   {#if !embedded}<div class="flex items-center gap-3"><button class="grid size-11 shrink-0 place-items-center rounded-lg border border-white bg-white/80 text-indigo-700 active:scale-95" title="กลับ" aria-label="กลับจากหน้าเติมแต้ม" onclick={onBack}><ArrowLeft size={22} /></button><div><h1 class="text-xl font-bold text-[#30256c]">เติม Masque Points</h1><p class="text-xs text-[#7b87a0]">Point Shop</p></div></div>{/if}
   <div class="grid grid-cols-2 gap-3" aria-label="ยอดแต้ม">
     <div class="flex min-w-0 items-center gap-2 rounded-lg border border-white bg-white/80 p-3"><span class="grid size-9 shrink-0 place-items-center rounded-full border-2 border-emerald-200 bg-emerald-600 text-[9px] font-bold text-white">AIS</span><div class="min-w-0"><small class="block text-[10px] text-[#71839a]">AIS Points</small><strong class="block truncate text-xl tabular-nums text-[#30256c]">{player.aisPoints.toLocaleString()}</strong></div></div>
-    <div class="flex min-w-0 items-center gap-2 rounded-lg border border-white bg-white/80 p-3"><span class="grid size-9 shrink-0 place-items-center rounded-full border-2 border-amber-200 bg-amber-400 font-bold text-amber-900">M</span><div class="min-w-0"><small class="block text-[10px] text-[#71839a]">Masque Points</small><strong class="block truncate text-xl tabular-nums text-[#30256c]">{player.masquePoints.toLocaleString()}</strong></div></div>
+    <div class="flex min-w-0 items-center gap-2 rounded-lg border border-white bg-white/80 p-3"><span class="grid size-9 shrink-0 place-items-center"><CurrencyIcon kind="points" size={34} /></span><div class="min-w-0"><small class="block text-[10px] text-[#71839a]">Masque Points</small><strong class="block truncate text-xl tabular-nums text-[#30256c]">{player.masquePoints.toLocaleString()}</strong></div></div>
   </div>
   <div class="relative flex min-h-32 items-center overflow-hidden rounded-lg border border-sky-200 bg-sky-100/85 p-4">
     <div class="relative z-10 w-2/3"><span class="inline-flex items-center gap-1 text-[10px] font-semibold text-sky-700"><Sparkles size={13} />FIRST TOP-UP</span><h2 class="mt-1 text-2xl font-bold leading-tight text-[#3d2c8a]">โบนัสครั้งแรก <span class="text-amber-500">×2</span></h2><p class="mt-2 text-[10px] text-[#597e98]">ต่อแพ็กเกจ · โบนัสเพิ่มเติมตามที่ระบุ</p></div>

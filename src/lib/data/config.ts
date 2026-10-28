@@ -12,7 +12,7 @@ export const ENERGY_CONFIG = {
 
 export const PLAYER_MOCK_CONFIG = {
   level: 18,
-  aisPoints: 24,
+  aisPoints: 1000,
   maxTestAisPoints: 1_000_000,
   masquePoints: 320,
   battlePassXp: 230,
@@ -63,6 +63,8 @@ const assetImage = (kind: 'avatars' | 'pets', id: string): string => `assets/${k
 
 export const AVATARS = [
   { id: 'mali', name: 'Mali', rarity: 'Common', imagePath: assetImage('avatars', 'mali'), placeholder: '🧑🏻‍🚀', color: '#b39aeb' },
+  { id: 'mali-festival', name: 'Mali Festival', rarity: 'Epic', imagePath: assetImage('avatars', 'mali-festival'), placeholder: '🧑🏻‍🚀', color: '#ef9dad' },
+  { id: 'mali-ranked', name: 'Mali Ranked', rarity: 'Epic', imagePath: assetImage('avatars', 'mali-ranked'), placeholder: '🧑🏻‍🚀', color: '#75b9d1' },
   { id: 'nami', name: 'Nami', rarity: 'Rare', imagePath: assetImage('avatars', 'nami'), placeholder: '🧑🏻', color: '#77c8e8' },
   { id: 'luna', name: 'Luna', rarity: 'Epic', imagePath: assetImage('avatars', 'luna'), placeholder: '🧑🏽‍🚀', color: '#b09be9' },
   { id: 'mali-vip', name: 'Mali VIP', rarity: 'VIP', imagePath: assetImage('avatars', 'mali-vip'), placeholder: '🧑🏼‍🚀', color: '#f1c75b' },
@@ -95,10 +97,26 @@ export const GACHA_ARTWORK: Record<'machine' | 'capsule', string | null> = {
 };
 
 export const PROFILE_BACKGROUNDS = [
-  { id: 'canal-day', name: 'Canal Day', imagePath: 'assets/world/house-coral.webp' },
-  { id: 'cloud-club', name: 'Cloud Club', imagePath: 'assets/world/house-sky.webp' },
-  { id: 'atelier-dusk', name: 'Atelier Dusk', imagePath: 'assets/world/house-lilac.webp' },
+  { id: 'canal-day', name: 'Canal Day', imagePath: 'assets/profile/canal-day.png' },
+  { id: 'cloud-club', name: 'Cloud Club', imagePath: 'assets/profile/cloud-club.png' },
+  { id: 'atelier-dusk', name: 'Atelier Dusk', imagePath: 'assets/profile/atelier-dusk.png' },
 ] as const;
+
+export const CURRENCY_ARTWORK = {
+  points: 'assets/currency/masque-point.png',
+  arenaTicket: 'assets/currency/arena-ticket.png',
+  petGachaTicket: 'assets/currency/pet-gacha-ticket.png',
+} as const;
+
+export const BADGE_ARTWORK: Record<string, string> = {
+  'first-finish': 'assets/badges/first-finish.png',
+  'ranked-debut': 'assets/badges/ranked-debut.png',
+  explorer: 'assets/badges/explorer.png',
+  'season-explorer': 'assets/badges/explorer.png',
+  'season-top-1': 'assets/badges/season-top-1.png',
+  'season-top-2': 'assets/badges/season-top-2.png',
+  'season-top-3': 'assets/badges/season-top-3.png',
+};
 
 export const WINGS = [
   { id: 'sky-feather', name: 'Sky Feather', rarity: 'Rare', color: '#84d4ee', imagePath: 'assets/wings/sky-feather.png', cost: 140 },
@@ -106,6 +124,9 @@ export const WINGS = [
 ] as const;
 
 export const SHOP_ITEMS: { id: string; kind: 'avatar' | 'pet'; itemId: string; cost: number }[] = [
+  { id: 'avatar-nami', kind: 'avatar', itemId: 'nami', cost: 120 },
+  { id: 'avatar-mali-festival', kind: 'avatar', itemId: 'mali-festival', cost: 180 },
+  { id: 'avatar-mali-ranked', kind: 'avatar', itemId: 'mali-ranked', cost: 180 },
   { id: 'avatar-flora', kind: 'avatar', itemId: 'flora', cost: 120 },
   { id: 'avatar-aqua', kind: 'avatar', itemId: 'aqua', cost: 120 },
   { id: 'avatar-mimi', kind: 'avatar', itemId: 'mimi', cost: 180 },

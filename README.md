@@ -68,21 +68,18 @@ Config ใช้ `vipFreeEntry`, `vipEnergyBonus`, `continueEnergyCost` แท�
 
 - เข้าแอปโดยไม่ใส่ `name` จะแสดงหน้าเริ่มเกม ให้กรอกชื่อก่อน ชื่อนี้อยู่ใน memory ของ session และไม่บันทึกใน `localStorage`; reload จะกลับมาหน้านี้
 - `?name=Mint` ข้ามหน้าเริ่มเกมและใช้ชื่อนี้ใน session โดยไม่รีเซ็ตยอดหรือบันทึกชื่อ
+- ผู้เล่น Mock ใหม่/Reset เริ่มด้วย 1,000 AIS Points; save เดิมรักษายอดที่บันทึกไว้
 - `?name=Somchai&aispoint=100` ใช้ AIS Points เป็น seed เมื่อสร้าง Mock Player ใหม่ (เพดาน 1,000,000)
 - `?name=Somchai&aispoint=100&resetMock=1` รีเซ็ต Mock Player แล้วลบ `resetMock` ออกจาก URL โดยคง hash route ไว้
 - `?aispoint=100` แสดง seed บนหน้าเริ่มเกม; การ seed จะมีผลเมื่อสร้าง Player ใหม่หรือใช้ `resetMock=1`
 
 ## Avatar & Pet Assets
 
-หน้า Pass และ popup ใช้ภาพรางวัลจริงเป็นจุดเด่น พร้อมบัตร VIP/แพ็กเร่งแบบภาพประกอบ แถบ XP และ reward tile มีขอบ/เงาแบบเกม รายการ PNG รอบนี้อยู่หัวข้อ **Current Request: Game-Style Pass Art** ใน [ART_GENERATION_BRIEF.md](doc/ART_GENERATION_BRIEF.md): บัตรปกติ, บัตร boost, ตราซีซัน และฉาก keyart ระหว่างรอใช้ PNG ปีกเดิมประกอบ Lucide เป็นตัวแทน ไม่ใช่ภาพ AI ใหม่
+Artwork Batch 1/2/3 ทั้ง 28 ภาพติดตั้งแล้ว: โลโก้/ฉาก Entry/profile, currency/badges, Luna/Nami/Mali outfits, Pets, wings และ Gacha machine/capsule. PNG ต้นฉบับอยู่ใน `art-source/`; runtime อยู่ใน `public/assets/` และ MV มีสำเนา Avatar/Pet WebP กับ wings ที่ใช้ในเมือง
 
-`PASS_ARTWORK` ใน `src/lib/data/config.ts` เป็นจุดเปลี่ยนภาพหลังตรวจงาน gen; ตอนนี้เป็น null เพื่อไม่เรียกไฟล์ที่ยังไม่มี วางต้นฉบับใน `art-source/pass/` และไฟล์ deploy ที่ `public/assets/pass/` แล้วปรับ mapping/build ไม่ต้อง gen ราคา เลขเลเวล ปุ่ม หรือข้อความติดภาพ
+`PASS_ARTWORK` และ `GACHA_ARTWORK` ใน `src/lib/data/config.ts` ชี้ไปยังภาพที่ติดตั้งแล้ว รายชื่อไฟล์, ขนาด, alpha, จุดยึดและ prompt อยู่ใน [ART_GENERATION_BRIEF.md](doc/ART_GENERATION_BRIEF.md). Batch 2/3 ใช้ชื่อ PNG แบบ descriptive ซึ่ง `scripts/optimize-art.mjs` จะข้ามเงียบ ๆ; Avatar/Pet WebP ชุดนี้จึงแปลงและ map แยกไว้แล้ว อย่ารัน optimizer แบบ numbered ทับต้นฉบับ และ `npm run art:cosmetics` จะเขียนทับ wing PNG final
 
-รายการ PNG ที่ต้องการ, ชื่อไฟล์, ขนาด, alpha, จุดยึดตัวละคร/ปีก และ prompt สำหรับสั่ง gen อยู่ใน [ART_GENERATION_BRIEF.md](doc/ART_GENERATION_BRIEF.md) แนะนำเริ่มจากโลโก้ Game Center, ฉากหน้าใส่ชื่อ, พื้นหลังโปรไฟล์ 3 แบบ และรูปบัตร Ranked ก่อน ระบบปัจจุบันเปลี่ยน Avatar ทั้งภาพ; การแยกหัว/ตัวเป็นข้อเสนอเฟสถัดไป ไม่ใช่ฟีเจอร์ที่ทำแล้ว
-
-เดโมใหม่สวม Pudding ให้เดินตามในเมือง ส่วน save เก่าที่ผู้เล่นถอด Pet ไว้จะไม่ถูกสวมทับ ออร่าเป็นเอฟเฟกต์ใน Three.js ตาม rarity หรือ Profile Level 20/35/50 และ VIP; ไม่เพิ่มความสามารถในเกม Pet ยังไม่มีระบบ XP/เลเวลแยก ปีก PNG ตัวอย่างสร้างด้วย `npm run art:cosmetics` (Sharp ไม่ใช่ AI image generation) และจะเขียนทับภาพปีกใน `public/assets/wings/` จึงไม่ควรรันเมื่อเปลี่ยนเป็นภาพ final แล้ว
-
-Avatar และ Pet ที่ใช้งานอยู่คือไฟล์ WebP ขนาด 640px ใน `public/assets/avatars/` และ `public/assets/pets/` ตั้งชื่อตาม id ของแต่ละตัวใน `src/lib/data/config.ts` (เช่น `mali.webp`, `pudding.webp`) ไฟล์ PNG ต้นฉบับเก็บใน `art-source/` (ไม่ถูก deploy) แล้วสร้างไฟล์เว็บด้วย `npm run art` หากเพิ่มภาพใหม่ให้วางต้นฉบับใน `art-source/` และเพิ่มลำดับไฟล์ใน `scripts/optimize-art.mjs` ถ้า asset ขาดหรือโหลดไม่ได้จะแสดง placeholder อัตโนมัติ Avatar Stage ใช้ `AssetPortrait` แยกจากโครงหน้าจอเพื่อรองรับการเปลี่ยน viewer ในอนาคต
+Mali Festival, Mali Ranked และ Nami เป็น Avatar สินค้าใน Shop; wardrobe ใช้ภาพเต็มตัว ไม่ใช่ระบบ paper-doll แยกชิ้น เดโมใหม่สวม Pudding ให้เดินตามในเมือง ส่วน save เก่าที่ถอด Pet ไว้จะไม่ถูกสวมทับ
 
 ## เริ่มพัฒนา
 
@@ -125,8 +122,14 @@ src/
 		├── services/     # Player, pass และ ranking logic
 		└── types/        # TypeScript models
 public/images/        # ภาพปกเกม
-public/assets/avatars/ # ภาพ Avatar (optional; placeholder หากไม่มีไฟล์)
-public/assets/pets/    # ภาพ Pet (optional; placeholder หากไม่มีไฟล์)
+public/assets/avatars/ # Avatar WebP และ Mali outfit variants
+public/assets/pets/    # Pet WebP
+public/assets/badges/  # Badge artwork
+public/assets/brand/   # Game Center / Vease logos
+public/assets/currency/# MP and ticket icons
+public/assets/entry/   # Entry island background
+public/assets/gacha/   # Pet Gacha machine/capsule
+public/assets/profile/ # Profile backgrounds
 ```
 
 ## ขอบเขต Prototype

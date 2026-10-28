@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Backpack, ChartNoAxesColumnIncreasing, Check, Clock3, Image, Medal, Pencil, Save, Ticket, Trophy, UserRound } from '@lucide/svelte';
+  import { Backpack, ChartNoAxesColumnIncreasing, Check, Clock3, Image, Medal, Pencil, Save, Trophy, UserRound } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
+  import CurrencyIcon from '../components/CurrencyIcon.svelte';
   import GameButton from '../components/GameButton.svelte';
   import PageTitle from '../components/PageTitle.svelte';
+  import RewardIcon from '../components/RewardIcon.svelte';
   import { AVATARS, PETS, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
   import type { PlayerState, ProfileStyle } from '../types';
 
@@ -47,7 +49,7 @@
       {#if pet}<span class="absolute -right-5 bottom-0 h-24 w-20"><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" /></span>{/if}
     </div>
     <div class="relative flex min-h-24 items-end justify-between gap-3 px-4 pb-4 text-white"><div class="min-w-0"><h2 class="break-words text-xl font-semibold">{player.displayName}</h2><p class="mt-1 text-xs">LV.{player.level} · {avatar.name}</p>{#if style.bio}<p class="mt-1 break-words text-xs">{style.bio}</p>{/if}</div>{#if !editable}<a class="grid size-10 shrink-0 place-items-center rounded-md border border-white/60 bg-white/20" href="#room" aria-label="แต่งโปรไฟล์" title="แต่งโปรไฟล์"><Pencil size={18} /></a>{/if}</div>
-    {#if pinned.length}<div class="absolute top-2 left-2 flex max-w-[calc(100%_-_16px)] flex-wrap gap-1" aria-label="ป้ายที่ปักไว้">{#each pinned as badge (badge.id)}<span class="flex items-center gap-1 rounded-md border border-white bg-white/90 px-2 py-1 text-[10px] font-semibold"><Medal size={14} class="text-amber-700" />{badge.title}{#if badge.seasonId}<small>{badge.seasonId}</small>{/if}</span>{/each}</div>{/if}
+    {#if pinned.length}<div class="absolute top-2 left-2 flex max-w-[calc(100%_-_16px)] flex-wrap gap-1" aria-label="ป้ายที่ปักไว้">{#each pinned as badge (badge.id)}<span class="flex items-center gap-1 rounded-md border border-white bg-white/90 px-2 py-1 text-[10px] font-semibold"><RewardIcon type="badge" itemId={badge.id} size={20} />{badge.title}{#if badge.seasonId}<small>{badge.seasonId}</small>{/if}</span>{/each}</div>{/if}
   </section>
 
   {#if editable}
@@ -74,7 +76,7 @@
     </section>
   {:else if tab === 'bag'}
     <section class="space-y-4" aria-label="กระเป๋าของฉัน">
-      <div class="grid grid-cols-2 gap-2"><a href="#battle" class="flex items-center gap-2 rounded-lg border border-white bg-white/60 p-3"><Ticket size={24} class="shrink-0 text-rose-600" /><span class="text-xs">บัตรเข้า Ranked<strong class="block text-lg">{player.demo.arenaTickets}</strong></span></a><a href="#gacha" class="flex items-center gap-2 rounded-lg border border-white bg-white/60 p-3"><Ticket size={24} class="shrink-0 text-sky-600" /><span class="text-xs">ตั๋วกาชา Pet<strong class="block text-lg">{player.gachaTickets}</strong></span></a></div>
+      <div class="grid grid-cols-2 gap-2"><a href="#battle" class="flex items-center gap-2 rounded-lg border border-white bg-white/60 p-3"><CurrencyIcon kind="arenaTicket" size={28} /><span class="text-xs">บัตรเข้า Ranked<strong class="block text-lg">{player.demo.arenaTickets}</strong></span></a><a href="#gacha" class="flex items-center gap-2 rounded-lg border border-white bg-white/60 p-3"><CurrencyIcon kind="petGachaTicket" size={28} /><span class="text-xs">ตั๋วกาชา Pet<strong class="block text-lg">{player.gachaTickets}</strong></span></a></div>
       <h2 class="text-sm font-semibold">พื้นหลังโปรไฟล์</h2><div class="grid grid-cols-3 gap-2">{#each PROFILE_BACKGROUNDS.filter((item) => (player.demo.backgrounds ?? PROFILE_BACKGROUNDS.map((background) => background.id)).includes(item.id)) as item (item.id)}<a class="overflow-hidden rounded-md border border-white bg-white/70 text-[10px]" href="#room"><img class="aspect-[4/3] w-full object-cover" src={item.imagePath} alt="" /><span class="block p-1">{item.name}</span></a>{/each}</div>
       <h2 class="text-sm font-semibold">Avatar · {player.ownedAvatarIds.length}</h2>
       <div class="grid grid-cols-3 gap-2">{#each AVATARS.filter((item) => player.ownedAvatarIds.includes(item.id)) as item (item.id)}<button class="grid min-w-0 justify-items-center gap-1 rounded-lg border border-white bg-white/50 p-2 text-[10px]" aria-label={`ใช้ตัวละคร ${item.name}`} aria-pressed={player.avatarId === item.id} onclick={() => onAvatar(item.id)}><span class="h-24 w-full"><AssetPortrait src={item.imagePath} alt="" placeholder={item.placeholder} kind="avatar" /></span>{item.name}{#if player.avatarId === item.id}<Check size={14} />{/if}</button>{/each}</div>
@@ -86,7 +88,7 @@
     </section>
   {:else}
     <section class="space-y-2" aria-label="ป้ายผลงาน">
-      {#each player.demo.achievements as badge (badge.id)}<div class="flex items-center gap-3 border-b border-white py-3"><Medal size={25} class="shrink-0 text-amber-600" /><div class="min-w-0 flex-1"><strong class="block text-sm">{badge.title}</strong><small class="block text-xs text-[#668798]">{badge.seasonId ?? player.demo.config.games.find((game) => game.id === badge.gameId)?.name ?? 'Achievement'} · {new Date(badge.earnedAt).toLocaleDateString('th-TH')}</small></div>{#if editable}<input type="checkbox" class="size-5 shrink-0 accent-sky-600" aria-label={`ปัก ${badge.title}`} checked={draft.badgeIds.includes(badge.id)} disabled={!draft.badgeIds.includes(badge.id) && draft.badgeIds.length >= 3} onchange={() => toggleBadge(badge.id)} />{/if}</div>{:else}<p class="py-6 text-center text-xs text-[#668798]">เล่นจบครั้งแรกเพื่อรับป้าย First Finish</p>{/each}
+      {#each player.demo.achievements as badge (badge.id)}<div class="flex items-center gap-3 border-b border-white py-3"><RewardIcon type="badge" itemId={badge.id} size={28} /><div class="min-w-0 flex-1"><strong class="block text-sm">{badge.title}</strong><small class="block text-xs text-[#668798]">{badge.seasonId ?? player.demo.config.games.find((game) => game.id === badge.gameId)?.name ?? 'Achievement'} · {new Date(badge.earnedAt).toLocaleDateString('th-TH')}</small></div>{#if editable}<input type="checkbox" class="size-5 shrink-0 accent-sky-600" aria-label={`ปัก ${badge.title}`} checked={draft.badgeIds.includes(badge.id)} disabled={!draft.badgeIds.includes(badge.id) && draft.badgeIds.length >= 3} onchange={() => toggleBadge(badge.id)} />{/if}</div>{:else}<p class="py-6 text-center text-xs text-[#668798]">เล่นจบครั้งแรกเพื่อรับป้าย First Finish</p>{/each}
       {#if !editable}<a class="inline-flex min-h-10 items-center gap-1 text-xs text-sky-700 underline" href="#room"><Pencil size={14} />เลือกป้ายที่ปักบนโปรไฟล์</a>{/if}
     </section>
   {/if}

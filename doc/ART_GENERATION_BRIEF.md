@@ -14,30 +14,21 @@
 - `public/` holds deployable art. Optimized WebP may be derived from PNG originals after review.
 - Do not overwrite current assets until dimensions, alignment and transparency have been checked.
 
-## GPT Batch Prompts: 10 Separate Images
+All 28 outputs below were delivered and installed on 2026-10-28 in three separate batches of
+10/10/8. These prompts are retained only for replacing an individual asset; do not generate the
+batches again. The four Pass images installed earlier are not included and must NOT be regenerated.
 
-There are 28 outputs below: the 25 core assets in Priority 1 and Priority 2, two Gacha assets,
-and a symbol-only brand mark requested alongside the Game Center logo.
-Run the three prompts one at a time. Each prompt asks for up to 10 individual image files, never
-one combined sheet. If the image tool cannot return separate files, ask it to render them one by
-one within that batch. The four Pass images already installed in `public/assets/pass/` are not
-included and must NOT be regenerated.
+The original PNGs are preserved in `art-source/`; runtime assets and mappings for Batch 1/2/3 are
+installed. If replacing an image later, attach the named identity references, preserve exact names/
+canvas specs, validate alpha and update the appropriate runtime mapping before rebuilding.
 
-For every prompt, attach the named existing Avatar, Pet or wing references from `public/assets/`
-when requested. Save the original PNGs at `art-source/<listed subfolder>/<exact filename>`; do not
-put source art in `dist/`. These are source/delivery paths, not a promise that every image is
-already wired to the runtime. After review, update the relevant asset mapping before copying or
-optimizing files into `public/assets/` and rebuilding.
+Batch 2/3 source PNGs use descriptive filenames. `scripts/optimize-art.mjs` only processes numbered
+names such as `mali-1.png` through a fixed order and silently ignores descriptive names; do NOT run
+`npm run art` on these batches. Approved 640px WebP runtime copies and Avatar ID mappings are
+already installed. Mali Festival/Ranked are selectable shop Avatars; preserve the originals in
+`art-source/` and use the explicit mappings rather than renaming them for the numbered optimizer.
 
-Important for Batch 2 and Batch 3: `scripts/optimize-art.mjs` only processes numbered names such
-as `mali-1.png` and maps their number through a fixed order. It will silently ignore descriptive
-names like `mali-default.png`, `mali-festival.png` or `pudding.png`; do NOT run `npm run art` on
-these batches. Avatar and Pet images also need explicit runtime IDs/mapping, and outfit variants
-are future art until the UI exposes them. Keep these originals in `art-source/` until that
-integration is planned. The Batch 3 Gacha files are now supplied and active; do not generate them
-again unless replacing a specific asset.
-
-### Batch 1: Brand, Entry, Profile and Currency (10)
+### Batch 1: Brand, Entry, Profile and Currency (10) — Supplied and Installed
 
 ```text
 Generate exactly these 10 ORIGINAL production-ready Masque Game Center image assets as 10
@@ -113,7 +104,7 @@ and alpha rules above. If a wordmark is misspelled, redo that file instead of ad
 text as a second line.
 ```
 
-### Batch 2: Badges and Four Avatar Outfits (10)
+### Batch 2: Badges and Four Avatar Outfits (10) — Supplied and Installed
 
 Attach the current Avatar reference files from `public/assets/avatars/`: `mali.webp` for all three
 Mali outfits, and `nami.webp` for Nami. Generate the three Mali outputs from the SAME identity,
@@ -255,10 +246,9 @@ Before delivery, confirm exactly eight individual files, matching filenames and 
 transparent alpha, no clipped edges and no reference character identity drift.
 ```
 
-The symbol-only logo is an optional improvement to an existing fallback. Do not let it block work
-on the 25 core priority assets. The two optional Pass assets, optional
-moon-moth wings and modular Avatar rig later in this brief are intentionally excluded from these
-three batches.
+The symbol-only logo and all assets in the three batches are installed. The two optional Pass
+assets, optional moon-moth wings and modular Avatar rig later in this brief were not part of the
+28-file delivery and remain future work.
 
 ## Current Request: Game-Style Pass Art
 
@@ -427,17 +417,16 @@ watermark, multiple capsules or contact sheet.
 | `badges/season-top-2.png` | 512 x 512 | Yes | Silver trophy crest, same silhouette |
 | `badges/season-top-3.png` | 512 x 512 | Yes | Bronze trophy crest, same silhouette |
 
-Start with the main logo, entry background, three profile backgrounds and Ranked ticket.
-Other images are polish, not blockers. Standard controls continue to use Lucide icons.
+All 15 Priority 1 images were supplied and installed on 2026-10-28. Entry/profile screens,
+wallet/currency views and reward icons map to these assets; standard controls continue to use
+Lucide icons where no currency artwork is appropriate.
 
 ### Already Supplied
 
 - Memory game's supplied logo is preserved at `public/images/mem.png`.
 - It is shown uncropped on the catalog and detail page. Do not regenerate or rename it.
-- Current profile backgrounds reuse existing town illustrations as placeholders.
-- The filenames in the table are the FINAL art handoff, not a claim that those files already exist.
-- When final backgrounds arrive, map them in `PROFILE_BACKGROUNDS` in `src/lib/data/config.ts`.
-- Entry and badge art need integration after delivery; the current app does not pretend missing PNGs exist.
+- Batch 1 profile backgrounds are active through `PROFILE_BACKGROUNDS` in `src/lib/data/config.ts`.
+- Entry artwork is active in `EntryPage.svelte`; brand, currency and badge files are also installed.
 
 ## Priority 2: Full-Body Characters and Wearable Wings
 
@@ -463,27 +452,27 @@ Generate the complete character in each outfit, leaving wings and magical effect
 | `avatars/nami-default.png` | Nami, identity reference |
 | `avatars/luna-default.png` | Luna, identity reference |
 
-Do not generate all ten characters before the first three Mali files pass an overlay alignment test.
-Current legacy World images are trimmed automatically; normalize them or adapt their anchors before
-mixing the new master canvases with legacy art. A matching filename alone does not guarantee alignment.
+The first three Mali images and Nami were supplied with matching canvas bounds and installed. Mali
+Festival and Mali Ranked are separate purchasable full-body Avatar variants; each keeps the common
+1024px canvas so the existing wardrobe can render it as a complete Avatar.
 
 ### Wings
 
 - PNG 1024 x 1024, alpha; a symmetrical pair in the same image, NO character.
 - Attachment center at (512, 563), matching the Avatar back anchor.
 - Spread to x = 70..954, y = 170..800. Keep the very center relatively clear for the body.
-- Export `wings/sky-feather.png`: white feathers with sky blue shading and silver edges.
-- Export `wings/sunrise-seraph.png`: ivory/gold feathers with subtle coral jewel accents.
+- Installed `wings/sky-feather.png`: white feathers with sky blue shading and silver edges.
+- Installed `wings/sunrise-seraph.png`: ivory/gold feathers with subtle coral jewel accents.
 - Optional later: `wings/moon-moth.png`, rose/silver fantasy moth wings, not neon purple.
-- PNG demo wings already exist under `public/assets/wings/`; these are programmatic illustrations,
-  not images from an AI generation service. `npm run art:cosmetics` regenerates and OVERWRITES them.
-- Final painted replacements should retain the names and anchors. Do not run that generator over finals.
+- Batch 2 wing PNGs replace the old demo wing assets in MGC/MV; those old demo files were
+- `npm run art:cosmetics` overwrites the supplied wing files; do not run it over the final art.
 
 ### Pets
 
 - PNG 1024 x 1024, alpha, full body, feet baseline y = 940, center x = 512.
 - One animal, no text, no wings or aura baked in. Keep its reference identity.
-- First files: `pets/pudding.png`, `pets/cloud.png`, `pets/frostwing.png`.
+- Installed files: `pets/pudding.png`, `pets/cloud.png`, `pets/frostwing.png`, converted to the
+  runtime WebP IDs in both MGC and MV.
 - Rarity aura is rendered by the engine: Rare = blue, Epic = pink, Legendary = gold.
 - Pets currently have rarity, not individual XP/levels. Do not invent pet-level labels in the art.
 

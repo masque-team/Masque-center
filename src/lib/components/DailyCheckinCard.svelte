@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Check, Coins, Sparkles } from '@lucide/svelte';
+  import { Check, Sparkles } from '@lucide/svelte';
+  import CurrencyIcon from './CurrencyIcon.svelte';
   import GameButton from './GameButton.svelte';
 
   let { reward, days, claimed, onClaim, compact = false }: {
@@ -19,7 +20,7 @@
       <span class="checkin-sparkle grid size-8 shrink-0 place-items-center rounded-lg border border-white bg-[#dff3fb] text-[#418eaa]" aria-hidden="true"><Sparkles size={16} /></span>
       <div class="min-w-0 flex-1">
         <div class="flex items-center justify-between gap-2"><h3 class="!text-xs !text-[#365c7a]">เช็กอินรายวัน</h3><span class="text-[10px] font-bold tabular-nums text-[#a46f19]">{doneCount}/7 วัน</span></div>
-        <p class="mt-0.5 !text-[10px] !text-[#6b8795]">รับฟรี <b>+{reward} MP</b> ทุกวัน</p>
+        <p class="mt-0.5 !text-[10px] !text-[#6b8795]">รับฟรี <b><CurrencyIcon kind="points" size={13} />+{reward} MP</b> ทุกวัน</p>
       </div>
       <GameButton variant={claimed ? 'ghost' : 'gold'} size="sm" disabled={claimed} onclick={onClaim}>
         {#if claimed}<Check size={13} />รับแล้ว{:else}เช็กอิน{/if}
@@ -46,7 +47,7 @@
         <h3>เช็กอินรายวัน</h3>
         <span class="streak"><Sparkles size={11} />{doneCount}/7 วัน</span>
       </div>
-      <p>รับฟรี <b><Coins size={13} />+{reward} MP</b> ทุกวัน</p>
+      <p>รับฟรี <b><CurrencyIcon kind="points" size={14} />+{reward} MP</b> ทุกวัน</p>
     </div>
     <GameButton variant={claimed ? 'ghost' : 'gold'} size="sm" disabled={claimed} onclick={onClaim}>
       {#if claimed}<Check size={15} strokeWidth={3.5} />รับแล้ว{:else}เช็กอิน{/if}
@@ -58,7 +59,7 @@
       <li class:done={day.done} class:today={day.today} class:ready={day.today && !day.done} style={`--day-delay:${index * 55}ms`}>
         <small class="lbl">{day.label}</small>
         <span class="stamp">
-          {#if day.done}<Check size={14} strokeWidth={3.6} />{:else}<Coins size={12} />{/if}
+          {#if day.done}<Check size={14} strokeWidth={3.6} />{:else}<CurrencyIcon kind="points" size={16} />{/if}
         </span>
         <span class="amt">+{reward}</span>
       </li>

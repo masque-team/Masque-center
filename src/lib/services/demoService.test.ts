@@ -83,12 +83,32 @@ describe('shared demo economy', () => {
   it('supports name and AIS test query inputs without persisting the login name', () => {
     expect(parseAisPointSeed('125')).toBe(125);
     expect(parseAisPointSeed('-1')).toBeNull();
+    expect(loadPlayer('Fresh Player', null, true).aisPoints).toBe(1000);
     const player = loadPlayer('Demo One', 125, true);
     expect(player.displayName).toBe('Demo One');
     expect(player.aisPoints).toBe(125);
     expect(JSON.parse(localStorage.getItem('masquegame_center_v2')!).displayName).toBe('Guest Player');
     expect(loadPlayer(null).displayName).toBe('Guest Player');
     expect(loadPlayer('Demo Two').displayName).toBe('Demo Two');
+  });
+  it('adds new Avatar shop variants to saved players without changing their AIS balance', () => {
+    const saved = loadPlayer('Returning Player', 432, true);
+    saved.demo.config.shop = saved.demo.config.shop.filter((item) => !['avatar-nami', 'avatar-mali-festival', 'avatar-mali-ranked'].includes(item.id));
+    savePlayer(saved);
+    const migrated = loadPlayer('Returning Player');
+    expect(migrated.aisPoints).toBe(432);
+    expect(migrated.demo.config.shop.filter((item) => item.id.startsWith('avatar-mali-') || item.id === 'avatar-nami').map((item) => item.id).sort()).toEqual(['avatar-mali-festival', 'avatar-mali-ranked', 'avatar-nami']);
+  });
+  it('unlocks supplied profile backgrounds for existing players without resetting their selection or balances', () => {
+    const saved = sample();
+    saved.demo.backgrounds = ['canal-day'];
+    saved.demo.profile.backgroundId = 'canal-day';
+    savePlayer(saved);
+    const migrated = loadPlayer('Returning Player');
+    expect(migrated.demo.backgrounds).toEqual(['canal-day', 'cloud-club', 'atelier-dusk']);
+    expect(migrated.demo.profile.backgroundId).toBe('canal-day');
+    expect(migrated.aisPoints).toBe(saved.aisPoints);
+    expect(migrated.masquePoints).toBe(saved.masquePoints);
   });
   it('allows purchased overflow and pauses free regeneration above cap', () => {
     const next = refillEnergy(sample(), 8, 70)!;
@@ -441,10 +461,10 @@ describe('progression and duplicate protection', () => {
     expect(finished.masquePoints).toBe(320);
     expect(finished.demo.profileXp).toBe(40);
   });
-  it('saves profile backgrounds and only owned frames and earned badges', () => {
+  it('saves unlocked profile backgrounds and only owned frames and earned badges', () => {
     const original = finishedSample();
-    expect(customizeProfile(original, { backgroundId: 'cloud-club', bio: '', badgeIds: [] }, null)).toBeNull();
-    const player = grantReward(original, { title: 'Cloud Club', type: 'background', itemId: 'cloud-club' });
+    expect(customizeProfile(original, { backgroundId: 'cloud-club', bio: '', badgeIds: [] }, null)).not.toBeNull();
+    const player = original;
     const style = { backgroundId: 'cloud-club', bio: 'Hello', badgeIds: ['first-finish'] };
     expect(customizeProfile(player, { ...style, badgeIds: ['fake-top'] }, null)).toBeNull();
     expect(customizeProfile(player, style, 'sunrise')).toBeNull();

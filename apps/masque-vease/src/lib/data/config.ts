@@ -1,5 +1,6 @@
 const avatarSpecs = [
-  ['mali', 'Mali', 'Common'], ['nami', 'Nami', 'Rare'], ['luna', 'Luna', 'Epic'],
+  ['mali', 'Mali', 'Common'], ['mali-festival', 'Mali Festival', 'Epic'], ['mali-ranked', 'Mali Ranked', 'Epic'],
+  ['nami', 'Nami', 'Rare'], ['luna', 'Luna', 'Epic'],
   ['mali-vip', 'Mali VIP', 'VIP'], ['flora', 'Flora', 'Rare'], ['mimi', 'Mimi', 'Epic'],
   ['ember', 'Ember', 'Epic'], ['aqua', 'Aqua', 'Rare'], ['fawn', 'Fawn', 'Epic'], ['nyx', 'Nyx', 'Legendary'],
 ] as const;

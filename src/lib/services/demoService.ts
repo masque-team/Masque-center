@@ -27,7 +27,7 @@ export function createDemo(): DemoState {
   };
   demo.passRevision = 2;
   demo.weeklyGames = {};
-  demo.backgrounds = ['canal-day'];
+  demo.backgrounds = PROFILE_BACKGROUNDS.map((background) => background.id);
   demo.config.passAutomatic = true;
   demo.config.missionTarget = 3;
   demo.config.missionXp = PASS_RULES.dailyXp;

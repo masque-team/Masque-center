@@ -1,5 +1,5 @@
 import type { PlayerState } from '../types';
-import { ENERGY_CONFIG, PLAYER_MOCK_CONFIG, PROFILE_BACKGROUNDS, VIP_PACKAGES, WINGS } from '../data/config';
+import { ENERGY_CONFIG, PLAYER_MOCK_CONFIG, PROFILE_BACKGROUNDS, SHOP_ITEMS, VIP_PACKAGES, WINGS } from '../data/config';
 import type { ProfileStyle } from '../types';
 import { createDemo, currentSeason, dayKey } from './demoService';
 import { PASS_RULES, passTrack } from './battlePassService';
@@ -87,7 +87,7 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   delete result.demo.config.vipUnlimited;
   if (result.energyUpdatedAt > Date.now() + result.demo.clockOffset) result.energyUpdatedAt = Date.now() + result.demo.clockOffset;
   result.demo.weeklyGames ??= {};
-  result.demo.backgrounds ??= PROFILE_BACKGROUNDS.map((background) => background.id);
+  result.demo.backgrounds = [...new Set([...(result.demo.backgrounds ?? []), ...PROFILE_BACKGROUNDS.map((background) => background.id)])];
   if (result.demo.passRevision !== 2) {
     const oldId = result.demo.config.passSeasonId;
     const oldPass = result.demo.passes[oldId] ?? { xp: 0, premium: false, claims: [] };
@@ -121,6 +121,9 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   if (!result.demo.wings.includes(result.demo.wingId ?? '') || !WINGS.some((wing) => wing.id === result.demo.wingId)) result.demo.wingId = null;
   for (const wing of WINGS) {
     if (!result.demo.config.shop.some((item) => item.kind === 'wing' && item.itemId === wing.id)) result.demo.config.shop.push({ id: `wing-${wing.id}`, kind: 'wing', itemId: wing.id, cost: wing.cost });
+  }
+  for (const item of SHOP_ITEMS) {
+    if (!result.demo.config.shop.some((existing) => existing.id === item.id)) result.demo.config.shop.push({ ...item });
   }
   result.demo.ownedDecor ??= ['sofa', 'plant'];
   result.demo.config.decorPrice ??= 25;

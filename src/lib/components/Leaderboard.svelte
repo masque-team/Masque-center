@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Crown, Info, Medal, Trophy } from '@lucide/svelte';
+  import { Info, Trophy } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
   import { AVATARS } from '../data/config';
   import { GAMES } from '../data/games';
@@ -55,7 +55,7 @@
         {@const rank = index + 1}
         {@const avatar = avatarFor(entry)}
         <article class={`place p${rank}`} class:mine={entry.isCurrentPlayer}>
-          <span class="medal">{#if rank === 1}<Crown size={18} fill="currentColor" />{:else}<Medal size={16} />{/if}</span>
+          <span class="medal"><img src={`assets/badges/season-top-${rank}.png`} alt="" /></span>
           <span class="portrait" style={`--avatar-color:${avatar.color}`}>
             <AssetPortrait src={avatar.imagePath} alt="" placeholder={avatar.placeholder} kind="avatar" className="rank-avatar" />
           </span>
