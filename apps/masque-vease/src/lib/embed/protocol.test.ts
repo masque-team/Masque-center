@@ -21,6 +21,9 @@ describe('versioned iframe protocol', () => {
   });
   it('only permits known in-app routes and outfit requests', () => {
     expect(isSceneMessage(packet('NAVIGATE', { route: 'detail/memory' }))).toBe(true);
+    expect(isSceneMessage(packet('NAVIGATE', { route: 'detail/new-game' }))).toBe(true);
+    expect(isSceneMessage(packet('NAVIGATE', { route: 'detail/../admin' }))).toBe(false);
+    expect(isHostMessage(packet('STATE', { state: { ...state, games: [{ id: 'new-game', name: 'New Game' }] } }))).toBe(true);
     expect(isSceneMessage(packet('NAVIGATE', { route: 'https://evil.test' }))).toBe(false);
     expect(isSceneMessage(packet('NAVIGATE', { route: 'admin' }))).toBe(false);
     expect(isSceneMessage(packet('EQUIP_REQUEST', { avatarId: 'nami', petId: null, wingId: null }))).toBe(true);

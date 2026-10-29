@@ -8,7 +8,7 @@ export function getGameRanking(
   currentScore: number,
 ): RankingEntry[] {
   const multiplier = period === 'allTime' ? 3 : 1;
-  const entries = MOCK_RANKINGS[gameId].map((entry) => ({
+  const entries = (MOCK_RANKINGS[gameId] ?? []).map((entry) => ({
     ...entry,
     score: period === 'weekly' && player.demo.rankingResets.includes(player.demo.config.rankingSeasonId) ? 0 : entry.score * multiplier,
   }));

@@ -22,13 +22,25 @@ MGC เปิด MV ผ่าน iframe ไม่ import renderer ของ MV; 
 
 ## เกมในแคตตาล็อก
 
+### ตั้งค่ารายการเกมหลัง build
+
+แก้ `games.json` ในโฟลเดอร์ที่ deploy จาก `dist/` ได้โดยไม่ต้อง build ใหม่ ต้นฉบับใน repo อยู่ที่ `public/games.json` (แก้ต้นฉบับด้วยเมื่อจะ build/deploy รอบถัดไป เพื่อไม่ให้ค่าใหม่ถูกทับ) แอปโหลดไฟล์ใหม่เมื่อเปิดหรือรีเฟรชหน้า และใช้รายการในไฟล์แทนรายการเกมที่เคยบันทึกในเครื่อง โดยไม่ล้างคะแนนหรือข้อมูลผู้เล่นอื่น
+
+- เปลี่ยนลิงก์: แก้ `url` ของเกม ต้องเป็น URL แบบ `https://` หรือ `http://`
+- เพิ่มเกม: คัดลอก object เดิมแล้วแก้ `id`, `name`, `description`, `genre`, `badge` และ `url` โดย `id` ต้องไม่ซ้ำ ใช้อักษรอังกฤษตัวเล็ก ตัวเลข และ `-` ได้ไม่เกิน 64 ตัวอักษร; `genre` ห้ามใช้ `all` ซึ่งสงวนไว้สำหรับตัวกรองทั้งหมด
+- ลดเกม: ลบ object ออกจาก array หรือกำหนด `"published": false` เพื่อซ่อน ต้องเหลือเกมที่เผยแพร่อย่างน้อย 1 เกม และมีได้สูงสุด 32 เกม
+- `cover` เป็นชื่อไฟล์ในโฟลเดอร์ `images/` ที่ deploy คู่กัน เช่น `"cover": "run.png"` (ละได้); `displayOrder` กำหนดลำดับ และ `featured: true` เลือกเกมเด่น
+- ตรวจสอบเครื่องหมาย comma และรูปแบบ JSON ให้ถูกต้อง หากไฟล์ไม่ถูกต้องหรือโหลดไม่ได้ แอปจะแสดงข้อผิดพลาดแทนการใช้รายการเก่า ค่าที่แก้ใน Demo Studio มีผลชั่วคราวจนรีเฟรชหน้า
+
+เมื่อ deploy การรองรับ config ครั้งแรก ให้ build และ deploy ทั้ง MGC และ MV เพื่อให้หน้าเมืองรับ ID เกมใหม่ได้ ส่วนการแก้ `games.json` ครั้งถัดไปไม่ต้อง build ใหม่ การเปิดเกมยังขึ้นกับว่าเซิร์ฟเวอร์เกมอนุญาตให้แสดงใน iframe หรือไม่
+
 | **ARCADE** | **REACTION** | **RUNNER** |
 |:---:|:---:|:---:|
-| <img src="public/images/bird.png" alt="สัตว์บินถลาลม" width="180" /><br /><strong>สัตว์บินถลาลม</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/bird/) | <img src="public/images/mole.png" alt="ตีไอต้าวตุ่นเด้ง" width="180" /><br /><strong>ตีไอต้าวตุ่นเด้ง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/mole-v3/) | <img src="public/images/run.png" alt="สัตว์วิ่งตะลุยเมือง" width="180" /><br /><strong>สัตว์วิ่งตะลุยเมือง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/game/run/) |
+| <img src="public/images/bird.png" alt="สัตว์บินถลาลม" width="180" /><br /><strong>สัตว์บินถลาลม</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/bird/) | <img src="public/images/mole.png" alt="ตีไอต้าวตุ่นเด้ง" width="180" /><br /><strong>ตีไอต้าวตุ่นเด้ง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/mole-v3/) | <img src="public/images/run.png" alt="สัตว์วิ่งตะลุยเมือง" width="180" /><br /><strong>สัตว์วิ่งตะลุยเมือง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/minigame/aniirun/) |
 | **ACTION** | **ARCADE · DEER EDITION** | **SHOOTER** |
 | <img src="public/images/ninja.png" alt="ฟันผลไม้เปรี้ยง" width="180" /><br /><strong>ฟันผลไม้เปรี้ยง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/fruitninja/) | <img src="public/images/timber.png" alt="สัตว์ชนพุ่งปังปัง" width="180" /><br /><strong>สัตว์ชนพุ่งปังปัง</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/game/timberdear/) | <img src="public/images/duck.png" alt="ล่าฝุงเป็ดป่วน" width="180" /><br /><strong>ล่าฝุงเป็ดป่วน</strong><br />[เล่นเกม](https://masque-lab.adldigitalservice.com/myroom/shooting-duck/) |
 | **MEMORY** |  |  |
-| **สัตว์จับคู่สู้สุดใจ**<br />จับคู่ภาพสัตว์ให้ครบทุกคู่<br />[เล่นเกม](https://masque-lab.adldigitalservice.com/mygame/memonrycard/) |  |  |
+| **สัตว์จับคู่สู้สุดใจ**<br />จับคู่ภาพสัตว์ให้ครบทุกคู่<br />[เล่นเกม](https://masque-lab.adldigitalservice.com/minigame/memonrycard/) |  |  |
 
 > ภาพปกอ้างอิงจาก `public/images/` และเกม Timber เป็นเกมสไตล์ Timberman ที่เปลี่ยนตัวละครเป็นกวาง
 >

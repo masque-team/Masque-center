@@ -3,6 +3,7 @@ import { ENERGY_CONFIG, PLAYER_MOCK_CONFIG, PROFILE_BACKGROUNDS, SHOP_ITEMS, VIP
 import type { ProfileStyle } from '../types';
 import { createDemo, currentSeason, dayKey } from './demoService';
 import { PASS_RULES, passTrack } from './battlePassService';
+import { catalogFromFile, GAMES } from '../data/games';
 
 const STORAGE_KEY = 'masquegame_center_v2';
 
@@ -127,8 +128,8 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   }
   result.demo.ownedDecor ??= ['sofa', 'plant'];
   result.demo.config.decorPrice ??= 25;
-  result.demo.config.games = result.demo.config.games.map((game, index) => ({ ...game, ...(game.id === 'memory' ? { cover: game.cover ?? 'mem.png' } : {}), published: game.published ?? true, displayOrder: game.displayOrder ?? index + 1 }));
-  if (result.demo.config.games.some((game) => game.id === 'bird' && game.featured) && !result.demo.config.games.some((game) => game.id === 'memory' && game.featured)) {
+  result.demo.config.games = (catalogFromFile ? GAMES : result.demo.config.games).map((game, index) => ({ ...game, ...(game.id === 'memory' ? { cover: game.cover ?? 'mem.png' } : {}), published: game.published ?? true, displayOrder: game.displayOrder ?? index + 1 }));
+  if (!catalogFromFile && result.demo.config.games.some((game) => game.id === 'bird' && game.featured) && !result.demo.config.games.some((game) => game.id === 'memory' && game.featured)) {
     result.demo.config.games = result.demo.config.games.map((game) => game.id === 'memory' ? { ...game, featured: true, editorialTag: 'hot' } : game.id === 'bird' ? { ...game, featured: false, editorialTag: 'new' } : game);
   }
   result.demo.config.vipPlans = result.demo.config.vipPlans.map((plan) => ({ ...plan, bonusPoints: plan.bonusPoints ?? (plan.id === 'seven-day' ? 80 : 0), bonusTickets: plan.bonusTickets ?? (plan.id === 'five-day' ? 1 : 0) }));

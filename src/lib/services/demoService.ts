@@ -13,7 +13,7 @@ export function createDemo(): DemoState {
       energyMax: 12, regenMinutes: 30, energyCost: 1, exchangeRate: 10, checkinReward: 35,
       missionTarget: 1, missionXp: 100, premiumPrice: 200, gachaCost: 90, duplicatePoints: 30,
       gachaPool: PETS.map((pet) => ({ petId: pet.id, weight: pet.rarity === 'Legendary' ? 2 : pet.rarity === 'Epic' ? 8 : 20 })),
-      games: GAMES.map((game) => ({ ...game, published: true })), vipPlans: structuredClone(VIP_PACKAGES), vipFreeEntry: true, vipEnergyBonus: 6, continueEnergyCost: 1,
+      games: GAMES.map((game) => ({ ...game, published: game.published ?? true })), vipPlans: structuredClone(VIP_PACKAGES), vipFreeEntry: true, vipEnergyBonus: 6, continueEnergyCost: 1,
       energyPacks: ENERGY_CONFIG.refillPacks.map((pack) => ({ ...pack })),
       shop: [...SHOP_ITEMS.map((item) => ({ ...item })), ...WINGS.map((wing) => ({ id: `wing-${wing.id}`, kind: 'wing' as const, itemId: wing.id, cost: wing.cost })), { id: 'frame-sunrise', kind: 'frame', itemId: 'sunrise', cost: 80 }, { id: 'frame-ocean', kind: 'frame', itemId: 'ocean', cost: 80 }],
       seasons: [

@@ -30,7 +30,6 @@ export type SceneMessage =
   | Envelope<'ERROR', { message: string }>;
 export const DESTINATIONS = ['arcade', 'cafe', 'market', 'atelier', 'club', 'pass', 'bakery', 'home', 'studio'];
 const ROUTES = ['home', 'shop', 'avatar', 'profile', 'room', 'rewards', 'battle', 'wallet', 'ranking', 'world', 'points', 'gacha', 'detail', 'admin'];
-const GAME_IDS = ['bird', 'mole', 'run', 'fruit', 'timber', 'duck', 'memory'];
 const record = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const text = (value: unknown, maximum = 160): value is string => typeof value === 'string' && value.length <= maximum;
 const itemId = (value: unknown): value is string => typeof value === 'string' && /^[a-z0-9-]{1,64}$/.test(value);
@@ -46,7 +45,7 @@ export function isSceneState(value: unknown): value is SceneState {
   return text(look.name, 40) && Number.isSafeInteger(look.level) && Number(look.level) >= 0 && optionalId(look.frameId) && typeof look.vip === 'boolean'
     && ids(value.owned.avatarIds) && ids(value.owned.petIds) && ids(value.owned.wingIds)
     && ['water', 'lantern'].includes(value.theme as string) && typeof value.enabled === 'boolean' && text(value.announcement)
-    && Array.isArray(value.games) && value.games.length <= 32 && value.games.every((game) => record(game) && GAME_IDS.includes(game.id as string) && text(game.name, 100)
+    && Array.isArray(value.games) && value.games.length <= 32 && value.games.every((game) => record(game) && itemId(game.id) && text(game.name, 100)
       && (game.cover === undefined || typeof game.cover === 'string' && /^[a-zA-Z0-9_.-]+$/.test(game.cover)) && (game.published === undefined || typeof game.published === 'boolean'));
 }
 function envelope(value: unknown): value is { type: string; payload: Record<string, unknown> } {
@@ -72,7 +71,7 @@ export function isSceneMessage(value: unknown): value is SceneMessage {
   switch (value.type) {
     case 'READY': case 'ACK': return true;
     case 'ARRIVED': return DESTINATIONS.includes(payload.destination as string) && typeof payload.cancelled === 'boolean';
-    case 'NAVIGATE': return typeof payload.route === 'string' && (ROUTES.includes(payload.route) && !['admin', 'detail'].includes(payload.route) || /^detail\/(bird|mole|run|fruit|timber|duck|memory)$/.test(payload.route));
+    case 'NAVIGATE': return typeof payload.route === 'string' && (ROUTES.includes(payload.route) && !['admin', 'detail'].includes(payload.route) || /^detail\/[a-z0-9-]{1,64}$/.test(payload.route));
     case 'EQUIP_REQUEST': return isOutfit(payload);
     case 'SIZE': return Number.isSafeInteger(payload.height) && Number(payload.height) >= 350 && Number(payload.height) <= 4000;
     case 'ERROR': return text(payload.message);

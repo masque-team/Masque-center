@@ -10,7 +10,7 @@
     player: PlayerState;
     gameId: GameId;
     period: RankingPeriod;
-    scores: Record<GameId, number>;
+    scores: Partial<Record<GameId, number>>;
     onClaim: (id: GameId) => void;
   } = $props();
   let claimed = $derived(player.demo.rankingClaims.includes(`${player.demo.config.rankingSeasonId}:${gameId}`));
@@ -23,5 +23,5 @@
     {#snippet icon()}<Trophy size={26} fill="currentColor" />{/snippet}
   </PageTitle>
   <div class="flex flex-wrap items-center justify-between gap-3 border-y border-white py-3"><div><strong class="text-sm">{player.demo.config.rankingSeasonId}</strong><p class="text-xs text-[var(--g-muted)]">Top 3 · {player.demo.config.rankingPrize} MP · รางวัลจำลอง</p></div><GameButton size="sm" disabled={claimed || !eligible} onclick={() => onClaim(gameId)}>{claimed ? 'รับแล้ว' : 'รับรางวัล Season'}</GameButton></div>
-  <Leaderboard bind:gameId bind:period {player} currentScore={scores[gameId]} />
+  <Leaderboard bind:gameId bind:period {player} currentScore={scores[gameId] ?? 0} />
 </div>

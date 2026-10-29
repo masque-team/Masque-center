@@ -1,4 +1,4 @@
-export type GameId = 'bird' | 'mole' | 'run' | 'fruit' | 'timber' | 'duck' | 'memory';
+export type GameId = string;
 export type EditorialGameTag = 'hot' | 'new' | 'pick';
 
 export interface Game {

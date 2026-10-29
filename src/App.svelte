@@ -53,7 +53,7 @@
   ));
   let sessionName = $state(queryName ?? '');
   let hasEntered = $state(!!queryName);
-  let mockScores = $derived({ bird: 0, mole: 0, run: 0, fruit: 0, timber: 0, duck: 0, memory: 0, ...player.demo.scores });
+  let mockScores = $derived(player.demo.scores);
   let CHECKIN_REWARD = $derived(player.demo.config.checkinReward);
   let page = $state<Page>('home');
   let homeGenre = $state('all');
@@ -61,8 +61,9 @@
   let sceneState = $derived(veaseState(player));
   let wardrobeHeight = $state(1000);
   let motionReduced = $state(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  let gameId = $state<GameId>('bird');
-  let rankingGameId = $state<GameId>('bird');
+  const initialGameId = GAMES.find((game) => game.published !== false)!.id;
+  let gameId = $state<GameId>(initialGameId);
+  let rankingGameId = $state<GameId>(initialGameId);
   let rankingPeriod = $state<RankingPeriod>('weekly');
   let modal = $state<ModalState>(null);
   let confirmAction = $state<(() => void) | null>(null);
@@ -87,6 +88,7 @@
   let featuredGame = $derived(player.demo.config.games.find((game) => game.featured && game.published !== false) ?? player.demo.config.games.find((game) => game.published !== false) ?? GAMES[0]);
   let catalogGames = $derived(player.demo.config.games.filter((game) => game.published !== false).sort((left, right) => (left.displayOrder ?? 99) - (right.displayOrder ?? 99)));
   let filteredGames = $derived(homeGenre === 'all' ? catalogGames.filter((game) => game.id !== featuredGame.id) : catalogGames.filter((game) => game.genre === homeGenre));
+  let gameFilters = $derived([{ id: 'all', label: 'ทั้งหมด' }, ...[...new Set(catalogGames.map((game) => game.genre))].map((genre) => ({ id: genre, label: genre }))]);
   let vipActive = $derived(isVip(player, now));
   let activePassSeason = $derived(currentSeason(player, now));
   let refillCountdown = $derived(nextRefillIn(player, now));
@@ -165,7 +167,7 @@
 
   function simulateFinish(): void {
     flushPlayTime();
-    const score = Math.round(MOCK_RANKINGS[gameId][0].score * (0.7 + Math.random() * 0.6));
+    const score = Math.round((MOCK_RANKINGS[gameId]?.[0]?.score ?? 1000) * (0.7 + Math.random() * 0.6));
     const reward = player.demo.sessions.find((session) => session.id === activeSessionId)?.reward ?? { points: 0, xp: 40 };
     const next = finishGame(player, activeSessionId, score);
     if (!next) return;
@@ -199,13 +201,13 @@
     const [route, requestedGame] = routePath.split('/');
     if (route !== 'points') { vipTopUpIntent = null; pointsReturnRoute = null; }
     const routes: Page[] = ['home', 'world', 'shop', 'rewards', 'ranking', 'avatar', 'profile', 'room', 'battle', 'wallet', 'admin', 'points', 'gacha'];
-    if (route === 'detail' && requestedGame && Object.hasOwn(GAME_BY_ID, requestedGame)) {
+    if (route === 'detail' && requestedGame && player.demo.config.games.some((game) => game.id === requestedGame && game.published !== false)) {
       gameId = requestedGame as GameId;
       page = 'detail';
       window.scrollTo({ top: 0 });
       return;
     }
-    if (route === 'game' && requestedGame && requestedGame in GAME_BY_ID) {
+    if (route === 'game' && requestedGame && player.demo.config.games.some((game) => game.id === requestedGame && game.published !== false)) {
       const sessionId = new URLSearchParams(hashQuery).get('session');
       const session = player.demo.sessions.find((entry) => entry.id === sessionId && entry.gameId === requestedGame);
       if (!session) { enterGame(requestedGame as GameId, new URLSearchParams(hashQuery).get('mode') === 'ranked' ? 'ranked' : 'casual'); return; }
@@ -523,7 +525,7 @@
             </section>{/if}
             <section class="block">
               <SectionHeading eyebrow="PICK YOUR NEXT PLAY" title={homeGenre === 'all' ? 'เกมทั้งหมด' : homeGenre} chip={`${homeGenre === 'all' ? catalogGames.length : filteredGames.length} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
-              <div class="flex gap-1 overflow-x-auto pb-2" role="group" aria-label="กรองประเภทเกม">{#each [{ id: 'all', label: 'ทั้งหมด' }, { id: 'Arcade', label: 'Arcade' }, { id: 'Action', label: 'Action' }, { id: 'Reaction', label: 'Reaction' }, { id: 'Runner', label: 'Runner' }, { id: 'Shooter', label: 'Shooter' }, { id: 'Memory', label: 'Memory' }] as filter (filter.id)}<button class={['min-h-9 shrink-0 rounded-full border px-3 text-[10px] font-semibold', homeGenre === filter.id ? 'border-sky-500 bg-sky-600 text-white' : 'border-white bg-white/70 text-[#71839a]']} aria-pressed={homeGenre === filter.id} onclick={() => homeGenre = filter.id}>{filter.label}</button>{/each}</div>
+              <div class="flex gap-1 overflow-x-auto pb-2" role="group" aria-label="กรองประเภทเกม">{#each gameFilters as filter (filter.id)}<button class={['min-h-9 shrink-0 rounded-full border px-3 text-[10px] font-semibold', homeGenre === filter.id ? 'border-sky-500 bg-sky-600 text-white' : 'border-white bg-white/70 text-[#71839a]']} aria-pressed={homeGenre === filter.id} onclick={() => homeGenre = filter.id}>{filter.label}</button>{/each}</div>
               {#if filteredGames.length}<div class="game-list">{#each filteredGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 flex justify-between px-1 text-[11px] text-[var(--g-muted)]"><span>Personal Best</span><strong>{(player.demo.scores[game.id] ?? 0).toLocaleString()}</strong></p></div>{/each}</div>{:else}<p class="py-8 text-center text-xs text-[var(--g-muted)]">ไม่มีเกมในหมวดนี้</p>{/if}
             </section>
             <button class="flex min-h-16 items-center gap-3 rounded-lg border border-white/80 bg-white/55 px-3 text-left shadow-sm transition-transform active:scale-[0.99]" onclick={() => navigate('world')}>
@@ -539,7 +541,7 @@
 
           </div>
         {:else if page === 'detail'}
-          {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId]} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('home')} onRefill={() => openRefill()} onAvatar={() => navigate('avatar')} />{/key}
+          {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId] ?? 0} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('home')} onRefill={() => openRefill()} onAvatar={() => navigate('avatar')} />{/key}
         {:else if page === 'shop'}
           <ShopPage
             {player}

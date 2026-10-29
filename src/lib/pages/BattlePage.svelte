@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { History, ShoppingBag, Swords, Trophy } from '@lucide/svelte';
   import PageTitle from '../components/PageTitle.svelte';
   import GameButton from '../components/GameButton.svelte';
@@ -7,7 +8,7 @@
   import { AVATARS } from '../data/config';
   import type { GameId, PlayerState } from '../types';
   let { player, onEnter, onShop }: { player: PlayerState; onEnter: (game: GameId) => void; onShop: () => void } = $props();
-  let gameId = $state<GameId>('bird');
+  let gameId = $state<GameId>(untrack(() => player.demo.config.games.find((game) => game.published !== false)?.id ?? ''));
   let games = $derived(player.demo.config.games.filter((game) => game.published !== false));
   let game = $derived(games.find((game) => game.id === gameId) ?? games[0]);
   let matches = $derived(player.demo.sessions.filter((session) => session.mode === 'ranked').reverse());

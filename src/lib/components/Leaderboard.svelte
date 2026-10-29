@@ -2,7 +2,6 @@
   import { Info, Trophy } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
   import { AVATARS } from '../data/config';
-  import { GAMES } from '../data/games';
   import { getGameRanking } from '../services/rankingService';
   import type { GameId, PlayerState, RankingEntry, RankingPeriod } from '../types';
 
@@ -19,7 +18,8 @@
   let me = $derived(rows.findIndex((entry) => entry.isCurrentPlayer));
   let podium = $derived(rows.slice(0, 3));
   let list = $derived(view === 'top' ? rows.slice(3, 10).map((entry, index) => ({ entry, rank: index + 4 })) : rows.slice(Math.max(0, me - 2), me + 3).map((entry, index) => ({ entry, rank: Math.max(0, me - 2) + index + 1 })));
-  let activeGame = $derived(GAMES.find((game) => game.id === gameId) ?? GAMES[0]);
+  let games = $derived(player.demo.config.games.filter((game) => game.published !== false));
+  let activeGame = $derived(games.find((game) => game.id === gameId) ?? games[0]);
 
   function avatarFor(entry: RankingEntry) {
     if (entry.isCurrentPlayer) return AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0];
@@ -31,7 +31,7 @@
 <div class="rank">
   {#if !fixedGame}
   <div class="games" role="tablist" aria-label="เลือกเกม">
-    {#each GAMES as game (game.id)}
+    {#each games as game (game.id)}
       <button role="tab" aria-selected={gameId === game.id} class:on={gameId === game.id} onclick={() => (gameId = game.id)}>
         {#if game.cover}<img src={`images/${game.cover}`} alt="" loading="lazy" />{:else}<span class="ph">?♥</span>{/if}
         <span>{game.name}</span>

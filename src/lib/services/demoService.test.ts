@@ -132,6 +132,9 @@ describe('shared demo economy', () => {
     expect(migrated.aisPoints).toBe(saved.aisPoints);
     expect(migrated.masquePoints).toBe(saved.masquePoints);
   });
+  it('supports rankings for a newly configured game', () => {
+    expect(getGameRanking('new-game', 'weekly', sample(), 0)).toHaveLength(1);
+  });
   it('moves the legacy Bird feature to Memory without overriding a custom featured game', () => {
     const legacy = sample();
     legacy.demo.config.games = legacy.demo.config.games.map((game) => ({ ...game, featured: game.id === 'bird', editorialTag: game.id === 'bird' ? 'hot' : game.editorialTag }));
