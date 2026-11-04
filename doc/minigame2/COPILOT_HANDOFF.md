@@ -2,12 +2,13 @@
 
 **Status:** Functional frontend demo through M1-M3; ready for Gemini/Argon visual exploration.  
 **Implementation commit:** `c484447` (local; not pushed).  
+**Final rules/UI follow-up commit:** `45c9288` (local; not pushed). AIS Point only in customer flows, Shop Gacha Boxes, VIP Energy MAX 30 while active, and floating Simulate Finish.
 **Scope:** Svelte 5 + Vite + TypeScript + Tailwind CSS 4. Frontend only; local mock state and the existing `masquegame_center_v2` localStorage save. No backend, database, AIS integration, billing, SSO, multiplayer service, or score verification was added.
 
 ## Screens And Routes
 
 - **Home** `#home`: avatar greeting, daily check-in, featured game, VIP status/promotion, season shortcut, and links to secondary screens. Profile opens from the top-left avatar.
-- **Shop** `#shop`: existing shop layout with Cosmetics, Energy, VIP, and mock AIS Point tabs. Gacha coupons remain available. Ranked ticket sales and AIS-to-MP exchange are not exposed in the standard Shop.
+- **Shop** `#shop`: existing shop layout with Cosmetics, Energy, VIP and mock AIS Point tabs. Pet/Avatar Gacha Boxes are purchased with AIS Points and opened from the same Shop page. The old coupon cabinet and Ranked ticket sale are hidden.
 - **Game Hub** `#hub`: all seven configured games, genre filters, editorial markers, mock online/play counts, and personal bests.
 - **Game Detail / Entry** `#detail/:gameId`: game summary, entry cost, high score and ranking.
 - **Game Player / Result** `#game/:gameId?session=...`: unchanged configured iframe URL, loading/fallback/reload/back, and a compact floating Simulate Finish control that does not reserve a full-width footer. Campaign rounds return to their source campaign.
@@ -17,7 +18,7 @@
 - **Battle Pass** `#rewards`: calendar-month season, shared Free/Premium XP, manually claimable tracks, separate Premium purchase, retroactive eligibility and MAX at level 50.
 - **Mission Center** `#missions`: Daily/Weekly/Season and Free/VIP/Premium filters, visible locked entitlements, check-in progress, post-game progress/XP events, and Profile badge achievement goals.
 - **Inventory** `#inventory`: owned avatars, pets and wings with equip actions; Profile remains the editor for frames, badges and backgrounds.
-- **Gacha** `#gacha`: mock Avatar/Pet cabinet, ticket draw/result, local inventory updates and Rewards History entry.
+- **Gacha Boxes**: Pet/Avatar boxes are purchased and opened in Shop. Legacy `#gacha` redirects to Shop; old coupon cabinet source remains unmounted.
 - **Profile** `#profile`: editable avatar/profile presentation, backgrounds, frame and pinned earned badges; linked from the header avatar.
 - **History** `#history`: Games, Purchases and Rewards records, including campaign/pass notifications and Gacha draws.
 - **Demo Studio** `#admin`: developer-only entry button in development builds; acceptance scenario selector, clock controls, local config and reset.
@@ -45,17 +46,18 @@ Bottom navigation order is **HOME / SHOP / GAME / Battle Pass / Mission**. Campa
 ## Interactions To Preserve
 
 - Normal entry spends 1 Energy; active VIP waives only normal entry. Continue/revive still costs Energy. Campaign ticket admission does not use Energy or VIP.
-- Natural Energy cap is 15 with +1 every 30 minutes below cap. Grants and purchases may overflow the cap; the timer pauses above it.
+- Natural Energy cap is 15 with +1 every 30 minutes below cap. Active VIP raises the cap to 30. Grants and purchases may overflow the applicable cap; the timer pauses at/above it.
 - VIP activates immediately and renewals add duration to the current expiration. VIP does not grant Premium Pass rewards.
 - Battle Pass uses UTC calendar-month windows. Free/Premium share XP; Premium purchase changes entitlement only. Eligible levels remain manually claimable, and end-of-season eligible unclaimed rewards settle once.
 - Mission XP is automatic once per completion; locked VIP/Premium missions remain visible. Game completion provides an overlay summary of progress deltas.
 - Normal ranking uses personal best, per-game all-time scope and earliest-achievement tie-break. Campaign scores use separate campaign+game keys.
 - Campaign prizes are credited once on demo finalize; acknowledging the notification does not grant a second time. History keeps the reward record.
-- Gacha outcomes update local state and Rewards History. Cosmetic purchases and equips update Shop, Inventory and Profile.
+- AIS Point is the only customer-facing currency for demo prices/rewards; old MP save fields are preserved but are not spent, granted or shown in the MiniGame2 customer journey. Gacha Box purchases debit AIS Points; opening a box updates local ownership/energy and Rewards History.
+- Cosmetic purchases and equips update Shop, Inventory and Profile.
 
 ## Acceptance Fixtures
 
-Use Demo Studio (`#admin`) to seed: Energy overflow 34/15; VIP with two days remaining; level-10 Free-only Pass with enough mock MP to buy Premium; VIP without Premium; Alice-earlier all-time tie; separate Bird/Memory campaign scores; campaign results ready to settle; next-calendar-season rollover with auto-delivery notification; and Gacha with 10 tickets. Reset Demo recreates the new-player query scenario (`?name=Mint&aispoint=100`). Normal play and check-in provide the remaining progress states.
+Use Demo Studio (`#admin`) to seed: Energy overflow 34/15; VIP with two days remaining; level-10 Free-only Pass with enough mock AIS Points to buy Premium; VIP without Premium; Alice-earlier all-time tie; separate Bird/Memory campaign scores; campaign results ready to settle; next-calendar-season rollover with auto-delivery notification; and Pet/Avatar Gacha Boxes. Reset Demo recreates the new-player query scenario (`?name=Mint&aispoint=100`). Normal play and check-in provide the remaining progress states.
 
 ## Visual Handoff
 
@@ -67,16 +69,16 @@ Visual direction: portrait-first myAIS WebView, recognizable casual-game styling
 
 ## Design-Agent Guardrails
 
-Do not change the localStorage key/schema contract or discard existing saves. Preserve the hash routes, all seven game IDs and URLs, campaign-to-game return behavior, mock receipts, and the `PlayerState`/`DemoState` ownership and claim fields. Do not change Energy cost/cap/regen, VIP scope/extension, Premium ownership, monthly Pass boundaries/MAX, mission entitlement/XP grant timing, score policy/tie-break, campaign settlement or Gacha inventory/history behavior. Keep Vease/World, Ranked/Room and old MP exchange out of standard MiniGame2 navigation. Do not add a backend, payment call or production-service claim.
+Do not change the localStorage key/schema contract or discard existing saves. Preserve the hash routes, all seven game IDs and URLs, campaign-to-game return behavior, mock receipts, and the `PlayerState`/`DemoState` ownership and claim fields. Do not change Energy cost, natural cap 15, VIP cap 30, regen, VIP scope/extension, AIS-only customer currency, Premium ownership, monthly Pass boundaries/MAX, mission entitlement/XP grant timing, score policy/tie-break, campaign settlement or box ownership/draw/history behavior. Keep Vease/World, Ranked/Room, old MP exchange and the standalone coupon cabinet out of standard MiniGame2 navigation. Do not add a backend, payment call or production-service claim.
 
 ## Demo Defaults And Open Decisions
 
-AIS Point balance top-ups are local mock increments only. Existing MP balances and demo prices remain for legacy item/reward mechanics; this does not approve an AIS-to-MP conversion or production currency policy. VIP durations/prices, mission targets/XP, campaign ticket quantity/scope, ranking reward tiers, exact season reward tables and asset catalog are demo configuration, not production decisions. Current campaign fixtures start with two demo tickets. Real Game Zone identity/WebView handoff, external result validation, AIS Point transaction contracts, campaign end scheduling and anti-cheat remain unimplemented. The user-facing browser smoke test did not access a live myAIS WebView or validate gameplay on the remote game hosts.
+AIS Point balance top-ups are local mock increments only; there are no billing calls. MP remains only as an unused compatibility field in old local saves/helpers; do not revive its customer flows or convert balances without a new product decision. VIP duration/prices, Gacha Box prices/odds, mission targets/XP, campaign ticket quantity/scope, ranking reward tiers, exact season reward tables and asset catalog are demo configuration, not production decisions. Current campaign fixtures start with two demo tickets. Real Game Zone identity/WebView handoff, external result validation, AIS Point transaction contracts, campaign end scheduling and anti-cheat remain unimplemented. The user-facing browser smoke test did not access a live myAIS WebView or validate gameplay on the remote game hosts.
 
 ## Verification
 
 - `npm run check`: passed, 0 errors and 0 warnings.
-- `npm test`: passed, 60 tests.
+- `npm test`: passed, 62 tests.
 - `npm run build`: passed; Vite transformed 4,246 modules.
-- Browser smoke: five-tab navigation; Home/Shop/Game/Battle Pass/Mission; Shop VIP/AIS Point/cosmetic flow; 7 detail-to-iframe-launch/back routes and original iframe URLs; campaign score isolation, result return, settlement notification and History; level-10 Premium purchase with unchanged XP and 20 eligible track claims; Gacha result/inventory/History; viewport widths 320, 375 and 430 with no horizontal overflow.
+- Browser smoke: five-tab navigation; Home/Shop/Game/Battle Pass/Mission; Shop VIP/AIS Point/cosmetic and Gacha Box purchase/draw flows; seven detail-to-iframe-launch/back routes and original iframe URLs; campaign score isolation, result return, settlement notification and History; level-10 Premium purchase with unchanged XP and 20 eligible track claims; Gacha result/inventory/History; viewport widths 320, 375 and 430 with no horizontal overflow. VIP purchase showed the header cap increase to 30.
 - Browser base tested at `http://localhost:5173/maque-center/`. Remote iframe requests were cancelled when navigating between route smoke cases; external-host gameplay and production myAIS WebView remain unverified.
