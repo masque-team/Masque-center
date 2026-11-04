@@ -28,9 +28,9 @@
 
   <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {countdown} {onRefill} />
 
-  <button class="wallet" onclick={onShop} aria-label={`เติม Masque Points · ยอด ${player.masquePoints}`}>
-    <span class="coin" aria-hidden="true"><CurrencyIcon kind="points" size={32} /></span>
-    <strong>{player.masquePoints.toLocaleString('en-US')}</strong>
+  <button class="wallet" onclick={onShop} aria-label={`AIS Point · ยอด ${player.aisPoints}`}>
+    <span class="coin" aria-hidden="true"><CurrencyIcon kind="aisPoints" size={32} /></span>
+    <strong>{player.aisPoints.toLocaleString('en-US')}</strong>
     <span class="plus" aria-hidden="true"><Plus size={16} strokeWidth={3.5} /></span>
   </button>
 </header>

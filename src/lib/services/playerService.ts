@@ -85,7 +85,7 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   result.demo.config.energyMax = 15;
   result.demo.config.regenMinutes = 30;
   result.demo.config.vipFreeEntry ??= result.demo.config.vipUnlimited ?? true;
-  result.demo.config.vipEnergyBonus ??= 6;
+  result.demo.config.vipEnergyBonus = 15;
   result.demo.config.continueEnergyCost ??= 1;
   delete result.demo.config.vipUnlimited;
   if (result.energyUpdatedAt > Date.now() + result.demo.clockOffset) result.energyUpdatedAt = Date.now() + result.demo.clockOffset;
@@ -125,6 +125,7 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   }
   result.demo.pointPackClaims ??= [];
   result.demo.arenaTickets ??= 0;
+  result.demo.gachaBoxes ??= { avatar: 0, pet: 0 };
   result.demo.playTimeMs ??= {};
   result.demo.playCounts ??= result.demo.sessions.filter((session) => session.finished).reduce<Record<string, number>>((counts, session) => ({ ...counts, [session.gameId]: (counts[session.gameId] ?? 0) + 1 }), {});
   result.demo.achievements ??= [];

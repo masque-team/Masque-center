@@ -19,7 +19,7 @@
     const candidate = vipOffer(player, plan.id, now);
     return !!candidate && candidate.eligible;
   }));
-  let short = $derived(Math.max(0, (offer?.cost ?? 0) - player.masquePoints));
+  let short = $derived(Math.max(0, (offer?.cost ?? 0) - player.aisPoints));
   let season = $derived(currentSeason(player, now));
   let existingTrack = $derived(hasPassAccess(player, now));
   let milestones = $derived(passBenefitMilestones(player, now));
@@ -104,7 +104,7 @@
               </span>
               <span class="mt-2 flex w-full items-center justify-between border-t border-amber-200/70 pt-1.5">
                 <strong class="inline-flex items-center gap-1 text-[11px] font-black tabular-nums text-[#6d4200]">
-                  <CurrencyIcon kind="points" size={13} />
+                  <CurrencyIcon kind="aisPoints" size={13} />
                   {candidate.cost.toLocaleString()}
                 </strong>
                 <span
@@ -144,6 +144,7 @@
     <!-- Perks List -->
     <div class="space-y-1.5 rounded-2xl border border-[#e3ecf7] bg-white/90 p-3 text-[11px] font-semibold text-[#3f536e]">
       <p class="flex items-center gap-2"><Check size={15} class="shrink-0 text-emerald-600" strokeWidth={3} />เข้าเกมปกติฟรีทันทีขณะ VIP ยัง active</p>
+      <p class="flex items-center gap-2"><Zap size={15} class="shrink-0 text-sky-600" />Energy MAX {player.demo.config.energyMax} → {player.demo.config.energyMax + player.demo.config.vipEnergyBonus} ระหว่าง VIP</p>
       <p class="flex items-center gap-2"><Zap size={15} class="shrink-0 text-amber-500" fill="currentColor" />Continue / revive ยังคงมีค่าใช้จ่าย Energy</p>
       <p class="flex items-center gap-2"><Crown size={15} class="shrink-0 text-amber-600" fill="currentColor" />Campaign Ticket และ Premium Pass แยกจาก VIP</p>
       <p class="flex items-center gap-2"><Clock3 size={15} class="shrink-0 text-sky-600" />หมดอายุ {new Date(offer.expiresAt).toLocaleString('th-TH')}</p>
@@ -166,7 +167,7 @@
           {/if}
           {#if pendingPoints > 0}
             <span class="inline-flex items-center gap-1 rounded-lg border border-white bg-white/90 px-2 py-1 text-amber-800">
-              <CurrencyIcon kind="points" size={14} />+{pendingPoints.toLocaleString()} MP
+              <CurrencyIcon kind="aisPoints" size={14} />+{pendingPoints.toLocaleString()} AIS Point
             </span>
           {/if}
           {#if pendingTickets > 0}
@@ -185,7 +186,7 @@
             {/each}
           </div>
         {/if}
-        <p class="text-[9px] font-semibold leading-relaxed text-[#947b4f]">* กดรับรางวัลที่ปลดล็อกได้ในหน้า Pass · ของซ้ำชดเชยเป็น MP ตามกติกา</p>
+        <p class="text-[9px] font-semibold leading-relaxed text-[#947b4f]">* กดรับรางวัลที่ปลดล็อกได้ในหน้า Pass · ของซ้ำชดเชยเป็น AIS Point</p>
       </section>
     {/if}
 
@@ -216,16 +217,16 @@
       {#if offer}
         <div class="flex items-center justify-between gap-2 rounded-xl bg-[#f5f0ff] px-3 py-2">
           <div class="flex items-center gap-1.5">
-            <CurrencyIcon kind="points" size={22} />
-            <strong class="text-lg font-black tabular-nums text-[#4b2e83]">{offer.cost.toLocaleString()} <span class="text-xs">MP</span></strong>
+            <CurrencyIcon kind="aisPoints" size={22} />
+            <strong class="text-lg font-black tabular-nums text-[#4b2e83]">{offer.cost.toLocaleString()} <span class="text-xs">AIS Point</span></strong>
           </div>
           <span class="text-right text-[10px] font-extrabold tabular-nums text-[#6e7f96]">
-            ยอดของคุณ: <b class="text-[#352b73]">{player.masquePoints.toLocaleString()} MP</b>
+            ยอดของคุณ: <b class="text-[#352b73]">{player.aisPoints.toLocaleString()} AIS Point</b>
           </span>
         </div>
         {#if short > 0}
           <p class="flex items-center gap-1 text-[10px] font-extrabold text-rose-600" role="status">
-            <TriangleAlert size={13} />แต้มไม่พอ ขาดอีก {short.toLocaleString()} MP
+            <TriangleAlert size={13} />AIS Point ไม่พอ ขาดอีก {short.toLocaleString()}
           </p>
         {/if}
         <div class="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-2">
@@ -233,7 +234,7 @@
           <GameButton
             block
             variant="gold"
-            label={`VIP · ${durationLabel(offer.plan.durationDays)} · ${offer.cost.toLocaleString()} MP`}
+            label={`VIP · ${durationLabel(offer.plan.durationDays)} · ${offer.cost.toLocaleString()} AIS Point`}
             disabled={short > 0 || !offer.eligible}
             onclick={onConfirm}
           >
@@ -243,7 +244,7 @@
         </div>
         {#if short > 0}
           <GameButton block size="sm" variant="mint" onclick={onTopUp}>
-            <CurrencyIcon kind="points" size={15} />เติม Masque Points
+            <CurrencyIcon kind="aisPoints" size={15} />เติม AIS Point
           </GameButton>
         {/if}
       {/if}

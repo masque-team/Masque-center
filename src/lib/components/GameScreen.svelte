@@ -55,11 +55,11 @@
       </div>
     {/if}
   </section>
-  <footer class="flex shrink-0 items-center justify-between gap-2 bg-white p-3 pb-[max(12px,env(safe-area-inset-bottom))]"><span class="text-[11px] font-semibold text-sky-700">DEMO · ไม่ใช่คะแนนยืนยัน</span><GameButton size="sm" disabled={finished} onclick={onFinish}>{finished ? 'บันทึกผลแล้ว' : 'Simulate Finish'}</GameButton></footer>
+  <div class="finish-fab"><GameButton size="sm" disabled={finished} label={finished ? 'บันทึกผลแล้ว' : 'Simulate Finish'} onclick={onFinish}>{finished ? 'บันทึกผลแล้ว' : 'Simulate Finish'}</GameButton></div>
 </main>
 
 <style>
-  .screen { display: flex; flex-direction: column; width: 100%; height: 100dvh; min-height: 100dvh; max-height: 100dvh; overflow: hidden; background: #3a2590; }
+  .screen { position: relative; display: flex; flex-direction: column; width: 100%; height: 100dvh; min-height: 100dvh; max-height: 100dvh; overflow: hidden; background: #3a2590; }
   .top { z-index: 2; display: flex; flex: 0 0 auto; align-items: center; gap: 10px; min-height: calc(60px + env(safe-area-inset-top, 0px)); padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 8px; color: #fff; background: linear-gradient(110deg, #5a3fc8, #8a5ce0); box-shadow: 0 5px 14px rgb(30 15 80 / 35%); }
   .back { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; border: 2px solid rgb(255 255 255 / 80%); border-radius: 15px; color: #fff; background: rgb(255 255 255 / 20%); box-shadow: 0 3px 0 rgb(40 20 110 / 40%); }
   .back:active { transform: translateY(2px); box-shadow: none; }
@@ -70,6 +70,7 @@
   .info a { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; color: #6a4fd6; }
   .stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; background: #d9e9fa; }
   .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #d7e9fc; }
+  .finish-fab { position: absolute; right: 12px; bottom: max(12px, env(safe-area-inset-bottom, 0px)); z-index: 4; }
   .overlay { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 24px; text-align: center; background: linear-gradient(150deg, #bfe6ff, #dcd2ff 60%, #f1d7ff); color: #5a3fc0; }
   .overlay strong { color: #2b2468; font-size: 17px; font-weight: 900; }
   .overlay span, .overlay p { margin: 0; color: #7d74b4; font-size: 13px; font-weight: 700; }

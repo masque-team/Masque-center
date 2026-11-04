@@ -28,7 +28,7 @@ export function claimMockReward(player: PlayerState, rewardId: string, amount: n
   return {
     ...player,
     claimedRewards: [...player.claimedRewards, rewardId],
-    masquePoints: player.masquePoints + amount,
+    aisPoints: player.aisPoints + amount,
   };
 }
 
@@ -61,6 +61,6 @@ export function passTrack(legacy: DemoReward[], track: 'free' | 'premium', theme
     if (level % 5 === 0) return { title: 'Pet Gacha Ticket', type: 'ticket', amount: 1 };
     if (level % 4 === 0) return { title: 'Ranked Ticket', type: 'arena-ticket', amount: 1 };
     if (level % 3 === 0) return { title: `Energy +${track === 'free' ? 2 : 3}`, type: 'energy', amount: track === 'free' ? 2 : 3 };
-    return { title: `Masque Points +${track === 'free' ? 25 : 40}`, type: 'points', amount: track === 'free' ? 25 : 40 };
+    return { title: `AIS Point +${track === 'free' ? 25 : 40}`, type: 'points', amount: track === 'free' ? 25 : 40 };
   });
 }

@@ -1,5 +1,5 @@
 import type { PlayerState, VipPackage } from '../types';
-import { isVip, refreshEnergy } from './energyService';
+import { energyCapacity, isVip, refreshEnergy } from './energyService';
 import { PASS_RULES, passProgress } from './battlePassService';
 import { currentPass, currentSeason } from './demoService';
 
@@ -28,11 +28,12 @@ export function passBenefitMilestones(player: PlayerState, now = Date.now()) {
 
 export function purchaseVip(player: PlayerState, packageId: VipPackage['id'], now = Date.now()): PlayerState | null {
   const offer = vipOffer(player, packageId, now);
-  if (!offer || !offer.eligible || player.masquePoints < offer.cost) return null;
+  if (!offer || !offer.eligible || player.aisPoints < offer.cost) return null;
   const current = refreshEnergy(player, now);
   return {
     ...current,
-    masquePoints: current.masquePoints - offer.cost,
+    aisPoints: current.aisPoints - offer.cost,
     vipExpiresAt: offer.expiresAt,
+    energyUpdatedAt: current.energy >= energyCapacity(current, true) ? now : current.energyUpdatedAt,
   };
 }

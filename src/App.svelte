@@ -35,7 +35,7 @@
   import { purchaseVip, vipOffer } from './lib/services/passService';
   import { beginCampaignGame, finalizeCampaign, markNotificationViewed } from './lib/services/campaignService';
   import { equipPet } from './lib/services/petService';
-  import { buyGachaCoupons, drawGachaBatch } from './lib/services/gachaService';
+  import { buyGachaBox, buyGachaCoupons, drawGachaBatch, drawGachaBox } from './lib/services/gachaService';
   import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
   import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
   import { beginGame, buyPremium, claimAvailablePass, claimPass, claimPassBonus, claimMission as completeMission, claimWeeklyMission, currentSeason, demoNow, finishGame, ledger, progressMissions, recordPlayTime, seedDemoScenario, settleExpiredPasses, validateConfig, claimRankingReward } from './lib/services/demoService';
@@ -194,7 +194,7 @@
     persist(next, 'จบเกมจำลอง');
     navigate(session?.mode === 'campaign' && session.campaignId ? `campaign/${session.campaignId}` : `detail/${gameId}`);
     const missionSummary = next.demo.recentMissionEvents?.map((event) => `${event.title} ${event.before}/${event.target} → ${event.after}/${event.target}${event.xp ? ` (+${event.xp} XP)` : ''}`).join(' · ');
-    modal = { kind: 'notice', tone: 'success', title: 'SIMULATED · เล่นจบแล้ว', message: `${score} คะแนน · +${reward.xp} EXP${reward.points ? ` · +${reward.points} MP` : ''} · ${missionSummary || 'อัปเดต Mission progress แล้ว'}` };
+    modal = { kind: 'notice', tone: 'success', title: 'SIMULATED · เล่นจบแล้ว', message: `${score} คะแนน · +${reward.xp} EXP${reward.points ? ` · +${reward.points} AIS Point` : ''} · ${missionSummary || 'อัปเดต Mission progress แล้ว'}` };
   }
 
   function todayKey(date = new Date(now)): string {
@@ -221,6 +221,12 @@
     const [routePath, hashQuery = ''] = window.location.hash.replace(/^#/, '').split('?');
     const [route, requestedGame] = routePath.split('/');
     if (route !== 'points') { vipTopUpIntent = null; pointsReturnRoute = null; }
+    if (route === 'points' || route === 'wallet' || route === 'gacha') {
+      shopTab = route === 'points' || route === 'wallet' ? 'exchange' : 'items';
+      page = 'shop';
+      window.scrollTo({ top: 0 });
+      return;
+    }
     const routes: Page[] = ['home', 'hub', 'world', 'shop', 'rewards', 'ranking', 'avatar', 'profile', 'room', 'battle', 'admin', 'wallet', 'points', 'gacha', 'campaigns', 'campaign', 'missions', 'inventory', 'history', 'vip'];
     if (route === 'campaign' && requestedGame) {
       campaignId = requestedGame;
@@ -344,7 +350,7 @@
 
   function claimCheckin(): void {
     if (player.checkinDates.includes(todayKey())) return;
-    const checkedIn = { ...player, checkinDates: [...player.checkinDates, todayKey()], masquePoints: player.masquePoints + CHECKIN_REWARD };
+    const checkedIn = { ...player, checkinDates: [...player.checkinDates, todayKey()], aisPoints: player.aisPoints + CHECKIN_REWARD };
     persist(progressMissions(checkedIn, 'checkin'), 'Daily check-in');
     modal = { kind: 'checkin-success' };
   }
@@ -354,8 +360,29 @@
     applyAction({ ...player, aisPoints: player.aisPoints + amount }, `DEMO · เติม AIS Point +${amount}`);
   }
 
+  function purchaseBox(kind: GachaKind): void {
+    requestAction(`ซื้อ ${kind === 'pet' ? 'Pet' : 'Avatar'} Box`, `${player.demo.config.gachaCost} AIS Point · กล่องเปิดได้ 1 ครั้ง · DEMO`, 'ซื้อกล่อง', () => {
+      const next = buyGachaBox(player, kind);
+      if (!next) { showToast('AIS Point ไม่พอสำหรับซื้อกล่อง'); return; }
+      applyAction(next, `ซื้อ ${kind === 'pet' ? 'Pet' : 'Avatar'} Box`);
+    });
+  }
+
+  function openGachaBox(kind: GachaKind): void {
+    if (gachaBusy) return;
+    if ((player.demo.gachaBoxes?.[kind] ?? 0) < 1) { showToast('ซื้อกล่องจาก Shop ก่อนเปิดสุ่ม'); return; }
+    gachaBusy = true;
+    gachaTimer = window.setTimeout(() => {
+      const draw = drawGachaBox(player, kind, Math.random, demoNow(player));
+      gachaBusy = false;
+      if (!draw) { showToast('เปิดกล่องไม่สำเร็จ'); return; }
+      persist(draw.player, `เปิด ${kind === 'pet' ? 'Pet' : 'Avatar'} Box`);
+      modal = { kind: 'gacha-result', gachaKind: kind, results: [draw.result], paidCoupons: 0, bonusDraws: 0, source: 'box' };
+    }, 850);
+  }
+
   function purchasePremiumPass(): void {
-    requestAction('ซื้อ Premium Battle Pass', `${player.demo.config.premiumPrice} MP · ปลดล็อกรางวัล Premium ที่ถึงเลเวลแล้ว · ไม่ได้รับ XP เพิ่ม`, 'ยืนยันซื้อ', () => {
+    requestAction('ซื้อ Premium Battle Pass', `${player.demo.config.premiumPrice} AIS Point · ปลดล็อกรางวัล Premium ที่ถึงเลเวลแล้ว · ไม่ได้รับ XP เพิ่ม`, 'ยืนยันซื้อ', () => {
       const next = buyPremium(player);
       if (!next) { showToast('ซื้อ Premium Pass ไม่สำเร็จ'); return; }
       applyAction(next, 'ซื้อ Premium Battle Pass');
@@ -373,13 +400,13 @@
     const packageId = modal.packageId;
     const offer = vipOffer(player, packageId, now);
     if (!offer?.eligible) {
-      modal = { kind: 'notice', tone: 'warn', title: 'อัปเกรด VIP ไม่สำเร็จ', message: 'เลือก Pass เลเวลที่สูงกว่าและตรวจสอบยอด Masque Points' };
+      modal = { kind: 'notice', tone: 'warn', title: 'ซื้อ VIP ไม่สำเร็จ', message: 'ตรวจสอบ AIS Point และเงื่อนไขแพ็กที่เลือก' };
       return;
     }
     const selected = player.demo.config.vipPlans.find((plan) => plan.id === packageId);
     const next = purchaseVip(player, packageId, now);
     if (!next) {
-      modal = { kind: 'notice', tone: 'warn', title: 'ซื้อ VIP ไม่สำเร็จ', message: 'ตรวจสอบยอดแต้มและเงื่อนไขแพ็กที่เลือก' };
+      modal = { kind: 'notice', tone: 'warn', title: 'ซื้อ VIP ไม่สำเร็จ', message: 'ตรวจสอบ AIS Point และเงื่อนไขแพ็กที่เลือก' };
       return;
     }
     persist(next, `ซื้อ ${selected?.label ?? 'VIP Pass'}`);
@@ -393,7 +420,7 @@
     if (!pack) return;
     const next = refillEnergy(player, pack.energy, pack.cost, demoNow(player));
     if (!next) {
-      modal = { kind: 'notice', tone: 'warn', title: 'เติม Energy ไม่สำเร็จ', message: 'ตรวจสอบยอด Masque Points หรือ Energy ปัจจุบันของคุณ' };
+      modal = { kind: 'notice', tone: 'warn', title: 'เติม Energy ไม่สำเร็จ', message: 'ตรวจสอบ AIS Point หรือ Energy ปัจจุบันของคุณ' };
       return;
     }
     persist(next, 'ซื้อ Energy');
@@ -404,7 +431,7 @@
     if (modal?.kind !== 'item-confirm') return;
     const next = purchaseShopItem(player, modal.itemId);
     if (!next) {
-      modal = { kind: 'notice', tone: 'warn', title: 'ซื้อไม่สำเร็จ', message: 'แต้มไม่พอ หรือมีสินค้านี้แล้ว' };
+      modal = { kind: 'notice', tone: 'warn', title: 'ซื้อไม่สำเร็จ', message: 'AIS Point ไม่พอ หรือมีสินค้านี้แล้ว' };
       return;
     }
     persist(next, 'ซื้อของเข้าคอลเลกชัน');
@@ -584,10 +611,10 @@
               <FeaturedGameCard game={featuredGame} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${featuredGame.id}`)} />
               <p class="mt-3 flex items-center justify-between px-1 text-xs text-[var(--g-muted)]"><span>Personal Best · SIMULATED</span><strong>{(player.demo.scores[featuredGame.id] ?? 0).toLocaleString()}</strong></p>
             </section>{/if}
-            <button class="flex min-h-14 w-full items-center gap-3 border-y border-amber-200/80 bg-[#fff7df]/75 px-3 text-left" onclick={() => navigate('vip')}><Crown size={20} class="shrink-0 text-amber-700" fill="currentColor" /><span class="min-w-0 flex-1"><strong class="block text-sm text-[#59400d]">VIP · {vipActive ? 'ใช้งานอยู่' : 'เข้าเกมปกติฟรี'}</strong><small class="block text-[11px] text-[#816d43]">{vipActive ? `หมดอายุ ${new Date(player.vipExpiresAt!).toLocaleDateString('th-TH')}` : 'สิทธิ์ตามเวลา · ราคาแพ็กเดโม'}</small></span><ArrowUpRight size={17} class="shrink-0 text-amber-800" /></button>
+            <button class="flex min-h-14 w-full items-center gap-3 border-y border-amber-200/80 bg-[#fff7df]/75 px-3 text-left" onclick={() => navigate('vip')}><Crown size={20} class="shrink-0 text-amber-700" fill="currentColor" /><span class="min-w-0 flex-1"><strong class="block text-sm text-[#59400d]">VIP · {vipActive ? 'ใช้งานอยู่' : 'เข้าเกมปกติฟรี · Energy MAX 30'}</strong><small class="block text-[11px] text-[#816d43]">{vipActive ? `Energy MAX 30 · หมดอายุ ${new Date(player.vipExpiresAt!).toLocaleDateString('th-TH')}` : 'Energy MAX 15 → 30 ระหว่าง VIP · ราคา AIS Point เดโม'}</small></span><ArrowUpRight size={17} class="shrink-0 text-amber-800" /></button>
             <div class="space-y-2 border-y border-white/80 py-3"><div class="flex justify-between text-xs"><span>LV.{player.level} · Profile EXP</span><strong>{player.demo.profileXp % 100} / 100</strong></div><progress class="h-1.5 w-full accent-sky-600" value={player.demo.profileXp % 100} max="100" aria-label="Profile EXP"></progress></div>
             <nav class="grid grid-cols-2 gap-2 py-2" aria-label="กิจกรรม">
-              {#each [{ route: 'hub', label: 'Game Hub' }, { route: 'campaigns', label: 'Campaign' }, { route: 'ranking', label: 'Ranking' }, { route: 'missions', label: 'Missions' }, { route: 'rewards', label: 'Battle Pass' }, { route: 'vip', label: 'VIP' }, { route: 'shop', label: 'Shop' }, { route: 'inventory', label: 'Inventory' }, { route: 'history', label: 'History' }, { route: 'gacha', label: 'Gacha' }] as item (item.route)}<button class="flex min-h-12 items-center justify-between gap-2 border-b border-white/80 bg-white/45 px-3 text-left text-sm font-bold text-[#2b4160]" onclick={() => navigate(item.route)}>{item.label}<ArrowUpRight size={17} class="shrink-0" />{#if item.route === 'history' && player.demo.notifications?.some((notification) => !notification.viewed)}<span class="size-2 rounded-full bg-rose-500" aria-label="มีการแจ้งเตือนใหม่"></span>{/if}</button>{/each}
+              {#each [{ route: 'hub', label: 'Game Hub' }, { route: 'campaigns', label: 'Campaign' }, { route: 'ranking', label: 'Ranking' }, { route: 'missions', label: 'Missions' }, { route: 'rewards', label: 'Battle Pass' }, { route: 'vip', label: 'VIP' }, { route: 'shop', label: 'Shop' }, { route: 'inventory', label: 'Inventory' }, { route: 'history', label: 'History' }] as item (item.route)}<button class="flex min-h-12 items-center justify-between gap-2 border-b border-white/80 bg-white/45 px-3 text-left text-sm font-bold text-[#2b4160]" onclick={() => navigate(item.route)}>{item.label}<ArrowUpRight size={17} class="shrink-0" />{#if item.route === 'history' && player.demo.notifications?.some((notification) => !notification.viewed)}<span class="size-2 rounded-full bg-rose-500" aria-label="มีการแจ้งเตือนใหม่"></span>{/if}</button>{/each}
             </nav>
             <button class="flex w-full items-center justify-between gap-3 border-y border-white bg-white/35 px-2 py-3 text-left" onclick={() => navigate('rewards')}><span><small class="text-sky-700">CURRENT SEASON</small><strong class="block">{activePassSeason.name}</strong></span><ArrowUpRight size={22} /></button>
           </div>
@@ -604,8 +631,10 @@
             {player} {vipActive} countdown={formatCountdown(refillCountdown)} bind:tab={shopTab}
             onBuy={(itemId) => (modal = { kind: 'item-confirm', itemId })}
             onRefill={openRefill}
-            onBuyTickets={(quantity) => requestAction('ซื้อ Demo Ranked Ticket', `${quantity} ใบ · ${quantity * player.demo.config.arenaTicketPrice} MP`, 'ยืนยันซื้อ', () => applyAction(buyArenaTickets(player, quantity), 'ซื้อ Demo Ranked Ticket แล้ว'))}
+            onBuyTickets={(quantity) => requestAction('ซื้อ Demo Ranked Ticket', `${quantity} ใบ · ${quantity * player.demo.config.arenaTicketPrice} AIS Point`, 'ยืนยันซื้อ', () => applyAction(buyArenaTickets(player, quantity), 'ซื้อ Demo Ranked Ticket แล้ว'))}
             onBuyGachaCoupons={(quantity) => openGachaCouponPurchase(quantity, 'shop')}
+            onBuyGachaBox={purchaseBox}
+            onOpenGachaBox={openGachaBox}
             onVip={openVipConfirm}
             onMockAisTopUp={mockAisTopUp}
           />
@@ -646,7 +675,7 @@
         {:else if page === 'admin'}
           <AdminPage {player} onSave={saveConfig} onReset={resetDemo} onRankingReset={resetRanking}
             onClock={(hours) => { const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + hours * 3_600_000 } }; now = demoNow(next); persist(refreshEnergy(next, now), 'เวลาจำลอง · ฟื้น Energy'); showToast('ปรับเวลาจำลองแล้ว'); }}
-            onSeed={() => applyAction({ ...player, masquePoints: player.masquePoints + 500, aisPoints: player.aisPoints + 100 }, 'DEMO · เติมทุนจำลอง')}
+            onSeed={() => applyAction({ ...player, aisPoints: player.aisPoints + 500 }, 'DEMO · เติม AIS Point')}
             onSeedScenario={loadScenario} />
         {:else if page === 'points'}
           <PointShop {player} onBuy={purchasePoints} onBack={returnFromPoints} />
@@ -663,7 +692,7 @@
     </main>
   {/if}
   {#if page !== 'game'}<BottomNav {page} />{/if}
-  {#if !['game', 'avatar', 'gacha', 'points', 'rewards'].includes(page)}<button class="fixed z-30 flex min-h-13 items-center gap-2.5 rounded-full border-2.5 border-white bg-gradient-to-r from-[#fff8db] via-[#ffe89e] to-[#ffd26a] pr-4 pl-2 text-[#5c3600] shadow-[0_5px_0_#c98c24,0_8px_18px_rgba(90,50,150,0.26)] transition-transform hover:scale-105 active:translate-y-0.5 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="ไปตู้สุ่ม Avatar / Pet" aria-label="ไปตู้สุ่ม Avatar / Pet" onclick={() => navigate('gacha')}><span class="relative grid size-10 place-items-center rounded-full border-2 border-white bg-gradient-to-b from-white to-[#dff3ff] shadow-inner"><img class="size-8 object-contain drop-shadow-[0_2px_3px_rgba(60,40,120,0.28)]" src="assets/gacha/gacha-capsule.png" alt="" />{#if player.gachaTickets > 0}<span class="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full border border-white bg-rose-500 text-[9px] font-black text-white shadow-xs">{player.gachaTickets}</span>{/if}</span><span class="grid text-left leading-tight"><strong class="text-xs font-black text-[#3b2166]">ตู้สุ่ม Avatar / Pet</strong><small class="text-[9px] font-extrabold text-[#8a5209]">✨ สุ่ม 1 หรือ 10+1 ครั้ง</small></span></button>{/if}
+  {#if false}<button class="fixed z-30 flex min-h-13 items-center gap-2.5 rounded-full border-2.5 border-white bg-gradient-to-r from-[#fff8db] via-[#ffe89e] to-[#ffd26a] pr-4 pl-2 text-[#5c3600] shadow-[0_5px_0_#c98c24,0_8px_18px_rgba(90,50,150,0.26)] transition-transform hover:scale-105 active:translate-y-0.5 active:scale-95 motion-reduce:transition-none" style:bottom={page === 'world' ? '220px' : 'calc(88px + env(safe-area-inset-bottom))'} style:right="max(14px, calc((100vw - 460px) / 2 + 14px))" title="ไปตู้สุ่ม Avatar / Pet" aria-label="ไปตู้สุ่ม Avatar / Pet" onclick={() => navigate('gacha')}><span class="relative grid size-10 place-items-center rounded-full border-2 border-white bg-gradient-to-b from-white to-[#dff3ff] shadow-inner"><img class="size-8 object-contain drop-shadow-[0_2px_3px_rgba(60,40,120,0.28)]" src="assets/gacha/gacha-capsule.png" alt="" />{#if player.gachaTickets > 0}<span class="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full border border-white bg-rose-500 text-[9px] font-black text-white shadow-xs">{player.gachaTickets}</span>{/if}</span><span class="grid text-left leading-tight"><strong class="text-xs font-black text-[#3b2166]">ตู้สุ่ม Avatar / Pet</strong><small class="text-[9px] font-extrabold text-[#8a5209]">✨ สุ่ม 1 หรือ 10+1 ครั้ง</small></span></button>{/if}
 </div>
 
 {#if page !== 'game'}<div class="landscape-notice" role="status"><strong>กรุณาหมุนมือถือเป็นแนวตั้ง</strong></div>{/if}

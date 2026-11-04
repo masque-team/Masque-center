@@ -59,12 +59,48 @@ export function drawGacha(
   return {
     player: {
       ...charged,
-      masquePoints: charged.masquePoints + (duplicate ? charged.demo.config.duplicatePoints : 0),
+      aisPoints: charged.aisPoints + (duplicate ? charged.demo.config.duplicatePoints : 0),
       ...(duplicate ? {} : selected.kind === 'pet'
         ? { ownedPetIds: [...charged.ownedPetIds, selected.itemId!] }
         : { ownedAvatarIds: [...charged.ownedAvatarIds, selected.itemId!] }),
     },
     result,
+  };
+}
+
+export function buyGachaBox(player: PlayerState, kind: GachaKind): PlayerState | null {
+  const cost = player.demo.config.gachaCost;
+  if (!Number.isSafeInteger(cost) || cost < 0 || player.aisPoints < cost) return null;
+  return {
+    ...player,
+    aisPoints: player.aisPoints - cost,
+    demo: { ...player.demo, gachaBoxes: { ...player.demo.gachaBoxes, [kind]: (player.demo.gachaBoxes?.[kind] ?? 0) + 1 } },
+  };
+}
+
+export function drawGachaBox(player: PlayerState, kind: GachaKind, random = Math.random, now = Date.now()): { player: PlayerState; result: GachaDrawResult } | null {
+  if ((player.demo.gachaBoxes?.[kind] ?? 0) < 1) return null;
+  const drawn = drawGacha(player, kind, random, now, false);
+  if (!drawn) return null;
+  const result = drawn.result;
+  let detail: string;
+  if (result.kind === 'energy') {
+    detail = `Energy +${result.amount}`;
+  } else {
+    const item = result.kind === 'pet' ? PETS.find((entry) => entry.id === result.itemId) : AVATARS.find((entry) => entry.id === result.itemId);
+    detail = `${item?.name ?? result.itemId}${result.duplicate ? ' · ซ้ำ' : ''}`;
+  }
+  const history = { id: crypto.randomUUID(), kind: 'reward' as const, title: `${kind === 'pet' ? 'Pet' : 'Avatar'} Box`, detail, at: now };
+  return {
+    result,
+    player: {
+      ...drawn.player,
+      demo: {
+        ...drawn.player.demo,
+        gachaBoxes: { ...drawn.player.demo.gachaBoxes, [kind]: (drawn.player.demo.gachaBoxes?.[kind] ?? 0) - 1 },
+        history: [history, ...(drawn.player.demo.history ?? [])].slice(0, 250),
+      },
+    },
   };
 }
 
@@ -92,8 +128,8 @@ export function drawGachaBatch(player: PlayerState, kind: GachaKind, count: 1 | 
 export function buyGachaCoupons(player: PlayerState, quantity: 1 | 10): PlayerState | null {
   if (quantity !== 1 && quantity !== 10) return null;
   const cost = player.demo.config.gachaCost * quantity;
-  if (!Number.isSafeInteger(cost) || player.masquePoints < cost) return null;
-  return { ...player, masquePoints: player.masquePoints - cost, gachaTickets: player.gachaTickets + quantity };
+  if (!Number.isSafeInteger(cost) || player.aisPoints < cost) return null;
+  return { ...player, aisPoints: player.aisPoints - cost, gachaTickets: player.gachaTickets + quantity };
 }
 
 export function drawPet(player: PlayerState, random = Math.random): { player: PlayerState; petId: string; duplicate: boolean } | null {

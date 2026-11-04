@@ -19,17 +19,17 @@ const MISSION_DEFINITIONS = [
 ] as const;
 export function createDemo(): DemoState {
   const demo: DemoState = {
-    version: 1, clockOffset: 0, profileXp: 0, transactions: [], sessions: [], arenaTickets: 0, campaignTickets: 2, campaignScores: {}, settledCampaigns: [], closedCampaigns: [], notifications: [], history: [], missionProgress: {}, recentMissionEvents: [], settledPasses: [], playTimeMs: {}, playCounts: {}, achievements: [], profile: { backgroundId: 'canal-day', bio: '', badgeIds: [] }, scores: {}, scoreTimes: {}, seasonScores: {}, rankingClaims: [], rankingResets: [], passes: {}, missionCounts: {}, missionClaims: [], pointPackClaims: [], frames: [], frameId: null, wings: [], wingId: null, ownedDecor: ['sofa', 'plant'], battles: [], room: null,
+    version: 1, clockOffset: 0, profileXp: 0, transactions: [], sessions: [], arenaTickets: 0, campaignTickets: 2, gachaBoxes: { avatar: 0, pet: 0 }, campaignScores: {}, settledCampaigns: [], closedCampaigns: [], notifications: [], history: [], missionProgress: {}, recentMissionEvents: [], settledPasses: [], playTimeMs: {}, playCounts: {}, achievements: [], profile: { backgroundId: 'canal-day', bio: '', badgeIds: [] }, scores: {}, scoreTimes: {}, seasonScores: {}, rankingClaims: [], rankingResets: [], passes: {}, missionCounts: {}, missionClaims: [], pointPackClaims: [], frames: [], frameId: null, wings: [], wingId: null, ownedDecor: ['sofa', 'plant'], battles: [], room: null,
     config: {
       energyMax: 15, regenMinutes: 30, energyCost: 1, exchangeRate: 10, checkinReward: 35,
       missionTarget: 1, missionXp: 100, premiumPrice: 200, gachaCost: 90, duplicatePoints: 30,
       gachaPool: PETS.map((pet) => ({ petId: pet.id, weight: pet.rarity === 'Legendary' ? 2 : pet.rarity === 'Epic' ? 8 : 20 })),
-      games: GAMES.map((game) => ({ ...game, published: game.published ?? true })), vipPlans: structuredClone(VIP_PACKAGES), vipFreeEntry: true, vipEnergyBonus: 6, continueEnergyCost: 1,
+        games: GAMES.map((game) => ({ ...game, published: game.published ?? true })), vipPlans: structuredClone(VIP_PACKAGES), vipFreeEntry: true, vipEnergyBonus: 15, continueEnergyCost: 1,
       energyPacks: ENERGY_CONFIG.refillPacks.map((pack) => ({ ...pack })),
       shop: [...SHOP_ITEMS.map((item) => ({ ...item })), ...WINGS.map((wing) => ({ id: `wing-${wing.id}`, kind: 'wing' as const, itemId: wing.id, cost: wing.cost })), { id: 'frame-sunrise', kind: 'frame', itemId: 'sunrise', cost: 80 }, { id: 'frame-ocean', kind: 'frame', itemId: 'ocean', cost: 80 }],
       seasons: [
         { id: 'songkran', name: 'Songkran Splash', theme: 'water', starts: '2026-04-01', ends: '2026-04-30', free: structuredClone(BATTLE_PASS.freeRewards) as DemoReward[], premium: structuredClone(BATTLE_PASS.vipRewards) as DemoReward[] },
-        { id: 'loy-krathong', name: 'Loy Krathong Lights', theme: 'lantern', starts: '2026-11-01', ends: '2026-11-30', free: [{ title: 'Masque Points +30', type: 'points', amount: 30 }, { title: 'Energy +3', type: 'energy', amount: 3 }, { title: 'Gacha Ticket', type: 'ticket', amount: 1 }, { title: 'Avatar: Aqua', type: 'avatar', itemId: 'aqua' }, { title: 'Masque Points +80', type: 'points', amount: 80 }], premium: [{ title: 'Masque Points +50', type: 'points', amount: 50 }, { title: 'Pet: Mooncat', type: 'pet', itemId: 'mooncat' }, { title: 'Energy +8', type: 'energy', amount: 8 }, { title: 'Avatar: Luna', type: 'avatar', itemId: 'luna' }, { title: 'Gacha Ticket x2', type: 'ticket', amount: 2 }] },
+        { id: 'loy-krathong', name: 'Loy Krathong Lights', theme: 'lantern', starts: '2026-11-01', ends: '2026-11-30', free: [{ title: 'AIS Point +30', type: 'points', amount: 30 }, { title: 'Energy +3', type: 'energy', amount: 3 }, { title: 'Gacha Ticket', type: 'ticket', amount: 1 }, { title: 'Avatar: Aqua', type: 'avatar', itemId: 'aqua' }, { title: 'AIS Point +80', type: 'points', amount: 80 }], premium: [{ title: 'AIS Point +50', type: 'points', amount: 50 }, { title: 'Pet: Mooncat', type: 'pet', itemId: 'mooncat' }, { title: 'Energy +8', type: 'energy', amount: 8 }, { title: 'Avatar: Luna', type: 'avatar', itemId: 'luna' }, { title: 'Gacha Ticket x2', type: 'ticket', amount: 2 }] },
       ],
       passSeasonId: 'songkran', rankingSeasonId: 'season-01', rankingPrize: 100,
       battleEntry: 30, arenaTicketPrice: 30, battlePrize: 70, battleEnabled: true, worldEnabled: true, worldTheme: 'water', announcement: 'Welcome to Masque Island',
@@ -156,9 +156,9 @@ export function seedDemoScenario(player: PlayerState, scenario: DemoScenario): P
   const season = currentSeason(player, now);
   const pass = currentPass(player, now);
   if (scenario === 'energy-overflow') return { ...player, energy: 34, energyUpdatedAt: now };
-  if (scenario === 'vip-renewal') return { ...player, masquePoints: Math.max(player.masquePoints, 500), energy: 14, vipExpiresAt: now + 2 * 86_400_000 };
-  if (scenario === 'premium-retro') return { ...player, masquePoints: Math.max(player.masquePoints, player.demo.config.premiumPrice), vipExpiresAt: null, demo: { ...player.demo, passes: { ...player.demo.passes, [season.id]: { xp: 1000, premium: false, claims: [] } } } };
-  if (scenario === 'vip-no-premium') return { ...player, masquePoints: Math.max(player.masquePoints, 200), vipExpiresAt: now + 2 * 86_400_000, demo: { ...player.demo, passes: { ...player.demo.passes, [season.id]: { ...pass, premium: false } } } };
+  if (scenario === 'vip-renewal') return { ...player, aisPoints: Math.max(player.aisPoints, 500), energy: 14, vipExpiresAt: now + 2 * 86_400_000 };
+  if (scenario === 'premium-retro') return { ...player, aisPoints: Math.max(player.aisPoints, player.demo.config.premiumPrice), vipExpiresAt: null, demo: { ...player.demo, passes: { ...player.demo.passes, [season.id]: { xp: 1000, premium: false, claims: [] } } } };
+  if (scenario === 'vip-no-premium') return { ...player, aisPoints: Math.max(player.aisPoints, 200), vipExpiresAt: now + 2 * 86_400_000, demo: { ...player.demo, passes: { ...player.demo.passes, [season.id]: { ...pass, premium: false } } } };
   if (scenario === 'ranking-tie') return { ...player, demo: { ...player.demo, scores: { ...player.demo.scores, bird: 15_320 }, scoreTimes: { ...player.demo.scoreTimes, bird: Date.UTC(2026, 0, 2) } } };
   if (scenario === 'campaign-ranking' || scenario === 'campaign-settlement') {
     const settledCampaigns = (player.demo.settledCampaigns ?? []).filter((id) => id !== 'lantern-festival');
@@ -169,7 +169,7 @@ export function seedDemoScenario(player: PlayerState, scenario: DemoScenario): P
     const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + Date.parse(`${season.ends}T00:00:00Z`) - now + 1_000, passes: { ...player.demo.passes, [season.id]: { xp: 300, premium: false, claims: [] } }, settledPasses: (player.demo.settledPasses ?? []).filter((id) => id !== season.id) } };
     return settleExpiredPasses(next, demoNow(next));
   }
-  return { ...player, masquePoints: Math.max(player.masquePoints, player.demo.config.gachaCost * 10), gachaTickets: Math.max(player.gachaTickets, 10) };
+  return { ...player, aisPoints: Math.max(player.aisPoints, player.demo.config.gachaCost * 10), demo: { ...player.demo, gachaBoxes: { avatar: 1, pet: 1 } } };
 }
 export function hasPassAccess(player: PlayerState, at = demoNow(player)): boolean {
   return currentPass(player, at).premium;
@@ -209,7 +209,7 @@ export function nextPassBonus(player: PlayerState, at = demoNow(player)) {
   const pass = currentPass(player, at);
   let level: number = PASS_RULES.levels + 1;
   while (pass.claims.includes(`bonus-${level}`)) level += 1;
-  const reward: DemoReward = level % 5 === 0 ? { title: 'Pet Gacha Ticket', type: 'ticket', amount: 1 } : { title: 'Masque Points +10', type: 'points', amount: 10 };
+  const reward: DemoReward = level % 5 === 0 ? { title: 'Pet Gacha Ticket', type: 'ticket', amount: 1 } : { title: 'AIS Point +10', type: 'points', amount: 10 };
   return { level, reward, ready: passProgress(pass.xp).level >= level };
 }
 export function claimPassBonus(player: PlayerState): PlayerState | null {
@@ -227,7 +227,7 @@ export function ledger(previous: PlayerState, next: PlayerState, label: string):
   const at = demoNow(next);
   const transaction = { id: crypto.randomUUID(), at, label, mp, ais, energy };
   const kind: 'purchase' | 'reward' = label.includes('ซื้อ') || label.includes('เติม') || label.includes('VIP') || label.includes('คูปอง') ? 'purchase' : 'reward';
-  const history = { id: transaction.id, kind, title: label, detail: [mp ? `${mp > 0 ? '+' : ''}${mp} MP` : '', ais ? `${ais > 0 ? '+' : ''}${ais} AIS Point` : '', energy ? `${energy > 0 ? '+' : ''}${energy} Energy` : ''].filter(Boolean).join(' · '), at };
+  const history = { id: transaction.id, kind, title: label, detail: [ais ? `${ais > 0 ? '+' : ''}${ais} AIS Point` : '', energy ? `${energy > 0 ? '+' : ''}${energy} Energy` : ''].filter(Boolean).join(' · '), at };
   return { ...next, demo: { ...next.demo, transactions: [transaction, ...next.demo.transactions].slice(0, 150), history: [history, ...(next.demo.history ?? [])].slice(0, 250) } };
 }
 export function ownsPassReward(player: PlayerState, reward: DemoReward): boolean {
@@ -245,11 +245,11 @@ export function ownsPassReward(player: PlayerState, reward: DemoReward): boolean
 export function grantReward(player: PlayerState, reward: DemoReward): PlayerState {
   if (ownsPassReward(player, reward)) {
     const at = demoNow(player);
-    const next = { ...player, masquePoints: player.masquePoints + player.demo.config.duplicatePoints };
-    return { ...next, demo: { ...next.demo, history: [{ id: crypto.randomUUID(), kind: 'reward' as const, title: reward.title, detail: `ซ้ำ · ชดเชย ${player.demo.config.duplicatePoints} MP`, at }, ...(next.demo.history ?? [])].slice(0, 250) } };
+    const next = { ...player, aisPoints: player.aisPoints + player.demo.config.duplicatePoints };
+    return { ...next, demo: { ...next.demo, history: [{ id: crypto.randomUUID(), kind: 'reward' as const, title: reward.title, detail: `ซ้ำ · ชดเชย ${player.demo.config.duplicatePoints} AIS Point`, at }, ...(next.demo.history ?? [])].slice(0, 250) } };
   }
   const next = { ...player };
-  if (reward.type === 'points') next.masquePoints += reward.amount ?? 0;
+  if (reward.type === 'points') next.aisPoints += reward.amount ?? 0;
   if (reward.type === 'energy') next.energy += reward.amount ?? 0;
   if (reward.type === 'ticket') next.gachaTickets += reward.amount ?? 1;
   if (reward.type === 'arena-ticket') next.demo = { ...next.demo, arenaTickets: next.demo.arenaTickets + (reward.amount ?? 1) };
@@ -311,7 +311,7 @@ export function finishGame(player: PlayerState, sessionId: string, score: number
   const at = demoNow(player);
   const gameHistory = { id: crypto.randomUUID(), kind: 'game' as const, title: GAMES.find((game) => game.id === session.gameId)?.name ?? session.gameId, detail: `${session.mode === 'campaign' ? 'Campaign' : 'Normal'} · ${score.toLocaleString()} คะแนน`, at, gameId: session.gameId };
   const achievementHistory = newAchievements.map((badge) => ({ id: `achievement:${badge.id}`, kind: 'reward' as const, title: badge.title, detail: 'ปลดล็อก Profile badge', at }));
-  const finished: PlayerState = { ...player, masquePoints: player.masquePoints + reward.points, level: 18 + Math.floor(profileXp / 100), demo: { ...player.demo, profileXp, achievements, playCounts,
+  const finished: PlayerState = { ...player, aisPoints: player.aisPoints + reward.points, level: 18 + Math.floor(profileXp / 100), demo: { ...player.demo, profileXp, achievements, playCounts,
     sessions: player.demo.sessions.map((entry) => entry.id === sessionId ? { ...entry, finished: true, score } : entry),
     scores: isCampaign || !improvesBest ? player.demo.scores : { ...player.demo.scores, [session.gameId]: score },
     scoreTimes: !isCampaign && improvesBest ? { ...player.demo.scoreTimes, [session.gameId]: at } : player.demo.scoreTimes,
@@ -324,10 +324,10 @@ export function finishGame(player: PlayerState, sessionId: string, score: number
   return progressMissions(finished, 'game', at);
 }
 export function buyPremium(player: PlayerState): PlayerState | null {
-  if (hasPassAccess(player) || player.masquePoints < player.demo.config.premiumPrice) return null;
+  if (hasPassAccess(player) || player.aisPoints < player.demo.config.premiumPrice) return null;
   const season = currentSeason(player);
   const pass = currentPass(player);
-  return { ...player, masquePoints: player.masquePoints - player.demo.config.premiumPrice, demo: { ...player.demo, passes: { ...player.demo.passes, [season.id]: { ...pass, premium: true } } } };
+  return { ...player, aisPoints: player.aisPoints - player.demo.config.premiumPrice, demo: { ...player.demo, passes: { ...player.demo.passes, [season.id]: { ...pass, premium: true } } } };
 }
 export function claimPass(player: PlayerState, track: 'free' | 'premium', index: number): PlayerState | null {
   const pass = currentPass(player);
@@ -342,7 +342,7 @@ export function claimMission(player: PlayerState, gameId?: GameId): PlayerState 
     if (!player.demo.config.games.some((game) => game.id === gameId && game.published !== false)) return null;
     const mission = gameMission(player, gameId);
     if (mission.count < mission.target) return null;
-    return awardPassXp({ ...player, masquePoints: player.masquePoints + mission.points, demo: { ...player.demo, missionClaims: [...player.demo.missionClaims, mission.id] } }, mission.xp);
+    return awardPassXp({ ...player, aisPoints: player.aisPoints + mission.points, demo: { ...player.demo, missionClaims: [...player.demo.missionClaims, mission.id] } }, mission.xp);
   }
   const mission = dailyPassMission(player);
   if (mission.count < mission.target || player.demo.missionClaims.includes(mission.id)) return null;
@@ -354,7 +354,7 @@ export function startBattle(player: PlayerState, gameId: GameId): PlayerState | 
 export function claimBattle(player: PlayerState, id: string): PlayerState | null {
   const battle = player.demo.battles.find((entry) => entry.id === id);
   if (!battle || battle.claimed) return null;
-  return { ...player, masquePoints: player.masquePoints + battle.prize, demo: { ...player.demo, battles: player.demo.battles.map((entry) => entry.id === id ? { ...entry, claimed: true } : entry) } };
+  return { ...player, aisPoints: player.aisPoints + battle.prize, demo: { ...player.demo, battles: player.demo.battles.map((entry) => entry.id === id ? { ...entry, claimed: true } : entry) } };
 }
 export function claimRankingReward(player: PlayerState, gameId: GameId): PlayerState | null {
   const id = `${player.demo.config.rankingSeasonId}:${gameId}`;
@@ -362,11 +362,11 @@ export function claimRankingReward(player: PlayerState, gameId: GameId): PlayerS
   const rank = getGameRanking(gameId, 'allTime', player, score).findIndex((entry) => entry.isCurrentPlayer);
   if (!score || rank > 2 || player.demo.rankingClaims.includes(id)) return null;
   const badge = { id: `top:${id}`, title: `Top ${rank + 1}`, earnedAt: demoNow(player), seasonId: player.demo.config.rankingSeasonId, gameId };
-  return { ...player, masquePoints: player.masquePoints + player.demo.config.rankingPrize, demo: { ...player.demo, rankingClaims: [...player.demo.rankingClaims, id], achievements: [...player.demo.achievements, badge] } };
+  return { ...player, aisPoints: player.aisPoints + player.demo.config.rankingPrize, demo: { ...player.demo, rankingClaims: [...player.demo.rankingClaims, id], achievements: [...player.demo.achievements, badge] } };
 }
 export function buyDecor(player: PlayerState, kind: string): PlayerState | null {
-  if (!['sofa', 'plant', 'lamp', 'music'].includes(kind) || player.demo.ownedDecor.includes(kind) || player.masquePoints < player.demo.config.decorPrice) return null;
-  return { ...player, masquePoints: player.masquePoints - player.demo.config.decorPrice, demo: { ...player.demo, ownedDecor: [...player.demo.ownedDecor, kind] } };
+  if (!['sofa', 'plant', 'lamp', 'music'].includes(kind) || player.demo.ownedDecor.includes(kind) || player.aisPoints < player.demo.config.decorPrice) return null;
+  return { ...player, aisPoints: player.aisPoints - player.demo.config.decorPrice, demo: { ...player.demo, ownedDecor: [...player.demo.ownedDecor, kind] } };
 }
 export function claimAvailablePass(player: PlayerState): PlayerState | null {
   let next = player;

@@ -81,7 +81,7 @@ export type ModalState =
   | { kind: 'refill-confirm'; refillId: string }
   | { kind: 'exchange-confirm' }
   | { kind: 'item-confirm'; itemId: string }
-  | { kind: 'gacha-result'; gachaKind: GachaKind; results: GachaDrawResult[]; paidCoupons: number; bonusDraws: number }
+  | { kind: 'gacha-result'; gachaKind: GachaKind; results: GachaDrawResult[]; paidCoupons: number; bonusDraws: number; source?: 'box' | 'legacy-ticket' }
   | { kind: 'gacha-coupon-confirm'; quantity: 1 | 10 }
   | { kind: 'checkin-success' }
   | { kind: 'energy-empty' }
@@ -169,6 +169,7 @@ export interface DemoState {
   transactions: { id: string; at: number; label: string; mp: number; ais: number; energy: number }[];
   sessions: { id: string; gameId: GameId; startedAt: number; finished: boolean; score?: number; mode?: GameMode; campaignId?: string; reward?: { points: number; xp: number } }[];
   arenaTickets: number;
+  gachaBoxes?: Partial<Record<GachaKind, number>>;
   playTimeMs: Partial<Record<GameId, number>>;
   playCounts: Partial<Record<GameId, number>>;
   achievements: ProfileBadge[];

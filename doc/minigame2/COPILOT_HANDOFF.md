@@ -10,7 +10,7 @@
 - **Shop** `#shop`: existing shop layout with Cosmetics, Energy, VIP, and mock AIS Point tabs. Gacha coupons remain available. Ranked ticket sales and AIS-to-MP exchange are not exposed in the standard Shop.
 - **Game Hub** `#hub`: all seven configured games, genre filters, editorial markers, mock online/play counts, and personal bests.
 - **Game Detail / Entry** `#detail/:gameId`: game summary, entry cost, high score and ranking.
-- **Game Player / Result** `#game/:gameId?session=...`: unchanged configured iframe URL, loading/fallback/reload/back, and Simulate Finish. Campaign rounds return to their source campaign.
+- **Game Player / Result** `#game/:gameId?session=...`: unchanged configured iframe URL, loading/fallback/reload/back, and a compact floating Simulate Finish control that does not reserve a full-width footer. Campaign rounds return to their source campaign.
 - **Ranking** `#ranking`: normal all-time high score per game; equal scores sort by earliest recorded time.
 - **Campaign list/detail** `#campaigns`, `#campaign/:campaignId`: free and ticket-demo scenarios, per-game leaderboards, reward-tier gift preview, mock finalize/once-only settlement, and next-open notification.
 - **VIP** `#vip`: configurable demo durations/prices, immediate activation and duration extension. VIP covers normal game entry only.

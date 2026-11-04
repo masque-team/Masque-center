@@ -4,7 +4,7 @@
   import CurrencyIcon from '../components/CurrencyIcon.svelte';
   import GameButton from '../components/GameButton.svelte';
   import RarityChip from '../components/RarityChip.svelte';
-  import { AVATARS, NAV_ARTWORK, PETS, WINGS } from '../data/config';
+  import { AVATARS, GACHA_ARTWORK, NAV_ARTWORK, PETS, WINGS } from '../data/config';
   import { energyCapacity } from '../services/energyService';
   import type { PlayerState, ShopTab } from '../types';
 
@@ -17,6 +17,8 @@
     onRefill,
     onBuyTickets,
     onBuyGachaCoupons,
+    onBuyGachaBox,
+    onOpenGachaBox,
     onVip,
     onMockAisTopUp,
   }: {
@@ -28,6 +30,8 @@
     countdown: string;
     onBuyTickets: (quantity: number) => void;
     onBuyGachaCoupons: (quantity: 1 | 10) => void;
+    onBuyGachaBox: (kind: 'avatar' | 'pet') => void;
+    onOpenGachaBox: (kind: 'avatar' | 'pet') => void;
     onVip: (id: string) => void;
     onMockAisTopUp: (amount: number) => void;
   } = $props();
@@ -75,13 +79,13 @@
     <div class="flex items-center gap-2.5">
       <img class="size-11 shrink-0 object-contain drop-shadow-[0_3px_4px_rgba(60,40,120,0.22)]" src={NAV_ARTWORK.shop} alt="" />
       <div>
-        <p class="text-[10px] font-extrabold tracking-wider text-sky-700">MASQUE POINT MARKET</p>
+        <p class="text-[10px] font-extrabold tracking-wider text-sky-700">AIS POINT · DEMO STORE</p>
         <h1 class="text-xl font-black leading-tight text-[#2b2468]">Shop ร้านค้าแฟนตาซี</h1>
       </div>
     </div>
     <div class="flex items-center gap-1.5 rounded-full border border-amber-200 bg-[#fff9e6] px-2.5 py-1 text-xs font-black text-[#6f4b0c] shadow-xs">
-      <CurrencyIcon kind="points" size={20} />
-      <span class="tabular-nums">{player.masquePoints.toLocaleString()}</span>
+      <CurrencyIcon kind="aisPoints" size={20} />
+      <span class="tabular-nums">{player.aisPoints.toLocaleString()}</span>
     </div>
   </div>
 
@@ -121,10 +125,10 @@
       </div>
     {:else if tab === 'vip'}
       <div class="space-y-3">
-        <h2 class="font-black text-[#2b2468]">VIP · ยกเว้นเฉพาะค่าเข้าเกมปกติ</h2>
-        <p class="text-xs text-[#71839a]">ไม่รวม Continue, Campaign Ticket หรือ Premium Pass · แพ็กและราคาเป็นตัวอย่างเดโม</p>
+        <h2 class="font-black text-[#2b2468]">VIP · เข้าเกมปกติฟรี · Energy MAX 15 → 30</h2>
+        <p class="text-xs text-[#71839a]">Energy cap 30 ระหว่าง VIP · ไม่รวม Continue, Campaign Ticket หรือ Premium Pass · ราคาเป็น AIS Point เดโม</p>
         {#if vipActive && player.vipExpiresAt}<p class="border-y border-white py-2 text-xs font-bold">ใช้งานถึง {new Date(player.vipExpiresAt).toLocaleString('th-TH')}</p>{/if}
-        {#each player.demo.config.vipPlans as plan (plan.id)}<button class="flex min-h-14 w-full items-center justify-between gap-3 border-b border-white/80 px-2 text-left" aria-label={`${vipActive ? 'ต่ออายุ' : 'ซื้อ'} ${plan.label} · ${plan.cost} MP`} onclick={() => onVip(plan.id)}><span><strong class="block text-sm">{plan.label}</strong><small class="text-xs text-[#71839a]">{plan.durationDays < 1 ? `${Math.round(plan.durationDays * 24)} ชั่วโมง` : `${plan.durationDays} วัน`} · ราคาเดโม</small></span><b class="shrink-0 text-amber-800">{plan.cost} MP</b></button>{/each}
+        {#each player.demo.config.vipPlans as plan (plan.id)}<button class="flex min-h-14 w-full items-center justify-between gap-3 border-b border-white/80 px-2 text-left" aria-label={`${vipActive ? 'ต่ออายุ' : 'ซื้อ'} ${plan.label} · ${plan.cost} AIS Point`} onclick={() => onVip(plan.id)}><span><strong class="block text-sm">{plan.label}</strong><small class="text-xs text-[#71839a]">{plan.durationDays < 1 ? `${Math.round(plan.durationDays * 24)} ชั่วโมง` : `${plan.durationDays} วัน`} · ราคาเดโม</small></span><b class="shrink-0 text-amber-800">{plan.cost} AIS Point</b></button>{/each}
       </div>
     {:else if tab === 'energy'}
       <div class="space-y-4">
@@ -155,7 +159,7 @@
           {/if}
           {#if vipActive}
             <p class="rounded-xl border border-amber-200 bg-[#fff9e8] p-2.5 text-[11px] font-semibold leading-relaxed text-amber-800">
-              VIP ทำงานอยู่: เกมปกติเข้าฟรี · Natural cap ยังคง {player.demo.config.energyMax} · Continue ยังใช้ Energy
+              VIP ทำงานอยู่: เกมปกติเข้าฟรี · Energy MAX {maxEnergy} · Continue ยังใช้ Energy
             </p>
           {/if}
         </section>
@@ -180,11 +184,11 @@
                 block
                 size="sm"
                 variant="gold"
-                disabled={player.masquePoints < pack.cost}
+                disabled={player.aisPoints < pack.cost}
                 onclick={() => onRefill(pack.id)}
               >
-                <CurrencyIcon kind="points" size={16} />
-                ซื้อ · {pack.cost} MP
+                <CurrencyIcon kind="aisPoints" size={16} />
+                ซื้อ · {pack.cost} AIS Point
               </GameButton>
             </article>
           {/each}
@@ -228,8 +232,8 @@
             </div>
           </article>{/if}
 
-          <!-- Gacha Coupon Card -->
-          <article class="relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-white bg-gradient-to-b from-[#f0f9ff] via-white to-[#fff5df] p-3 pt-5 text-center shadow-[0_5px_0_#c4d9eb]">
+          <!-- Legacy coupon offer retained but not shown in MiniGame2. -->
+          {#if false}<article class="relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-white bg-gradient-to-b from-[#f0f9ff] via-white to-[#fff5df] p-3 pt-5 text-center shadow-[0_5px_0_#c4d9eb]">
             <span class="absolute -top-2.5 rounded-full border border-white bg-gradient-to-r from-sky-500 to-violet-600 px-2.5 py-0.5 text-[9px] font-extrabold text-white shadow-xs">
               🎰 CAPSULE GACHA
             </span>
@@ -263,8 +267,24 @@
                 <CurrencyIcon kind="points" size={15} />ซื้อ 10 แถม 1 · {(gachaCost * 10).toLocaleString()} MP
               </GameButton>
             </div>
-          </article>
+          </article>{/if}
         </div>
+
+        <section class="space-y-2" aria-label="กล่องสุ่ม Gacha">
+          <h2 class="text-sm font-black text-[#2b2468]">Gacha Boxes · ซื้อแล้วสุ่มจากกล่อง</h2>
+          <div class="grid grid-cols-2 gap-3">
+            {#each [{ kind: 'pet' as const, label: 'Pet Box' }, { kind: 'avatar' as const, label: 'Avatar Box' }] as box (box.kind)}
+              {@const ownedBoxes = player.demo.gachaBoxes?.[box.kind] ?? 0}
+              <article class="grid min-w-0 justify-items-center gap-2 rounded-2xl border-2 border-white bg-gradient-to-b from-white to-[#eef7ff] p-3 text-center shadow-[0_5px_0_#c4d9eb]">
+                <img class="h-16 w-16 object-contain" src={GACHA_ARTWORK.capsule ?? 'assets/gacha/gacha-capsule.png'} alt="" />
+                <strong class="text-sm font-black text-[#29436b]">{box.label}</strong>
+                <span class="text-[10px] text-slate-600">ในกระเป๋า {ownedBoxes} กล่อง · {gachaCost} AIS Point/กล่อง</span>
+                <GameButton block size="sm" variant="gold" disabled={player.aisPoints < gachaCost} onclick={() => onBuyGachaBox(box.kind)}><CurrencyIcon kind="aisPoints" size={15} />ซื้อกล่อง</GameButton>
+                <GameButton block size="sm" variant="purple" disabled={ownedBoxes < 1} onclick={() => onOpenGachaBox(box.kind)}>สุ่มจากกล่อง</GameButton>
+              </article>
+            {/each}
+          </div>
+        </section>
 
         <!-- Category Filter Pills -->
         <div class="flex items-center justify-between pt-1">
@@ -314,14 +334,14 @@
                   <RarityChip rarity={item.kind === 'frame' ? 'Rare' : item.art.rarity} />
                 </div>
                 <span class="inline-flex items-center gap-1.5 text-xs font-black text-[#7c5310]">
-                  <CurrencyIcon kind="points" size={17} />
-                  {item.cost.toLocaleString()} MP
+                  <CurrencyIcon kind="aisPoints" size={17} />
+                  {item.cost.toLocaleString()} AIS Point
                 </span>
                 <GameButton
                   block
                   size="sm"
                   variant={item.owned ? 'ghost' : 'purple'}
-                  disabled={item.owned || player.masquePoints < item.cost}
+                  disabled={item.owned || player.aisPoints < item.cost}
                   onclick={() => onBuy(item.id)}
                 >
                   {item.owned ? '✓ มีในคลังแล้ว' : 'ซื้อเข้าคอลเลกชัน'}

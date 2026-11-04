@@ -7,6 +7,7 @@
   import RewardIcon from './RewardIcon.svelte';
   import VipPassOffer from './VipPassOffer.svelte';
   import { AVATARS, PETS, WINGS } from '../data/config';
+  import { energyCapacity } from '../services/energyService';
   import type { ModalState, PlayerState } from '../types';
 
   let {
@@ -36,14 +37,14 @@
   } = $props();
 
   let SHOP_ITEMS = $derived(player.demo.config.shop);
-  let ENERGY_CONFIG = $derived({ max: player.demo.config.energyMax, refillPacks: player.demo.config.energyPacks });
+  let ENERGY_CONFIG = $derived({ max: energyCapacity(player, vipActive), refillPacks: player.demo.config.energyPacks });
   let EXCHANGE_RATE = $derived(player.demo.config.exchangeRate);
   let VIP_PACKAGES = $derived(player.demo.config.vipPlans);
   let vip = $derived(modal?.kind === 'vip-confirm' ? VIP_PACKAGES.find((pack) => pack.id === modal.packageId) ?? null : null);
   let refill = $derived(modal?.kind === 'refill-confirm' ? ENERGY_CONFIG.refillPacks.find((pack) => pack.id === modal.refillId) ?? null : null);
   let couponCost = $derived(modal?.kind === 'gacha-coupon-confirm' ? player.demo.config.gachaCost * modal.quantity : 0);
-  let couponShort = $derived(Math.max(0, couponCost - player.masquePoints));
-  let refillShort = $derived(refill ? Math.max(0, refill.cost - player.masquePoints) : 0);
+  let couponShort = $derived(Math.max(0, couponCost - player.aisPoints));
+  let refillShort = $derived(refill ? Math.max(0, refill.cost - player.aisPoints) : 0);
   let refillAfter = $derived(refill ? player.energy + refill.energy : player.energy);
   let celebrate = $derived(modal?.kind === 'gacha-result' || modal?.kind === 'checkin-success' || (modal?.kind === 'notice' && modal.tone === 'success'));
   let shopItem = $derived(modal?.kind === 'item-confirm' ? SHOP_ITEMS.find((item) => item.id === modal.itemId) : undefined);
@@ -79,28 +80,28 @@
 
       {#if shopItem?.kind === 'wing' && wing}
         <img class="mx-auto h-40 w-48 object-contain" src={wing.imagePath} alt={wing.name} /><h2>{wing.name}</h2><RarityChip rarity={wing.rarity} />
-        <div class="receipt"><div><span>ราคา</span><b>{shopItem.cost} MP</b></div><div><span>ยอดปัจจุบัน</span><b>{player.masquePoints} MP</b></div></div>
-        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton><GameButton disabled={player.masquePoints < shopItem.cost} onclick={onConfirmItem}>ยืนยันซื้อ</GameButton></div>
+        <div class="receipt"><div><span>ราคา</span><b>{shopItem.cost} AIS Point</b></div><div><span>ยอดปัจจุบัน</span><b>{player.aisPoints} AIS Point</b></div></div>
+        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton><GameButton disabled={player.aisPoints < shopItem.cost} onclick={onConfirmItem}>ยืนยันซื้อ</GameButton></div>
       {:else if shopItem?.kind === 'frame'}
         <div class="medal blue"><Sparkles size={32} /></div><h2>{shopItem.itemId === 'sunrise' ? 'Sunrise Frame' : 'Ocean Frame'}</h2>
-        <div class="receipt"><div><span>ราคา</span><b>{shopItem.cost} MP</b></div><div><span>ยอดปัจจุบัน</span><b>{player.masquePoints} MP</b></div></div>
-        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton><GameButton disabled={player.masquePoints < shopItem.cost} onclick={onConfirmItem}>ยืนยันซื้อ</GameButton></div>
+        <div class="receipt"><div><span>ราคา</span><b>{shopItem.cost} AIS Point</b></div><div><span>ยอดปัจจุบัน</span><b>{player.aisPoints} AIS Point</b></div></div>
+        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton><GameButton disabled={player.aisPoints < shopItem.cost} onclick={onConfirmItem}>ยืนยันซื้อ</GameButton></div>
       {:else if shopItem && shopArt}
         <div style="width:120px;height:150px;margin:0 auto 12px"><AssetPortrait src={shopArt.imagePath} alt={shopArt.name} placeholder={shopArt.placeholder} kind={shopItem.kind === 'avatar' ? 'avatar' : 'pet'} loading="eager" /></div>
         <h2>{shopArt.name}</h2>
         <RarityChip rarity={shopArt.rarity} size="md" />
-        <div class="receipt"><div><span>ราคา</span><b>{shopItem.cost} MP</b></div><div><span>ยอดปัจจุบัน</span><b>{player.masquePoints} MP</b></div></div>
+        <div class="receipt"><div><span>ราคา</span><b>{shopItem.cost} AIS Point</b></div><div><span>ยอดปัจจุบัน</span><b>{player.aisPoints} AIS Point</b></div></div>
         <p class="summary">ซื้อเข้าคอลเลกชัน · ราคาตัวอย่าง</p>
-        {#if player.masquePoints < shopItem.cost}<div class="short">แต้มไม่พอ ขาดอีก {shopItem.cost - player.masquePoints} MP</div>{/if}
-        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton>{#if player.masquePoints < shopItem.cost}<GameButton variant="mint" onclick={onOpenExchange}>แลกแต้ม</GameButton>{:else}<GameButton variant="purple" onclick={onConfirmItem}>ยืนยันซื้อ</GameButton>{/if}</div>
+        {#if player.aisPoints < shopItem.cost}<div class="short">AIS Point ไม่พอ ขาดอีก {shopItem.cost - player.aisPoints} AIS Point</div>{/if}
+        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton>{#if player.aisPoints < shopItem.cost}<GameButton variant="mint" onclick={onOpenExchange}>เติม AIS Point</GameButton>{:else}<GameButton variant="purple" onclick={onConfirmItem}>ยืนยันซื้อ</GameButton>{/if}</div>
       {:else if modal.kind === 'gacha-coupon-confirm'}
         <div class="medal gold"><CurrencyIcon kind="petGachaTicket" size={38} /></div>
         <p class="eyebrow">AVATAR · PET GACHA</p>
         <h2>ซื้อคูปองสุ่ม</h2>
         <p class="summary">{modal.quantity} คูปอง · {modal.quantity === 10 ? 'เปิด 10 ครั้ง รับโบนัสเพิ่ม 1 ครั้ง' : 'เปิดได้ 1 ครั้ง'} · ใช้ได้ทั้งตู้ Avatar และ Pet</p>
-        <div class="receipt"><div><span>ราคา</span><b>{couponCost.toLocaleString()} MP</b></div><div><span>ยอดปัจจุบัน</span><b>{player.masquePoints.toLocaleString()} MP</b></div><div class="after"><span>คูปองหลังซื้อ</span><b>{player.gachaTickets + modal.quantity} ใบ</b></div></div>
-        {#if couponShort > 0}<div class="short"><TriangleAlert size={16} />ขาดอีก <b>{couponShort.toLocaleString()}</b> MP</div>{/if}
-        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton>{#if couponShort > 0}<GameButton variant="mint" onclick={onOpenExchange}><Coins size={16} />เติม MP</GameButton>{:else}<GameButton variant="gold" onclick={onConfirmGachaCoupons}><CurrencyIcon kind="petGachaTicket" size={20} />ซื้อคูปอง</GameButton>{/if}</div>
+        <div class="receipt"><div><span>ราคา</span><b>{couponCost.toLocaleString()} AIS Point</b></div><div><span>ยอดปัจจุบัน</span><b>{player.aisPoints.toLocaleString()} AIS Point</b></div><div class="after"><span>คูปองหลังซื้อ</span><b>{player.gachaTickets + modal.quantity} ใบ</b></div></div>
+        {#if couponShort > 0}<div class="short"><TriangleAlert size={16} />AIS Point ไม่พอ <b>{couponShort.toLocaleString()}</b></div>{/if}
+        <div class="actions"><GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton>{#if couponShort > 0}<GameButton variant="mint" onclick={onOpenExchange}><Coins size={16} />เติม AIS Point</GameButton>{:else}<GameButton variant="gold" onclick={onConfirmGachaCoupons}><CurrencyIcon kind="petGachaTicket" size={20} />ซื้อคูปอง</GameButton>{/if}</div>
       {:else if vip}
         <VipPassOffer {player} packageId={vip.id} {now} onSelect={onPickVip} onConfirm={onConfirmVip} onTopUp={onOpenExchange} {onClose} />
 
@@ -112,16 +113,16 @@
         <div class="packs" role="radiogroup" aria-label="เลือกแพ็ก Energy">
           {#each ENERGY_CONFIG.refillPacks as pack (pack.id)}
             <button class="pack" class:picked={refill.id === pack.id} role="radio" aria-checked={refill.id === pack.id} onclick={() => onPickRefill(pack.id)}>
-              <CurrencyIcon kind="energyPotion" size={24} /><b>+{pack.energy}</b><small><CurrencyIcon kind="points" size={14} />{pack.cost} MP</small>
+              <CurrencyIcon kind="energyPotion" size={24} /><b>+{pack.energy}</b><small><CurrencyIcon kind="aisPoints" size={14} />{pack.cost} AIS Point</small>
             </button>
           {/each}
         </div>
         <div class="receipt">
           <div><span>จะได้รับ</span><b>+{refill.energy} Energy</b></div>
-          <div><span>ใช้แต้ม</span><b class="cost"><CurrencyIcon kind="points" size={16} />{refill.cost} MP</b></div>
+          <div><span>ใช้ AIS Point</span><b class="cost"><CurrencyIcon kind="aisPoints" size={16} />{refill.cost} AIS Point</b></div>
           <div class="after"><span>Energy หลังเติม</span><b>{refillAfter}/{ENERGY_CONFIG.max}</b></div>
         </div>
-        {#if refillShort > 0}<div class="short"><TriangleAlert size={16} />แต้มไม่พอ ขาดอีก <b>{refillShort.toLocaleString('en-US')}</b> MP</div>{/if}
+        {#if refillShort > 0}<div class="short"><TriangleAlert size={16} />AIS Point ไม่พอ ขาดอีก <b>{refillShort.toLocaleString('en-US')}</b></div>{/if}
         <div class="actions">
           <GameButton variant="ghost" size="md" onclick={onClose}>ยกเลิก</GameButton>
           {#if refillShort > 0}<GameButton variant="mint" size="md" onclick={onOpenExchange}><Coins size={16} />แลกแต้ม</GameButton>
@@ -143,7 +144,7 @@
       {:else if modal.kind === 'gacha-result'}
         <p class="eyebrow">{modal.gachaKind === 'pet' ? 'PET GACHA' : 'AVATAR GACHA'}</p>
         <h2>ผลสุ่ม {modal.results.length} ครั้ง</h2>
-        <p class="summary">ใช้ {modal.paidCoupons} คูปอง{modal.bonusDraws ? ` · โบนัสฟรี ${modal.bonusDraws} ครั้ง` : ''}</p>
+        <p class="summary">{modal.source === 'box' ? 'เปิดจาก Gacha Box · ใช้กล่อง 1 ใบ' : `ใช้ ${modal.paidCoupons} คูปอง${modal.bonusDraws ? ` · โบนัสฟรี ${modal.bonusDraws} ครั้ง` : ''}`}</p>
         <div class="grid grid-cols-4 gap-2 text-center">
           {#each modal.results as result, index (`${index}-${result.kind}-${'itemId' in result ? result.itemId : 'energy'}`)}
             {@const itemId = 'itemId' in result ? result.itemId : undefined}
@@ -151,7 +152,7 @@
             <div class="grid min-w-0 justify-items-center gap-1 rounded-md border border-white bg-[#f7fbff] p-1.5">
               <RewardIcon type={result.kind} {itemId} size={38} />
               <small class="line-clamp-2 text-[8px] font-semibold">{result.kind === 'energy' ? `Energy +${result.amount}` : item?.name ?? itemId}</small>
-              {#if result.kind !== 'energy'}<span class={['text-[8px] font-bold', result.duplicate ? 'text-amber-700' : 'text-sky-700']}>{result.duplicate ? `ซ้ำ +${result.duplicatePoints ?? player.demo.config.duplicatePoints} MP` : 'NEW'}</span>{/if}
+              {#if result.kind !== 'energy'}<span class={['text-[8px] font-bold', result.duplicate ? 'text-amber-700' : 'text-sky-700']}>{result.duplicate ? `ซ้ำ +${result.duplicatePoints ?? player.demo.config.duplicatePoints} AIS Point` : 'NEW'}</span>{/if}
             </div>
           {/each}
         </div>
@@ -161,7 +162,7 @@
         <div class="medal green"><Gift size={34} /></div>
         <p class="eyebrow">DAILY CHECK-IN</p>
         <h2>รับรางวัลแล้ว!</h2>
-        <div class="bigreward"><CurrencyIcon kind="points" size={32} /><b>+{checkinReward}</b><span>Masque Points</span></div>
+        <div class="bigreward"><CurrencyIcon kind="aisPoints" size={32} /><b>+{checkinReward}</b><span>AIS Point</span></div>
         <p class="summary">กลับมาเช็กอินพรุ่งนี้เพื่อรับรางวัลต่อนะ</p>
         <div class="actions one"><GameButton variant="mint" size="lg" onclick={onClose}><Check size={18} strokeWidth={3.5} />ตกลง</GameButton></div>
 
@@ -169,7 +170,7 @@
         <div class="medal blue empty"><Zap size={34} /></div>
         <p class="eyebrow">ENERGY EMPTY</p>
         <h2>Energy หมดแล้ว</h2>
-        <p class="summary">Energy ฟื้นทีละ 1 ทุก {player.demo.config.regenMinutes} นาที หรือเติมด้วย Masque Points</p>
+        <p class="summary">Energy ฟื้นทีละ 1 ทุก {player.demo.config.regenMinutes} นาที หรือเติมด้วย AIS Point</p>
         <div class="stack">
           <GameButton variant="purple" size="md" onclick={onOpenRefill}><Zap size={16} fill="currentColor" />เติม Energy</GameButton>
           <GameButton variant="gold" size="md" onclick={onOpenVip}><Crown size={16} fill="currentColor" />VIP · ยกเว้นค่าเข้าเกม</GameButton>

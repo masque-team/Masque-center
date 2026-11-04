@@ -10,7 +10,7 @@ export function claimBattlePassReward(player: PlayerState, track: RewardTrack, i
   const level = Math.min(BATTLE_PASS.totalLevels, Math.floor(player.battlePassXp / BATTLE_PASS.xpPerLevel) + 1);
   if (!reward || level < index + 1 || player.claimedRewards.includes(rewardId)) return null;
   const next: PlayerState = { ...player, claimedRewards: [...player.claimedRewards, rewardId] };
-  if (reward.type === 'points') next.masquePoints += reward.amount ?? 0;
+  if (reward.type === 'points') next.aisPoints += reward.amount ?? 0;
   if (reward.type === 'energy') next.energy += reward.amount ?? 0;
   if (reward.type === 'ticket') next.gachaTickets += reward.amount ?? 1;
   if (reward.type === 'avatar' && reward.itemId && !next.ownedAvatarIds.includes(reward.itemId)) {

@@ -85,7 +85,7 @@
           >
             <div class="self-center"><RewardIcon type={cell.reward.type} itemId={cell.reward.itemId} size={tier % 5 === 0 ? 58 : 46} /></div>
             <strong class="line-clamp-2 self-center break-words text-[11px] font-black leading-4 text-[#374863]">{cell.reward.title}</strong>
-            <small class="text-[8px] font-bold text-[#8d9bab]">{!done && ownsPassReward(player, cell.reward) ? `ของซ้ำ +${player.demo.config.duplicatePoints} MP` : tier % 5 === 0 ? '★ รางวัลเด่น' : ''}</small>
+            <small class="text-[8px] font-bold text-[#8d9bab]">{!done && ownsPassReward(player, cell.reward) ? `ของซ้ำ +${player.demo.config.duplicatePoints} AIS Point` : tier % 5 === 0 ? '★ รางวัลเด่น' : ''}</small>
             {#if done}
               <span class="inline-flex h-8 items-center gap-1 self-center rounded-full bg-emerald-50 px-2.5 text-[10px] font-black text-emerald-700"><Check size={13} strokeWidth={3} />รับแล้ว</span>
             {:else if !reached || vipLocked}
