@@ -87,13 +87,13 @@
         <strong class="font-black text-[#3b337a]">{progress.mainLevel}/50 ขั้นหลัก</strong>
         <span class="rounded-full bg-[#eef4fb] px-2 py-0.5 text-[10px] font-extrabold tabular-nums text-[#5a718c]">{pass.xp.toLocaleString()} XP</span>
       </div>
-      <div class="relative h-4 w-full overflow-hidden rounded-full border-2 border-white bg-[#dfe9f5] shadow-inner" role="progressbar" aria-label="XP สู่เลเวลถัดไป" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress.withinLevel}>
-        <span class="block h-full rounded-full bg-gradient-to-r from-[#4facfe] via-[#7b68ee] to-[#f7b733] transition-all duration-300" style:width={`${ Math.max(6, progress.withinLevel) }%`}></span>
+      <div class="relative h-4 w-full overflow-hidden rounded-full border-2 border-white bg-[#dfe9f5] shadow-inner" role="progressbar" aria-label="XP สู่เลเวลถัดไป" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress.percent}>
+        <span class="block h-full rounded-full bg-gradient-to-r from-[#4facfe] via-[#7b68ee] to-[#f7b733] transition-all duration-300" style:width={`${progress.percent}%`}></span>
         <span class="pointer-events-none absolute inset-x-1 top-0.5 h-1 rounded-full bg-white/45"></span>
       </div>
       <div class="flex items-center justify-between text-[10px] font-bold text-[#6e829a]">
         <span>{progress.complete ? 'ถึงเลเวลสูงสุดแล้ว' : `อีก ${100 - progress.withinLevel} XP → LV.${progress.level + 1}`}</span>
-        <span class="text-[#8a5a10]">{progress.withinLevel}%</span>
+        <span class="text-[#8a5a10]">{progress.percent}%</span>
       </div>
     </div>
   </section>

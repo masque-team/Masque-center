@@ -2,11 +2,15 @@
 
 **Use when reviewing Copilot's functional frontend before handing off to Gemini/Argon.** Checkbox pass criteria are verifiable locally; nothing in this document implies production APIs are connected.
 
+**Round 2 final review (2026-11-04):** frontend functional PASS over `3a12476`; 85 tests, check/build passed. Full evidence and remaining NOT VERIFIED items: [FINAL_REVIEW.md](./FINAL_REVIEW.md). Official AIS asset provenance is **Brand Verification Pending**.
+
 ## A. Full demo acceptance (must pass)
 
 ### Environment & regression
 - [x] Existing Svelte 5 / Vite / TS / Tailwind 4 app starts and navigates at original base path.
-- [ ] All 7 existing games remain available with unchanged URLs; iframe load/failure/retry/back and Simulate Finish behavior work. URLs/back flow were exercised; remote host gameplay and error/retry integration remain Not Verified.
+- [x] All 7 configured iframe URLs, detail/back/Simulate Finish and session refresh paths work. A stalled-host fallback/retry was simulated with no additional Energy charge.
+- [ ] Actual gameplay/result verification against all live remote hosts and myAIS WebView remains Not Verified.
+- [x] Empty hash defaults to `#hub`; Home remains reachable via bottom navigation and customer deep links are preserved.
 - [x] Mock entry `?name=...` and existing reset pathways work; fresh/reset state does not create AIS Point and URL parameters cannot seed it.
 - [x] Existing user saves migrate without resetting inventory/claims; added migration test covers old VIP values and legacy Pass ticket rewards.
 - [x] Vease World, Private Room, Battle Arena, old MP exchange/extra offer CTAs are hidden from standard MiniGame2 navigation; direct legacy routes redirect to Home/Shop while legacy code remains.
@@ -16,6 +20,7 @@
 - [x] Home, Game Hub and compact game cards show properly at 320, 375 and 430px portrait with no horizontal overflow.
 - [x] Category filters work; no Hot category tab; New/Hot/Hit card tags can appear without clutter.
 - [x] Home ordering and metrics use configurable/mock values; mock online/plays are visibly for demo, not live counts.
+- [x] Four Home CTAs reach valid destinations; external-without-URL cannot launch/charge. New Year is an explicit season preview, not an unconfigured reward promise. Countdowns use real configured boundaries.
 - [x] Game detail/pre-game displays game-specific ranking and entry conditions; owned/purchasable cosmetics update local loadout and History without claiming iframe integration.
 - [x] Daily Check-in can be claimed once for demo date, displays streak and grants Energy; reload preserves the claimed state.
 - [x] Check-in, Achievement, High Score, Pass, Campaign, Ranked, Gacha duplicate and other activity rewards never increase AIS Point; they grant Energy, cosmetics or boxes instead.
@@ -32,6 +37,9 @@
 - [x] VIP-only missions visible to everyone, locked to non-VIP, functional for VIP.
 - [x] Avatar and cosmetic selection updates Profile and pre-game preview state.
 - [x] Shop, Inventory and reward grants reject repeated owned-item purchases; mock purchases appear in History.
+- [x] All five Round 2 frames validate catalog and ownership, support rewards/purchases/equip/persistence, and render saved player frames in Header/Profile/Rankings. Missing old frame state migrates safely; locked previews cannot equip. All frame centers are transparent.
+- [x] Development-only myAIS snapshot fixture supports purchase QA; invalid/production calls fail. Customer URL seeds and top-ups remain unavailable.
+- [ ] AIS/myAIS icon provenance: Brand Verification Pending; current file is locally generated, not verified official. Obtain approved AIS files before release.
 
 ### M3 / season & mission
 - [x] Battle Pass uses **calendar-month** season IDs/start/end and resets XP/progress for a new season.
@@ -42,6 +50,7 @@
 - [x] Pass track rewards require manual claim during an active season; duplicate claims are rejected.
 - [x] On season close, **eligible** unclaimed rewards auto-grant once; next-open popup and History record appear, ineligible Premium rewards remain locked.
 - [x] At configured MAX season level, XP cannot create unauthorized uncapped rewards or bonus levels.
+- [x] MAX display is 100% in Pass header/track (not 0/100); all nine period/entitlement filter combinations match actual state.
 - [x] Gacha Boxes purchase/draw from a mock pool, show an outcome, record a grant and update Inventory without a real charge.
 - [x] Pass tables contain no usable-path Ranked/Arena Tickets or legacy Gacha Coupons; old reward rows migrate deterministically to Pet Boxes without resetting claims/inventory.
 
@@ -49,6 +58,7 @@
 - [x] Fifth bottom tab is labeled **Achievement** and opens the Achievement Center; no navbar/Home item exposes Battle Pass EXP missions as a separate main destination.
 - [x] Historical `#missions` route remains a Battle Pass mission subpage reachable from Battle Pass and has a return path; Free/VIP/Premium and Daily/Weekly/Season remain available there.
 - [x] Home and Achievement Check-in show the same claimed state, streak and Energy reward; claiming from either surface cannot award twice that day.
+- [x] Newly completed 7-day streak awards one Pet Gacha Box and Badge, persists once, opens from Shop and writes History without AIS creation. Historical earned claims are not replayed; retrospective compensation is a separate product decision.
 - [x] Lifetime Achievements cover game count, unique genres, normal High Score, check-in streak and Campaign activity; progress survives monthly Pass rollover.
 - [x] Matching event updates both Achievement and Pass mission progress independently; Achievements never add Pass XP, and Pass XP remains once-only.
 - [x] Achievement unlock adds one Badge/reward to the canonical `demo.achievements` collection, History and notification queue; repeating the event does not grant again.
@@ -64,6 +74,7 @@
 - [x] Rank screen has gift button showing per-rank prize tiers (mock quantities configurable).
 - [x] Campaign expiry automatically credits each eligible prize **once**, even after refresh/reopen; early force-settlement is Developer Studio only.
 - [x] Next open shows winning place / campaign / items, with popup acknowledgment not performing the transfer twice.
+- [x] No-award/external Campaign settlement does not claim that items were credited; genuine prize notifications still occur once.
 - [x] History has **Games / Purchases / Rewards** filters and shows activity count, timestamps and relevant context.
 - [x] Games History shows per-game play counts and sessions even when event records are present.
 - [x] Notification badge/letter leads to History and unread reward popup, not a dead mailbox route.
@@ -73,7 +84,8 @@
 - [x] `npm run check` succeeds.
 - [x] `npm test` succeeds, with added behavior tests.
 - [x] `npm run build` succeeds.
-- [ ] No visible CTA is inert; iframe fallback/retry and no-asset states are usable.
+- [x] Core modified Round 2 CTAs exercised; 87 route/width views passed at 320/375/430px. Modal confirm/close buttons and navbar labels fit. Profile WebGL canvas and forced fallback passed; renderer/assets/animations retained.
+- [ ] Physical-device performance, all real hosted-game interactions and production error/refund handling remain Not Verified.
 - [x] `doc/minigame2/COPILOT_HANDOFF.md` contains route list, implemented rules, tests, visual placeholders and remaining issues.
 - [x] No backend, real database, real AIS Point payment, real SSO or fake anti-cheat was introduced.
 

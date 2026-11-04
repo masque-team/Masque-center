@@ -43,7 +43,7 @@
       >
         <Icon size={tab.id === 'hub' ? 25 : 20} strokeWidth={tab.id === 'hub' ? 2.8 : 2.5} />
       </span>
-      <span class={['text-[10.5px] leading-[1.05] tracking-[0.01em] whitespace-nowrap', isActive ? 'font-black text-[#1c3d6e]' : 'font-extrabold']}>
+      <span class={['text-[9px] leading-[1.05] tracking-normal whitespace-nowrap', isActive ? 'font-black text-[#1c3d6e]' : 'font-extrabold']}>
         {tab.label}
       </span>
     </a>

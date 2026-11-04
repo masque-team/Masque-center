@@ -11,7 +11,7 @@ await mkdir(resolve(artSource, 'currency'), { recursive: true });
 await mkdir(resolve(publicAssets, 'frames'), { recursive: true });
 await mkdir(resolve(publicAssets, 'badges'), { recursive: true });
 
-// 1. Authentic AIS Point Brand Icon (myAIS Green + Magenta leaf emblem + P coin, 2.5D glossy depth)
+// 1. Generated AIS-inspired placeholder; not an approved official AIS asset.
 const aisPointSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
     <radialGradient id="coinFace" cx="44%" cy="32%" r="65%">

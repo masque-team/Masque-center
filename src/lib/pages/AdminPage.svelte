@@ -7,10 +7,11 @@
   import { AVATARS, PETS, PROFILE_BACKGROUNDS, PROFILE_FRAMES, WINGS } from '../data/config';
   import { getCampaignStatus } from '../services/campaignService';
   import type { DemoConfig, DemoReward, DemoScenario, PlayerState } from '../types';
-  let { player, onSave, onReset, onClock, onRankingReset, onFinalizeCampaign, onSeedScenario }: {
+  let { player, onSave, onReset, onClock, onRankingReset, onFinalizeCampaign, onSeedScenario, onMyAisSnapshot }: {
     player: PlayerState; onSave: (config: DemoConfig) => void; onReset: () => void;
     onClock: (hours: number) => void; onRankingReset: () => void; onFinalizeCampaign: (campaignId: string) => void;
     onSeedScenario: (scenario: DemoScenario) => void;
+    onMyAisSnapshot: (balance: number) => void;
   } = $props();
   let draft = $state<DemoConfig>(createDemo().config);
   let section = $state('economy');
@@ -19,6 +20,7 @@
   let newCatalogPrice = $state(100);
   let catalogMessage = $state('');
   let scenario = $state<DemoScenario>('premium-retro');
+  let aisSnapshot = $state(1000);
   onMount(() => { draft = structuredClone($state.snapshot(player.demo.config)); });
   const numericFields = [
     ['checkinEnergyReward', 'Daily Check-in reward (Energy)', 1], ['missionTarget', 'ภารกิจเล่นจบ (ครั้ง)', 1],
@@ -60,6 +62,8 @@
     <GameButton variant="ghost" size="sm" onclick={onReset}><RotateCcw size={15} />Reset Demo</GameButton>
   </div>
   <section class="space-y-2 border-y border-sky-200 bg-sky-50/60 py-3" aria-label="Acceptance scenarios">
+    <label class="grid gap-1 text-xs font-bold">DEV ONLY · myAIS balance snapshot<input class="min-h-11 rounded-md border border-white bg-white/80 px-3 text-sm" type="number" min="0" max="1000000" step="1" bind:value={aisSnapshot} /></label>
+    <GameButton block variant="ghost" disabled={!Number.isSafeInteger(aisSnapshot) || aisSnapshot < 0 || aisSnapshot > 1000000} onclick={() => onMyAisSnapshot(aisSnapshot)}>Import myAIS fixture</GameButton>
     <label class="grid gap-1 text-xs font-bold">Acceptance scenario
       <select class="min-h-11 rounded-md border border-white bg-white/80 px-3 text-sm" bind:value={scenario}>
         <option value="energy-overflow">Energy overflow · 34/15</option>
@@ -70,7 +74,7 @@
         <option value="campaign-ranking">Bird + Memory campaign scores</option>
         <option value="campaign-settlement">Campaign results ready to settle</option>
         <option value="pass-rollover">New calendar season · auto-delivery popup</option>
-        <option value="gacha-ready">Gacha test · 10 tickets</option>
+        <option value="gacha-ready">Gacha test · 1 Pet Box + 1 Avatar Box</option>
       </select>
     </label>
     <GameButton block variant="mint" onclick={() => onSeedScenario(scenario)}><Sparkles size={16} />Load scenario</GameButton>

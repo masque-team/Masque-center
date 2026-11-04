@@ -1,5 +1,5 @@
 import type { PlayerState } from '../types';
-import { POINT_PACKS, WINGS } from '../data/config';
+import { POINT_PACKS, PROFILE_FRAMES, WINGS } from '../data/config';
 
 export function pointPackReward(player: PlayerState, packId: string): number {
   const pack = POINT_PACKS.find((item) => item.id === packId);
@@ -21,6 +21,7 @@ export function purchaseShopItem(player: PlayerState, id: string): PlayerState |
   const item = player.demo.config.shop.find((entry) => entry.id === id);
   if (!item || !Number.isSafeInteger(item.cost) || item.cost < 0 || player.aisPoints < item.cost) return null;
   if (item.kind === 'wing' && !WINGS.some((wing) => wing.id === item.itemId)) return null;
+  if (item.kind === 'frame' && !PROFILE_FRAMES.some((frame) => frame.id === item.itemId)) return null;
   const owned = item.kind === 'avatar' ? player.ownedAvatarIds : item.kind === 'pet' ? player.ownedPetIds : item.kind === 'wing' ? player.demo.wings : player.demo.frames;
   if (owned.includes(item.itemId)) return null;
   return {

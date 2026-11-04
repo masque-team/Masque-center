@@ -15,6 +15,10 @@ import { beginCampaignGame, buyCampaignTicketPack, campaignRankingGame, finalize
 import { claimDailyCheckin, currentCheckinStreak, evaluateAchievementEvent, getAchievementProgress } from './achievementService';
 import { processAchievementEvent } from './demoService';
 import type { PlayerState } from '../types';
+import { PROFILE_FRAMES } from '../data/config';
+import { entryHash, dashboardCampaigns } from './homeService';
+import { filterPassMissions } from './demoService';
+import { applyMyAisFixture } from './playerService';
 
 beforeEach(() => {
   const storage = new Map<string, string>();
@@ -36,6 +40,77 @@ function finishedSample(): PlayerState {
 }
 
 describe('shared demo economy', () => {
+  it('displays truthful Pass percentages at zero, intermediate XP and MAX', () => {
+    expect(passProgress(0).percent).toBe(0);
+    expect(passProgress(249).percent).toBe(49);
+    expect(passProgress(5000)).toMatchObject({ percent: 100, complete: true, withinLevel: 0 });
+  });
+  it('defaults empty entry hashes to Game while preserving explicit deep links', () => {
+    expect(entryHash('')).toBe('#hub');
+    expect(entryHash('#')).toBe('#hub');
+    for (const route of ['home', 'hub', 'shop', 'profile', 'achievements', 'campaign/lantern-festival', 'detail/bird', 'game/bird?session=abc']) expect(entryHash(`#${route}`)).toBe(`#${route}`);
+  });
+  it('uses configured Campaign CTA/status and an honest season promotion', () => {
+    const player = sample();
+    const now = Date.now();
+    const slides = dashboardCampaigns(player, now);
+    expect(slides).toHaveLength(4);
+    expect(slides.slice(0, 3).map((slide) => slide.route)).toEqual(player.demo.config.campaigns.map((campaign) => `campaign/${campaign.id}`));
+    expect(slides[2].rewardTitle).toBe('ยังไม่มีรางวัลที่ประกาศ');
+    expect(slides[3].route).toBe('missions');
+    expect(slides[3].rewardTitle).not.toContain('Celestial');
+    expect(dashboardCampaigns(player, now + 86_400_000)[3].countdownLabel).not.toBe(slides[3].countdownLabel);
+    player.demo.config.campaigns[0].endAt = now;
+    expect(dashboardCampaigns(player, now)[0]).toMatchObject({ statusLabel: 'ENDED', ctaLabel: 'ดูรายละเอียด' });
+  });
+  it.each(['daily', 'weekly', 'season'] as const)('filters %s missions by entitlement without unlocking Premium for VIP', (period) => {
+    const player = sample();
+    for (const entitlement of ['free', 'vip', 'premium'] as const) {
+      const missions = filterPassMissions(player, period, entitlement);
+      expect(missions.length).toBeGreaterThan(0);
+      expect(missions.every((mission) => mission.period === period && mission.entitlement === entitlement && mission.locked === (entitlement !== 'free'))).toBe(true);
+    }
+    player.vipExpiresAt = Date.now() + 86_400_000;
+    expect(filterPassMissions(player, period, 'vip').every((mission) => !mission.locked)).toBe(true);
+    expect(filterPassMissions(player, period, 'premium').every((mission) => mission.locked)).toBe(true);
+  });
+  it('imports a myAIS balance snapshot only through the development fixture', () => {
+    const player = sample();
+    expect(applyMyAisFixture(player, 500, false)).toBeNull();
+    for (const invalid of [-1, 0.5, NaN, 1_000_001]) expect(applyMyAisFixture(player, invalid, true)).toBeNull();
+    expect(applyMyAisFixture(player, 500, true)?.aisPoints).toBe(500);
+    expect(player.aisPoints).toBe(1000);
+  });
+  it.each(PROFILE_FRAMES)('grants, purchases and persists the owned $id frame only', (frame) => {
+    const player = sample();
+    expect(customizeProfile(player, player.demo.profile, frame.id)).toBeNull();
+    const bought = purchaseShopItem(player, `frame-${frame.id}`)!;
+    expect(bought.aisPoints).toBe(player.aisPoints - frame.cost);
+    expect(purchaseShopItem(bought, `frame-${frame.id}`)).toBeNull();
+    const rewarded = grantReward(player, { title: frame.name, type: 'frame', itemId: frame.id });
+    expect(rewarded.demo.frames).toContain(frame.id);
+    expect(rewarded.aisPoints).toBe(player.aisPoints);
+    const equipped = customizeProfile(rewarded, rewarded.demo.profile, frame.id)!;
+    savePlayer(equipped);
+    expect(loadPlayer('Demo').demo.frameId).toBe(frame.id);
+    expect(loadPlayer('Demo').demo.frames).toContain(frame.id);
+  });
+  it('migrates missing frame inventory and rejects unknown owned frame IDs', () => {
+    const player = sample();
+    player.demo.frames = ['not-a-frame'];
+    expect(customizeProfile(player, player.demo.profile, 'not-a-frame')).toBeNull();
+    player.demo.frameId = 'celestial';
+    savePlayer(player);
+    expect(loadPlayer('Demo').demo.frameId).toBeNull();
+    const legacy = JSON.parse(localStorage.getItem('masquegame_center_v2')!);
+    delete legacy.demo.frames;
+    delete legacy.demo.frameId;
+    localStorage.setItem('masquegame_center_v2', JSON.stringify(legacy));
+    const restored = loadPlayer('Demo');
+    expect(restored.demo.frames).toEqual([]);
+    expect(restored.demo.frameId).toBeNull();
+    expect(restored.demo.config.shop.filter((item) => item.kind === 'frame')).toHaveLength(5);
+  });
   it('offers time-only VIP packages without changing Battle Pass XP or rewards', () => {
     const player = { ...sample(), aisPoints: 5000, masquePoints: 5000 };
     const normal = purchaseVip(player, 'vip-1d')!;
@@ -211,6 +286,17 @@ describe('shared demo economy', () => {
     const settled = finalizeCampaign(sample(), 'lantern-festival', true)!;
     expect(settled.demo.campaignCompletedCount).toBe(0);
     expect(settled.demo.achievements.some((badge) => badge.id === 'campaign-completed-1')).toBe(false);
+    expect(settled.demo.notifications?.some((notice) => notice.id === 'campaign:lantern-festival')).toBe(false);
+    const external = finalizeCampaign(sample(), 'loy-krathong-external', true)!;
+    expect(external.demo.notifications).toEqual([]);
+  });
+  it('breaks Campaign score ties by earlier achievement without leaking across games', () => {
+    const player = sample();
+    player.demo.campaignScores = { 'lantern-festival': { bird: { score: 14200, achievedAt: Date.UTC(2026, 10, 1, 7) } } };
+    expect(getCampaignRanking('lantern-festival', 'bird', player)[0].isCurrentPlayer).toBe(true);
+    player.demo.campaignScores['lantern-festival'].bird!.achievedAt = Date.UTC(2026, 10, 1, 9);
+    expect(getCampaignRanking('lantern-festival', 'bird', player)[0].displayName).toBe('Alice');
+    expect(getCampaignRanking('lantern-festival', 'memory', player).some((entry) => entry.isCurrentPlayer)).toBe(false);
   });
   it('orders equal all-time high scores by earliest achievement and preserves the personal best', () => {
     const player = sample();
@@ -360,11 +446,19 @@ describe('shared demo economy', () => {
     }
     expect(player.demo.achievements.filter((badge) => badge.id === 'checkin-streak-7')).toHaveLength(1);
     expect(currentPass(player).xp).toBe(210);
-    expect(player.energy).toBe(sample().energy + 7 * player.demo.config.checkinEnergyReward + 5);
+    expect(player.energy).toBe(sample().energy + 7 * player.demo.config.checkinEnergyReward);
+    expect(player.demo.gachaBoxes?.pet).toBe(1);
     expect(player.aisPoints).toBe(sample().aisPoints);
     const repeated = processAchievementEvent(player, { type: 'daily_checkin' }, start + 6 * 86_400_000);
     expect(repeated.energy).toBe(player.energy);
     expect(repeated.demo.achievements.filter((badge) => badge.id === 'checkin-streak-7')).toHaveLength(1);
+    savePlayer(player);
+    const restored = processAchievementEvent(loadPlayer('Demo'), { type: 'daily_checkin' }, start + 6 * 86_400_000);
+    expect(restored.demo.gachaBoxes?.pet).toBe(1);
+    const opened = drawGachaBox(restored, 'pet', () => 0)!;
+    expect(opened.player.demo.gachaBoxes?.pet).toBe(0);
+    expect(opened.player.demo.history?.[0].title).toBe('Pet Box');
+    expect(opened.player.aisPoints).toBe(player.aisPoints);
   });
   it('seeds the acceptance scenarios without leaking campaign scores into all-time', () => {
     const player = sample();

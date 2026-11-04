@@ -90,6 +90,9 @@ export function progressMissions(player: PlayerState, trigger: 'game' | 'checkin
   }
   return { ...next, demo: { ...next.demo, recentMissionEvents: events } };
 }
+export function filterPassMissions(player: PlayerState, period: 'daily' | 'weekly' | 'season', entitlement: 'free' | 'vip' | 'premium', at = demoNow(player)) {
+  return getMissions(player, at).filter((mission) => mission.period === period && mission.entitlement === entitlement);
+}
 export function demoNow(player: PlayerState): number { return Date.now() + player.demo.clockOffset; }
 export function validateConfig(config: DemoConfig): string | null {
   if (!config.vipPlans.length) return 'ต้องมีแพ็ก VIP อย่างน้อย 1 แพ็ก';

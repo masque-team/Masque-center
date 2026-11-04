@@ -16,7 +16,7 @@ export function passProgress(xp: number) {
   const safeXp = Number.isSafeInteger(xp) && xp > 0 ? xp : 0;
   const cappedXp = Math.min(PASS_RULES.levels * PASS_RULES.xpPerLevel, safeXp);
   const level = Math.floor(cappedXp / PASS_RULES.xpPerLevel);
-  return { level, mainLevel: level, nextXp: (level + 1) * PASS_RULES.xpPerLevel, withinLevel: level === PASS_RULES.levels ? 0 : cappedXp % PASS_RULES.xpPerLevel, complete: level >= PASS_RULES.levels };
+  return { level, mainLevel: level, nextXp: (level + 1) * PASS_RULES.xpPerLevel, withinLevel: level === PASS_RULES.levels ? 0 : cappedXp % PASS_RULES.xpPerLevel, percent: level >= PASS_RULES.levels ? 100 : cappedXp % PASS_RULES.xpPerLevel, complete: level >= PASS_RULES.levels };
 }
 
 export function battlePassLevel(player: PlayerState): number {

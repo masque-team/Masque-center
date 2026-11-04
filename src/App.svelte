@@ -37,7 +37,8 @@
   import { equipPet } from './lib/services/petService';
   import { claimDailyCheckin, getAchievementProgress } from './lib/services/achievementService';
   import { buyGachaBox, buyGachaCoupons, drawGachaBatch, drawGachaBox } from './lib/services/gachaService';
-  import { customizeProfile, loadPlayer, savePlayer } from './lib/services/playerService';
+  import { applyMyAisFixture, customizeProfile, loadPlayer, savePlayer } from './lib/services/playerService';
+  import { dashboardCampaigns as getDashboardCampaigns, entryHash, formatRemainingTime } from './lib/services/homeService';
   import { buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
   import { beginGame, buyPremium, claimAvailablePass, claimPass, currentPass, currentSeason, demoNow, finishGame, ledger, processAchievementEvent, progressMissions, recordPlayTime, seedDemoScenario, settleExpiredPasses, validateConfig, claimRankingReward } from './lib/services/demoService';
   import { passProgress } from './lib/services/battlePassService';
@@ -110,81 +111,13 @@
   let nextAchievement = $derived(achievements.find((item) => !item.unlocked) ?? achievements[0]);
   let latestBadges = $derived((player.demo.achievements ?? []).slice(-3).reverse());
 
-  type DashboardSlide = {
-    id: string;
-    title: string;
-    themeTag: string;
-    subtitle: string;
-    artwork: string;
-    statusLabel: string;
-    statusTone: 'live' | 'tournament' | 'external' | 'limited';
-    countdownLabel: string;
-    entryLabel: string;
-    rewardTitle: string;
-    rewardPreview: DemoReward;
-    ctaLabel: string;
-    onAction: () => void;
-  };
-
-  function formatRemainingTime(targetMs: number, currentMs: number): string {
-    const diff = Math.max(0, targetMs - currentMs);
-    if (diff <= 0) return 'สิ้นสุดแล้ว';
-    const totalHours = Math.floor(diff / 3_600_000);
-    const days = Math.floor(totalHours / 24);
-    const hours = totalHours % 24;
-    const mins = Math.floor((diff % 3_600_000) / 60_000);
-    if (days > 0) return `เหลือ ${days} วัน ${hours} ชม.`;
-    if (hours > 0) return `เหลือ ${hours} ชม. ${mins} นาที`;
-    return `เหลือ ${Math.max(1, mins)} นาที`;
-  }
-
   let vipRemainingLabel = $derived(
     vipActive && player.vipExpiresAt
       ? formatRemainingTime(player.vipExpiresAt, now)
       : 'ยังไม่ได้เปิดใช้งาน'
   );
 
-  let dashboardCampaigns = $derived.by<DashboardSlide[]>(() => {
-    const configured = player.demo.config.campaigns.map((camp): DashboardSlide => {
-      const state = getCampaignStatus(camp, now);
-      const topReward = camp.rewards[0]?.rewards[0] ?? { title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' };
-      const isExternal = camp.launchMode === 'external';
-      const isTicket = camp.entry === 'ticket';
-      return {
-        id: camp.id,
-        title: camp.title,
-        themeTag: camp.id === 'starlight-sprint' ? 'GAME CHAMPIONSHIP' : isExternal ? 'LOY KRATHONG FESTIVAL' : 'SEASONAL FESTIVAL',
-        subtitle: camp.description,
-        artwork: CAMPAIGN_ARTWORK[camp.id] ?? 'assets/campaigns/lantern-festival.webp',
-        statusLabel: state === 'live' ? (isTicket ? 'LIVE TOURNAMENT' : isExternal ? 'PARTNER EVENT' : 'LIVE EVENT') : state === 'upcoming' ? 'UPCOMING' : 'ENDED',
-        statusTone: isTicket ? 'tournament' : isExternal ? 'external' : 'live',
-        countdownLabel: state === 'live' ? formatRemainingTime(camp.endAt, now) : state === 'upcoming' ? `เริ่มใน ${formatRemainingTime(camp.startAt, now)}` : 'สรุปผลแล้ว',
-        entryLabel: isTicket ? `ใช้ Ticket ${camp.ticketCost} ใบ` : isExternal ? 'กิจกรรมพาร์ตเนอร์' : 'เข้าเล่นฟรี (0 Energy)',
-        rewardTitle: camp.rewards[0]?.rewards.map((r) => r.title).join(' + ') ?? topReward.title,
-        rewardPreview: topReward,
-        ctaLabel: isExternal ? 'ดูกิจกรรม' : isTicket ? 'ลงแข่งชิงแชมป์' : 'เข้าร่วมกิจกรรม',
-        onAction: () => navigate(`campaign/${camp.id}`),
-      };
-    });
-
-    const newYearSlide: DashboardSlide = {
-      id: 'new-year-festival',
-      title: 'New Year Sky Festival',
-      themeTag: 'NEW YEAR LIMITED EVENT',
-      subtitle: 'ฉลองเทศกาลปีใหม่ลอยฟ้า สะสม XP ซีซันและปลดล็อกกรอบโปรไฟล์ระดับ Legendary & Seasonal',
-      artwork: CAMPAIGN_ARTWORK['new-year-festival'],
-      statusLabel: 'LIMITED EVENT',
-      statusTone: 'limited',
-      countdownLabel: formatRemainingTime(now + 11 * 86_400_000, now),
-      entryLabel: 'สะสม XP & เช็กอิน 7 วัน',
-      rewardTitle: 'Celestial Frame + Pet Gacha Box',
-      rewardPreview: { title: 'Celestial Sovereign Frame', type: 'frame', itemId: 'celestial' },
-      ctaLabel: 'ดูภารกิจซีซัน',
-      onAction: () => navigate('missions'),
-    };
-
-    return [...configured, newYearSlide].slice(0, 4);
-  });
+  let dashboardCampaigns = $derived(getDashboardCampaigns(player, now));
 
   function persist(next = player, label = 'รายการเดโม'): void {
     player = ledger(player, next, label);
@@ -199,7 +132,7 @@
     savePlayer(player);
     hasEntered = true;
     if (window.location.hash && window.location.hash !== '#') handleRoute();
-    else navigate('hub');
+    else navigate(entryHash('').slice(1));
     showPendingNotification();
   }
 
@@ -207,7 +140,7 @@
     const notification = player.demo.notifications?.find((item) => !item.viewed);
     if (!notification || modal) return;
     pendingNotificationId = notification.id;
-    modal = { kind: 'notice', tone: 'success', title: notification.title, message: `${notification.detail} · ของรางวัลเข้ากระเป๋าแล้ว ตรวจดูได้ใน History` };
+    modal = { kind: 'notice', tone: 'success', title: notification.title, message: `${notification.detail} · ตรวจดูรายละเอียดใน History` };
   }
 
   function veaseState(subject: PlayerState): SceneState {
@@ -669,7 +602,7 @@
     document.addEventListener('visibilitychange', flushPlayTime);
     window.addEventListener('pagehide', flushPlayTime);
     if (window.location.hash && window.location.hash !== '#') handleRoute();
-    else window.location.hash = '#hub';
+    else window.location.hash = entryHash(window.location.hash);
     showPendingNotification();
     persist(refreshEnergy(player, now));
     return () => {
@@ -803,7 +736,7 @@
                       </button>
                     </div>
 
-                    <button class="btn-gold-3d min-h-10 px-4 text-xs" onclick={activeSlide.onAction}>
+                    <button class="btn-gold-3d min-h-10 px-4 text-xs" onclick={() => navigate(activeSlide.route)}>
                       {activeSlide.ctaLabel} <ArrowUpRight size={14} />
                     </button>
                   </div>
@@ -1011,6 +944,7 @@
           <WalletPage {player} onShop={openExchange} />
         {:else if page === 'admin'}
           <AdminPage {player} onSave={saveConfig} onReset={resetDemo} onRankingReset={resetRanking} onFinalizeCampaign={closeCampaign}
+            onMyAisSnapshot={(balance) => { if (!import.meta.env.DEV) return; const next = applyMyAisFixture(player, balance, import.meta.env.DEV); if (!next) return; player = next; savePlayer(next); showToast('DEV · imported myAIS balance snapshot'); }}
             onClock={(hours) => { const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + hours * 3_600_000 } }; now = demoNow(next); persist(refreshEnergy(next, now), 'เวลาจำลอง · ฟื้น Energy'); showToast('ปรับเวลาจำลองแล้ว'); }}
             onSeedScenario={loadScenario} />
         {:else if page === 'points'}

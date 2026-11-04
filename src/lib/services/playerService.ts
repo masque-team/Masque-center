@@ -145,6 +145,9 @@ export function loadPlayer(queryName: string | null, resetMock = false): PlayerS
   result.demo.config.arenaTicketPrice ??= 30;
   result.demo.wings ??= [];
   result.demo.wingId ??= null;
+  result.demo.frames ??= [];
+  result.demo.frameId ??= null;
+  if (!result.demo.frames.includes(result.demo.frameId ?? '') || !PROFILE_FRAMES.some((frame) => frame.id === result.demo.frameId)) result.demo.frameId = null;
   if (!result.demo.wings.includes(result.demo.wingId ?? '') || !WINGS.some((wing) => wing.id === result.demo.wingId)) result.demo.wingId = null;
   for (const wing of WINGS) {
     if (!result.demo.config.shop.some((item) => item.kind === 'wing' && item.itemId === wing.id)) result.demo.config.shop.push({ id: `wing-${wing.id}`, kind: 'wing', itemId: wing.id, cost: wing.cost });
@@ -180,10 +183,15 @@ export function savePlayer(player: PlayerState): void {
   }
 }
 
+export function applyMyAisFixture(player: PlayerState, balance: number, development: boolean): PlayerState | null {
+  if (!development || !Number.isSafeInteger(balance) || balance < 0 || balance > 1_000_000) return null;
+  return { ...player, aisPoints: balance };
+}
+
 export function customizeProfile(player: PlayerState, style: ProfileStyle, frameId: string | null): PlayerState | null {
   if (!PROFILE_BACKGROUNDS.some((background) => background.id === style.backgroundId) || style.bio.length > 140 || style.badgeIds.length > 3) return null;
   if (!(player.demo.backgrounds ?? PROFILE_BACKGROUNDS.map((background) => background.id)).includes(style.backgroundId)) return null;
   if (new Set(style.badgeIds).size !== style.badgeIds.length || style.badgeIds.some((id) => !player.demo.achievements.some((badge) => badge.id === id))) return null;
-  if (frameId && !player.demo.frames.includes(frameId)) return null;
+  if (frameId && (!player.demo.frames.includes(frameId) || !PROFILE_FRAMES.some((frame) => frame.id === frameId))) return null;
   return { ...player, demo: { ...player.demo, profile: { ...style, bio: style.bio.trim(), badgeIds: [...style.badgeIds] }, frameId } };
 }

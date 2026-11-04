@@ -8,7 +8,7 @@
   import { AVATARS, CAMPAIGN_ARTWORK, PASS_ARTWORK, PETS, PROFILE_FRAMES, WINGS } from '../data/config';
   import { passProgress } from '../services/battlePassService';
   import { campaignById, campaignRankingGame, getCampaignRanking, getCampaignStatus } from '../services/campaignService';
-  import { currentPass, currentSeason, getMissions } from '../services/demoService';
+  import { currentPass, currentSeason, filterPassMissions, getMissions } from '../services/demoService';
   import type { GameId, Page, PlayerState } from '../types';
 
   let { page, player, now, campaignId = '', onNavigate, onPlay, onBuyCampaignTickets, onVip, onPremium, onRefill, onBuyItem, onAvatar, onPet, onWing }: {
@@ -43,7 +43,7 @@
 
   let allMissions = $derived(getMissions(player, now));
   let periodMissions = $derived(allMissions.filter((m) => m.period === period));
-  let missions = $derived(periodMissions.filter((m) => m.entitlement === entitlement));
+  let missions = $derived(filterPassMissions(player, period, entitlement, now));
 
   let ranking = $derived(campaign ? getCampaignRanking(campaign.id, activeRankingGame, player) : []);
   let history = $derived((player.demo.history ?? []).filter((item) => item.kind === historyTab));

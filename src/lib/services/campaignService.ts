@@ -102,7 +102,7 @@ export function finalizeCampaign(player: PlayerState, campaignId: string, force 
       closedCampaigns: [...new Set([...(next.demo.closedCampaigns ?? []), campaignId])],
       settledCampaigns: [...new Set([...(next.demo.settledCampaigns ?? []), campaignId])],
       campaignCompletedCount: (next.demo.campaignCompletedCount ?? 0) + (participated ? 1 : 0),
-      notifications: [notification, ...(next.demo.notifications ?? []).filter((item) => item.id !== notification.id)],
+      notifications: awarded.length ? [notification, ...(next.demo.notifications ?? []).filter((item) => item.id !== notification.id)] : (next.demo.notifications ?? []),
       history: [{ id: `settlement:${campaignId}`, kind: 'reward' as const, title: `รางวัล ${campaign.title}`, detail, at }, ...(next.demo.history ?? [])].slice(0, 250),
     },
   };

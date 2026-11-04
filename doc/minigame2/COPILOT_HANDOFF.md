@@ -1,17 +1,18 @@
 # MiniGame2 Frontend Handoff
 
-**Status:** Functional frontend demo through M1-M3; ready for Gemini/Argon visual exploration.  
+**Status:** Final functional regression completed over Gemini/Argon Round 2 (`3a12476`). Frontend PASS; production integrations and official AIS branding remain pending. See [FINAL_REVIEW.md](./FINAL_REVIEW.md).
 **Implementation commit:** `c484447` (pushed to `main`).
 **Final rules/UI follow-up commit:** `45c9288` (pushed to `main`). AIS Point is purchase-only; game activities do not mint AIS Point. Shop Gacha Boxes, VIP Energy MAX 30 while active, and floating Simulate Finish.
 **Functional audit commit:** `560698c` (committed locally; not pushed per request).
 **Achievement/design regression commit:** `115b800` (committed locally; not pushed per request).
-**AIS Point policy follow-up:** Activity rewards use Energy/items only; fresh/reset accounts, URL parameters, Shop and Developer Studio cannot generate AIS Point. Existing balances and purchase debits are preserved. Local-only; do not push.
+**AIS Point policy follow-up:** Activity rewards use Energy/items only; fresh/reset accounts, URL parameters and customer Shop cannot generate AIS Point. Demo Studio can import an explicit development-only myAIS balance snapshot for purchase QA, not as a game reward. Production route/API guards reject that fixture. Local-only; do not push.
 **Scope:** Svelte 5 + Vite + TypeScript + Tailwind CSS 4. Frontend only; local mock state and the existing `masquegame_center_v2` localStorage save. No backend, database, AIS integration, billing, SSO, multiplayer service, or score verification was added.
 
 ## Screens And Routes
 
-- **Home** `#home`: avatar greeting, daily check-in, featured game, VIP status/promotion, season shortcut, and links to secondary screens. Profile opens from the top-left avatar.
-- **Shop** `#shop`: existing shop layout with Cosmetics, Energy, VIP and mock AIS Point tabs. Pet/Avatar Gacha Boxes are purchased with AIS Points and opened from the same Shop page. The old coupon cabinet and Ranked ticket sale are hidden.
+- **Default entry**: an empty hash opens `#hub`; explicit customer deep links are preserved.
+- **Home** `#home`: Round 2 Campaign Dashboard with four carousel entries, shared Check-in, actual VIP/Pass state and latest Achievements. The fourth New Year artwork is explicitly a season-mission preview, not a configured Campaign or promise of a Celestial reward; its countdown uses the actual Pass boundary. External placeholders advertise no unconfigured reward.
+- **Shop** `#shop`: Round 2 Cosmetics/Frames, Energy and VIP tabs. Five collectible frames and Pet/Avatar Gacha Boxes debit AIS Points. Boxes open on the same page. Customer top-ups, old coupon cabinet and Ranked ticket sales are hidden.
 - **Game Hub** `#hub`: all seven configured games, genre filters, editorial markers, mock online/play counts, and personal bests.
 - **Game Detail / Entry** `#detail/:gameId`: game summary, entry cost, high score/ranking and a pre-game Avatar/Pet/Wing loadout preview. Purchases/equips update local state and History; no cosmetic effect is sent to the hosted iframe.
 - **Game Player / Result** `#game/:gameId?session=...`: unchanged configured iframe URL, loading/fallback/reload/back, and a compact floating Simulate Finish control that does not reserve a full-width footer. Campaign rounds return to their source campaign.
@@ -20,14 +21,14 @@
 - **VIP** `#vip`: configurable demo durations/prices, immediate activation and duration extension. VIP covers normal game entry only.
 - **Battle Pass** `#rewards`: calendar-month season, shared Free/Premium XP, manually claimable tracks, separate Premium purchase, retroactive eligibility and MAX at level 50.
 - **Achievement Center** `#achievements`: fifth bottom tab; shared Home Check-in status/streak, permanent event-driven milestones, locked/unlocked Badge Gallery, detail/reward preview and Profile shortcut. Long-term progress is not tied to Pass seasons.
-- **Battle Pass Missions** `#missions`: nested subpage linked only from `#rewards`; Free/VIP/Premium and Daily/Weekly/Season Pass XP missions remain separate from Achievements. XP is automatic; post-game overlay shows matching Pass progress and +XP.
+- **Battle Pass Missions** `#missions`: nested Pass subpage linked from Pass and the Home season preview; Round 2 Daily/Weekly/Season filters and Free/VIP/Premium tier cards use actual mission/entitlement state. XP is automatic and independent from Achievements.
 - **Inventory** `#inventory`: owned avatars, pets and wings with equip actions; Profile remains the editor for frames, badges and backgrounds.
 - **Gacha Boxes**: Pet/Avatar boxes are purchased and opened in Shop. Legacy `#gacha` redirects to Shop; old coupon cabinet source remains unmounted.
-- **Profile** `#profile`: editable avatar/profile presentation, backgrounds, frame and pinned earned badges; linked from the header avatar.
+- **Profile** `#profile`: retained Three.js room/fallback, backgrounds, pinned badges and five collectible frames (`meadow`, `ocean`, `sunrise`, `celestial`, `krathong`). Locked previews cannot equip; catalog and ownership are validated when purchasing/saving. Header and normal/Campaign Rankings use the saved player frame.
 - **History** `#history`: Games, Purchases and Rewards; Games includes per-game play counts and sessions. Header envelope links here and shows a red dot for unread notifications.
-- **Demo Studio** `#admin`: developer-only entry button in development builds; acceptance scenario selector, clock controls, local config and reset.
+- **Demo Studio** `#admin`: development-only scenarios, clock/config/reset and an explicit myAIS snapshot input. Snapshot replaces, not increments, the fixture balance; rejects invalid values and production use. Production `#admin` redirects to `#hub`; URL balances remain ignored.
 
-Bottom navigation order is **HOME / SHOP / GAME / Battle Pass / Achievement**. Home Check-in is a shortcut to the same `checkinDates` claim ledger used by Achievement. Campaign, Ranking, Inventory, Gacha and History remain discoverable from Home or their owning screens. `#missions` is only a Battle Pass subpage. Legacy `#world`, `#room`, `#battle`, `#wallet`, `#points` and `#avatar` source routes remain hidden/redirected. The Vease iframe is only mounted on its legacy World/Avatar routes.
+Bottom navigation order is **HOME / SHOP / GAME / Battle Pass / Achievement**. Home Check-in uses the same `checkinDates` ledger as Achievement. Campaign, Ranking, Inventory, Gacha and History remain discoverable from their owning screens. `#missions` is a Battle Pass subpage. Legacy `#world`, `#room`, `#battle`, `#wallet`, `#points` and `#avatar` remain hidden/redirected. The 320px navbar label overflow was corrected without changing layout.
 
 ## Source Map
 
@@ -43,6 +44,7 @@ Bottom navigation order is **HOME / SHOP / GAME / Battle Pass / Achievement**. H
 - `src/lib/pages/AdminPage.svelte`: local Demo Studio and scenario selector.
 - `src/lib/data/games.ts`, `src/lib/data/campaigns.ts`, `src/lib/data/config.ts`: game URLs, campaign fixtures, demo prices/rewards.
 - `src/lib/services/demoService.ts`: session/energy economy, automatic Mission XP, Pass claims/settlement, reward migration, History and demo scenarios.
+- `src/lib/services/homeService.ts`: testable default-entry hash, actual Campaign CTA/status and season-preview countdown/reward presentation.
 - `src/lib/services/energyService.ts`: Energy cap, regeneration, admission and overflow.
 - `src/lib/services/passService.ts`, `src/lib/services/battlePassService.ts`: VIP time offers and calendar season rules.
 - `src/lib/services/campaignService.ts`, `src/lib/services/rankingService.ts`: Campaign timing/ticket purchase/automatic settlement, isolated campaign ranking and all-time high-score ordering.
@@ -63,11 +65,13 @@ Bottom navigation order is **HOME / SHOP / GAME / Battle Pass / Achievement**. H
 - External campaigns without a real configured URL are non-launchable placeholders and consume no Energy or ticket. Never use a fabricated URL.
 - Legacy Pass Gacha/Ranked ticket rewards deterministically migrate to Pet Gacha Boxes without resetting claims or player inventory. No bonus levels exist after MAX.
 - Daily Check-in from Home and Achievement uses the same once-per-day state and Energy reward. Long-term achievement progress is derived from persistent play counts, scores, check-in dates and Campaign counters, not the monthly Pass season.
+- A newly unlocked 7-day streak awards one Pet Gacha Box plus the canonical Badge, not Energy +5. Box ownership, opening, History and reload idempotence are tested. Already-earned historical Badge claims are preserved, not replayed; any retrospective compensation policy requires approval.
+- Frame sources describe actual configured channels, not invented Ranking/Achievement rewards. No-award Campaigns keep settlement History but do not queue misleading reward-credit popups. Pass progress shows MAX/100% at the cap.
 - Cosmetic purchases and equips update Shop, Inventory and Profile. Earned Achievement badges are stored once in `demo.achievements` and can be pinned from Profile.
 
 ## Acceptance Fixtures
 
-Use Demo Studio (`#admin`) to seed: Energy overflow; VIP with two days remaining; level-10 Free-only Pass; VIP without Premium; Alice-earlier all-time tie; separate Bird/Memory campaign scores; an expired Campaign ready for automatic settlement; next-calendar-season rollover with auto-delivery notification; and Pet/Avatar Gacha Boxes. The studio also edits Campaign dates/ticket packs and can force-settle for tests. Reset Demo recreates `?name=Mint` with no generated AIS balance. Normal play and Check-in exercise lifetime Achievements. The requested `DESIGN_HANDOFF.md` was not present in the workspace; current Gemini design work was audited directly from the dirty source/assets.
+Use Demo Studio (`#admin`) for Energy overflow, VIP renewal, level-10 Free-only Pass, VIP without Premium, ranking ties, separate Campaign scores, expired Campaigns, calendar rollover and Pet/Avatar Boxes. Import a development myAIS snapshot to exercise purchases. Reset recreates `?name=Mint` with zero generated AIS. Read the Round 2 [DESIGN_HANDOFF.md](./DESIGN_HANDOFF.md); it was present and inspected for this review.
 
 ## Visual Handoff
 
@@ -83,13 +87,17 @@ Design may change Tailwind/CSS, typography, art, layout and animation in `App.sv
 
 ## Demo Defaults And Open Decisions
 
-Campaign Ticket packs and Gacha Box prices are local demo values; there are no billing calls or AIS Point top-up/reward actions. MP remains as an unused compatibility field in old local saves. Production AIS Point transactions, campaign ticket scope/refunds, external campaign URLs, real identity/WebView handoff, external result validation and anti-cheat remain unimplemented. Campaign dates, reward tiers/odds, VIP package demo prices and mission targets/XP are configurable examples, not production approvals. External-host gameplay and live myAIS WebView are Not Verified.
+Campaign Ticket packs and Gacha Box prices are local demo values; there are no billing calls or customer AIS Point top-up/reward actions. The developer snapshot is QA-only. MP remains an unused compatibility field. Production transactions/refunds, identity/WebView handoff, external URLs, verified scores and anti-cheat remain unimplemented. Reward tables/prices are demo examples, not production approvals.
+
+**Brand Verification Pending:** `ais-point.png` is generated by `scripts/generate-round2-assets.mjs` from a hand-authored SVG. Brand colors and a myAIS label do not establish official provenance. Preserve the current visual placeholder for review; obtain an approved asset and usage guidance from the AIS brand team before release. Do not describe this file as an official AIS/myAIS asset.
 
 ## Verification
 
 - `npm run check`: passed, 0 errors and 0 warnings.
-- `npm test`: passed, 71 tests.
-- `npm run build`: passed; Vite transformed 4,253 modules. Three.js is split to a 733 kB chunk; Rollup emitted its standard chunk-size advisory.
+- `npm test`: passed, **85 tests** (baseline 71).
+- `npm run build`: passed; Vite transformed 4,256 modules. Three.js remains a lazy 733 kB chunk with the standard size advisory.
 - AIS policy smoke: fresh/reset state stayed at 0 AIS Point despite `?aispoint=1000`; Check-in changed Energy 15 to 18 and kept AIS at 0; Shop has no mock AIS top-up tab/actions. Unit tests cover no-mint reward paths, legacy reward conversion, saved-balance preservation and AIS purchase debits.
 - Browser smoke: five-tab navigation is HOME / SHOP / GAME / Battle Pass / Achievement; Home/Achievement Check-in shares one claim; `#missions` opens the nested Pass Mission page; 10 completed games unlock the permanent 10-game Achievement once; earned First Finish badge previews and pins in Profile; Pass XP and Achievement ledgers advance independently; Campaign ticket purchase/debit/consume, expiry settlement/popup and external placeholder; Gacha Box purchase/draw/History; VIP cap 15/30 with Premium locked; all seven configured game detail→iframe URL→back paths; ProfileRoom3D and accessible fallback. Widths 320/375/430 show no horizontal overflow; 25/25 sampled WebGL pixels were nontransparent in each Profile canvas; no browser page errors in exercised flows.
-- Browser base tested at `http://localhost:5173/maque-center/`. Remote-host gameplay, iframe error/retry behavior against live hosts, production AIS transactions and myAIS WebView remain **Not Verified**. `DESIGN_HANDOFF.md` was absent from the workspace; the current Gemini handoff was inspected from the modified source and assets.
+- Final Round 2 browser matrix: **87 route/width views** at 320/375/430px, no horizontal overflow or uncaught application errors. Core modified CTAs, all five frame purchases/equip/locked-preview/reload, Day-7 Box/open/History, all nine mission filters, VIP/Premium, tickets, settlement and rollover exercised. MAX bars report 100. Navbar labels fit every tab.
+- Profile canvas: 25/25 sampled points nontransparent at each width; screenshot and pointer interaction inspected; forced WebGL failure rendered the 2.5D fallback (expected Three.js console error only during that simulation). Production build loads Three.js only after Profile.
+- Browser base: `http://localhost:5173/maque-center/`; production preview also verified at `/masque-gamecenter/masque-center/`. Production `#admin` redirects to Hub and `?aispoint=999999` leaves balance zero. Seven iframe URLs/back/reload paths passed; stalled-host fallback/retry passed without extra Energy. **Actual remote gameplay/result integration, real AIS transactions/WebView and official branding remain NOT VERIFIED.**

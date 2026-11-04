@@ -104,11 +104,11 @@ export const CAMPAIGN_ARTWORK: Record<string, string> = {
 };
 
 export const PROFILE_FRAMES = [
-  { id: 'meadow', name: 'Meadow Sprout', rarity: 'Common', theme: 'Nature Breeze', imagePath: 'assets/frames/frame-meadow.webp', cost: 50, color: '#68c964', source: 'Shop / Achievement' },
-  { id: 'ocean', name: 'Ocean Tide', rarity: 'Rare', theme: 'Aqua Kingdom', imagePath: 'assets/frames/frame-ocean.webp', cost: 80, color: '#38bdf8', source: 'Battle Pass / Shop' },
+  { id: 'meadow', name: 'Meadow Sprout', rarity: 'Common', theme: 'Nature Breeze', imagePath: 'assets/frames/frame-meadow.webp', cost: 50, color: '#68c964', source: 'Shop' },
+  { id: 'ocean', name: 'Ocean Tide', rarity: 'Rare', theme: 'Aqua Kingdom', imagePath: 'assets/frames/frame-ocean.webp', cost: 80, color: '#38bdf8', source: 'Battle Pass / Campaign / Shop' },
   { id: 'sunrise', name: 'Sunrise Royal', rarity: 'Epic', theme: 'Solar Aurelia', imagePath: 'assets/frames/frame-sunrise.webp', cost: 80, color: '#f59e0b', source: 'Campaign / Shop' },
-  { id: 'celestial', name: 'Celestial Sovereign', rarity: 'Legendary', theme: 'Astral Crown', imagePath: 'assets/frames/frame-celestial.webp', cost: 220, color: '#fbbf24', source: 'Top 1 Ranking / Shop' },
-  { id: 'krathong', name: 'Lotus Festival', rarity: 'Seasonal', theme: 'Loy Krathong Event', imagePath: 'assets/frames/frame-krathong.webp', cost: 160, color: '#f43f5e', source: 'Seasonal Event / Shop' },
+  { id: 'celestial', name: 'Celestial Sovereign', rarity: 'Legendary', theme: 'Astral Crown', imagePath: 'assets/frames/frame-celestial.webp', cost: 220, color: '#fbbf24', source: 'Shop' },
+  { id: 'krathong', name: 'Lotus Festival', rarity: 'Seasonal', theme: 'Loy Krathong Event', imagePath: 'assets/frames/frame-krathong.webp', cost: 160, color: '#f43f5e', source: 'Shop' },
 ] as const;
 
 export type ProfileFrameId = (typeof PROFILE_FRAMES)[number]['id'];

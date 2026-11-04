@@ -87,7 +87,7 @@
           เช็กอินครบ 7 วัน · เหรียญตราเกียรติยศ & โบนัสสะสม
         </strong>
         <p class="text-[10.5px] font-bold text-[#6e460c]">
-          รางวัล Config ปัจจุบัน: <b>Badge เช็กอินครบ 7 วัน + {day7Achievement?.definition.reward?.title ?? 'Energy +5'}</b>
+          รางวัล Config ปัจจุบัน: <b>Badge เช็กอินครบ 7 วัน + {day7Achievement?.definition.reward?.title ?? 'Pet Gacha Box'}</b>
           <span class="block text-[9.5px] text-[#8c5a14]">(รองรับการผูก Pet Gacha Box / Collectible Skin ใน Reward Config)</span>
         </p>
       </div>

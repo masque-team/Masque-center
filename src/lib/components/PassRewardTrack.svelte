@@ -4,6 +4,7 @@
   import GameButton from './GameButton.svelte';
   import RewardIcon from './RewardIcon.svelte';
   import { ownsPassReward } from '../services/demoService';
+  import { passProgress } from '../services/battlePassService';
   import type { DemoSeason, PlayerState } from '../types';
 
   let { player, season, xp, claims, premium, level, available, onClaim, onClaimAll }: {
@@ -13,6 +14,7 @@
   } = $props();
   let path = $state<HTMLDivElement>();
   let toolbar = $state<HTMLDivElement>();
+  let progress = $derived(passProgress(xp));
   function behavior(): ScrollBehavior { return matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'; }
   function current(smooth = true) {
     const target = path?.querySelector<HTMLElement>('[data-current="true"]');
@@ -32,7 +34,7 @@
         <strong class="block text-xs font-black tabular-nums text-[#3f3782]">
           LV.{level} <span class="text-[10px] font-bold text-[#7c8da3]">/ {season.free.length}</span>
         </strong>
-        <span class="text-[9px] font-bold tabular-nums text-[#6d8099]">{xp % 100} / 100 XP</span>
+        <span class="text-[9px] font-bold tabular-nums text-[#6d8099]">{progress.complete ? 'MAX' : `${progress.withinLevel} / 100 XP`}</span>
       </div>
       <button
         class="grid size-9 shrink-0 place-items-center rounded-xl border-2 border-white bg-white text-sky-700 shadow-[0_2px_0_#c7daec] transition-transform active:scale-95 motion-reduce:transition-none"
@@ -50,8 +52,8 @@
         <CheckCheck size={14} />รับทั้งหมด{available ? ` (${available})` : ''}
       </button>
     </div>
-    <div class="h-2 w-full overflow-hidden rounded-full bg-white/90 p-0.5 shadow-inner" role="progressbar" aria-label="XP ในเลเวลปัจจุบัน" aria-valuemin="0" aria-valuemax="100" aria-valuenow={xp % 100}>
-      <span class="block h-full rounded-full bg-gradient-to-r from-[#4facfe] to-[#7b68ee]" style:width={`${Math.max(4, xp % 100)}%`}></span>
+    <div class="h-2 w-full overflow-hidden rounded-full bg-white/90 p-0.5 shadow-inner" role="progressbar" aria-label="XP ในเลเวลปัจจุบัน" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress.percent}>
+      <span class="block h-full rounded-full bg-gradient-to-r from-[#4facfe] to-[#7b68ee]" style:width={`${progress.percent}%`}></span>
     </div>
     <div class="grid grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] items-center gap-2 pt-0.5 text-center text-[10px] font-black">
       <span class="flex items-center justify-center gap-1 rounded-lg bg-white/75 py-1 text-sky-700"><Gift size={13} />FREE TRACK</span>
