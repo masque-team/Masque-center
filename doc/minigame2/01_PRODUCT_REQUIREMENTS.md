@@ -10,7 +10,7 @@
 - **[BACKLOG]** Game Zone provides player identity (UserID, name, profile picture) and enables display of AIS Point where the integration allows it. Specific WebView handoff, API, token and transaction contracts are **[OPEN]**.
 - **[CONFIRMED]** The pre-existing extras (Vease/World, Private Room, Battle Arena and other out-of-scope experiments) must not appear in the MiniGame2 customer journey for now. Keep code and assets, if possible.
 - **[OPEN]** How many games launch in production and how M1–M3 will be exposed in the demo. The backlog lists four M1 games and additional M2 games; the existing demo already has seven. Showing seven is a **demo default**, not a decision to ship seven at M1.
-- **[OPEN production]** Whether Masque Points (MP) will continue in the eventual production product. **[CONFIRMED frontend demo]** AIS Point is the only customer-facing currency; legacy MP values remain in existing saves only and are not displayed, spent, awarded or converted in MiniGame2 demo flows.
+- **[OPEN production]** Whether Masque Points (MP) will continue in the eventual production product. **[CONFIRMED frontend demo]** AIS Point is a purchase currency only, not a game reward. MiniGame2 must never mint or grant AIS Point from Check-in, Achievements, scores, Pass, Campaign, Gacha, Ranked or other bonuses; reward Energy, cosmetics or boxes instead. Legacy MP values remain in existing saves only and are not displayed, spent, awarded or converted in MiniGame2 demo flows.
 
 ## 2. Home / Discover / Banner / Navigation
 

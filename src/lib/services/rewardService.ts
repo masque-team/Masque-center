@@ -10,11 +10,14 @@ export function claimBattlePassReward(player: PlayerState, track: RewardTrack, i
   const level = Math.min(BATTLE_PASS.totalLevels, Math.floor(player.battlePassXp / BATTLE_PASS.xpPerLevel) + 1);
   if (!reward || level < index + 1 || player.claimedRewards.includes(rewardId)) return null;
   const next: PlayerState = { ...player, claimedRewards: [...player.claimedRewards, rewardId] };
-  if (reward.type === 'points') next.aisPoints += reward.amount ?? 0;
+  if (reward.type === 'points') next.energy += Math.max(1, Math.ceil((reward.amount ?? 0) / 25));
   if (reward.type === 'energy') next.energy += reward.amount ?? 0;
-  if (reward.type === 'ticket') next.gachaTickets += reward.amount ?? 1;
+  if (reward.type === 'ticket' || reward.type === 'arena-ticket') {
+    const amount = reward.amount ?? 1;
+    next.demo = { ...next.demo, gachaBoxes: { ...next.demo.gachaBoxes, pet: (next.demo.gachaBoxes?.pet ?? 0) + amount } };
+  }
   if (reward.type === 'gacha-box') {
-    const kind = reward.boxKind === 'avatar' ? 'avatar' : 'pet';
+    const kind = 'boxKind' in reward && reward.boxKind === 'avatar' ? 'avatar' : 'pet';
     next.demo = { ...next.demo, gachaBoxes: { ...next.demo.gachaBoxes, [kind]: (next.demo.gachaBoxes?.[kind] ?? 0) + (reward.amount ?? 1) } };
   }
   if (reward.type === 'avatar' && reward.itemId && !next.ownedAvatarIds.includes(reward.itemId)) {

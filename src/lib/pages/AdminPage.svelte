@@ -7,9 +7,9 @@
   import { AVATARS, PETS, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
   import { getCampaignStatus } from '../services/campaignService';
   import type { DemoConfig, DemoReward, DemoScenario, PlayerState } from '../types';
-  let { player, onSave, onReset, onClock, onRankingReset, onFinalizeCampaign, onSeed, onSeedScenario }: {
+  let { player, onSave, onReset, onClock, onRankingReset, onFinalizeCampaign, onSeedScenario }: {
     player: PlayerState; onSave: (config: DemoConfig) => void; onReset: () => void;
-    onClock: (hours: number) => void; onRankingReset: () => void; onFinalizeCampaign: (campaignId: string) => void; onSeed: () => void;
+    onClock: (hours: number) => void; onRankingReset: () => void; onFinalizeCampaign: (campaignId: string) => void;
     onSeedScenario: (scenario: DemoScenario) => void;
   } = $props();
   let draft = $state<DemoConfig>(createDemo().config);
@@ -21,9 +21,9 @@
   let scenario = $state<DemoScenario>('premium-retro');
   onMount(() => { draft = structuredClone($state.snapshot(player.demo.config)); });
   const numericFields = [
-    ['checkinReward', 'Check-in reward (AIS Point)', 0], ['missionTarget', 'ภารกิจเล่นจบ (ครั้ง)', 1],
+    ['checkinEnergyReward', 'Daily Check-in reward (Energy)', 1], ['missionTarget', 'ภารกิจเล่นจบ (ครั้ง)', 1],
     ['missionXp', 'ภารกิจให้ Pass XP', 1], ['gachaCost', 'Gacha Box 1 ใบ (AIS Point)', 0],
-    ['duplicatePoints', 'ของซ้ำคืน (AIS Point)', 0], ['rankingPrize', 'Ranking prize (AIS Point)', 0], ['arenaTicketPrice', 'Legacy ticket price (AIS Point)', 1], ['battlePrize', 'Legacy result prize (AIS Point)', 0],
+    ['duplicateEnergy', 'ของซ้ำคืน (Energy)', 1], ['rankingEnergyPrize', 'Ranking reward (Energy)', 0],
   ] as const;
   function rewardItems(type: DemoReward['type']) {
     if (type === 'avatar') return AVATARS;
@@ -57,7 +57,6 @@
   <div class="grid grid-cols-2 gap-2">
     <GameButton variant="ghost" size="sm" onclick={() => onClock(1)}><Clock3 size={15} />เวลา +1 ชม.</GameButton>
     <GameButton variant="ghost" size="sm" onclick={() => onClock(24 * 8)}><Clock3 size={15} />เวลา +8 วัน</GameButton>
-    <GameButton variant="ghost" size="sm" onclick={onSeed}><Coins size={15} />เติมทุนจำลอง</GameButton>
     <GameButton variant="ghost" size="sm" onclick={onReset}><RotateCcw size={15} />Reset Demo</GameButton>
   </div>
   <section class="space-y-2 border-y border-sky-200 bg-sky-50/60 py-3" aria-label="Acceptance scenarios">
@@ -117,7 +116,7 @@
       {#each ['free', 'premium'] as lane (lane)}
         {@const track = lane as 'free' | 'premium'}
         <h2 class="border-t border-white pt-3 text-sm font-bold uppercase">{track} rewards</h2>
-        {#each draft.seasons[passIndex][track] as reward, index (index)}<fieldset class="grid grid-cols-2 gap-2 rounded-lg border border-white bg-white/30 p-3"><legend class="px-1 text-xs">Tier {index + 1}</legend><label class="col-span-2 grid gap-1 text-xs">ชื่อรางวัล<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.title} /></label><label class="grid gap-1 text-xs">ประเภท<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" bind:value={reward.type}><option value="points">AIS Point</option><option value="energy">Energy</option><option value="gacha-box">Gacha Box</option><option value="avatar">Avatar</option><option value="pet">Pet</option><option value="wing">Wings</option><option value="frame">Frame</option><option value="background">Background</option><option value="badge">Badge</option></select></label>{#if ['avatar', 'pet', 'wing', 'frame', 'background', 'badge'].includes(reward.type)}<label class="grid gap-1 text-xs">Item<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.itemId}><option value="">เลือก Item</option>{#each rewardItems(reward.type) as item (item.id)}<option value={item.id}>{item.name}</option>{/each}</select></label>{:else if reward.type === 'gacha-box'}<label class="grid gap-1 text-xs">ชนิดกล่อง<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.boxKind}><option value="pet">Pet Box</option><option value="avatar">Avatar Box</option></select></label><label class="grid gap-1 text-xs">จำนวนกล่อง<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" type="number" min="1" required bind:value={reward.amount} /></label>{:else}<label class="grid gap-1 text-xs">จำนวน<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" type="number" min="1" required bind:value={reward.amount} /></label>{/if}</fieldset>{/each}
+        {#each draft.seasons[passIndex][track] as reward, index (index)}<fieldset class="grid grid-cols-2 gap-2 rounded-lg border border-white bg-white/30 p-3"><legend class="px-1 text-xs">Tier {index + 1}</legend><label class="col-span-2 grid gap-1 text-xs">ชื่อรางวัล<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.title} /></label><label class="grid gap-1 text-xs">ประเภท<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" bind:value={reward.type}><option value="points" disabled>AIS Point · ซื้อสินค้าเท่านั้น</option><option value="energy">Energy</option><option value="gacha-box">Gacha Box</option><option value="avatar">Avatar</option><option value="pet">Pet</option><option value="wing">Wings</option><option value="frame">Frame</option><option value="background">Background</option><option value="badge">Badge</option></select></label>{#if ['avatar', 'pet', 'wing', 'frame', 'background', 'badge'].includes(reward.type)}<label class="grid gap-1 text-xs">Item<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.itemId}><option value="">เลือก Item</option>{#each rewardItems(reward.type) as item (item.id)}<option value={item.id}>{item.name}</option>{/each}</select></label>{:else if reward.type === 'gacha-box'}<label class="grid gap-1 text-xs">ชนิดกล่อง<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.boxKind}><option value="pet">Pet Box</option><option value="avatar">Avatar Box</option></select></label><label class="grid gap-1 text-xs">จำนวนกล่อง<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" type="number" min="1" required bind:value={reward.amount} /></label>{:else}<label class="grid gap-1 text-xs">จำนวน<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" type="number" min="1" required bind:value={reward.amount} /></label>{/if}</fieldset>{/each}
       {/each}
     {:else if section === 'catalog'}
       <h2 class="font-bold">Game Registry</h2>

@@ -18,7 +18,7 @@
 
 | Screen / flow | Original milestone | Functional demo behavior |
 |---|---:|---|
-| Entry / Home | M1 | Accept `?name=...` and optional `?aispoint=...`; show compact identity/status, featured game/banner(s), daily check-in, shortcuts. |
+| Entry / Home | M1 | Accept `?name=...`; show compact identity/status, featured game/banner(s), daily check-in, shortcuts. AIS balance comes only from the existing trusted player state/integration and is never URL-seeded. |
 | Game Hub / All games | M1–M2 | All 7 existing playable games, category filters, admin-ordered mock display, unobtrusive New/Hot/Hit tags, mocked online count/total plays. |
 | Game Detail / Pre-game | M1–M2 | Game explanation, high score, leaderboard, owned/purchasable Avatar/Pet/Wing loadout preview, AIS cost and confirmation. Cosmetic choices update local Profile/Inventory only and are **not sent to the hosted game iframe**. Start existing game iframe. |
 | Game Player / Results | M1–M3 | Loading/back/retry, fake finish option when iframe integration unavailable; score/high-score record, mission progress overlay, result summary, optional continue/revive preview. |
@@ -78,7 +78,7 @@ Keep explicit **demo-only** constants/config instead of pretending guessed price
 - VIP raises Energy MAX from 15 to 30. Normal entry waiver, cap and 30-minute regen are fixed demo rules, not editable Admin values.
 - A VIP player can run VIP missions and gain XP but never gains Premium rewards without purchasing the season's Premium pass.
 - For AIS Point: simulate purchase entirely in memory/localStorage, decrement a **mock** balance, write mock purchase history; never call a billing API or claim real charge.
-- **Demo currency is confirmed:** AIS Point is the only customer-facing purchase/reward currency. Campaign Tickets, cosmetics, Energy, VIP, Premium Pass and Gacha Boxes debit mock AIS Points consistently. Preserve legacy MP data/services only for old saves; do not show, award, spend or convert MP in MiniGame2 routes. Production currency and billing contracts remain open.
+- **Demo currency is confirmed:** AIS Point is purchase-only and must never be minted or awarded by gameplay. Campaign Tickets, cosmetics, VIP, Premium Pass and Gacha Boxes debit the existing AIS Point balance; Check-in, Achievements, scores, Pass, Campaign, Ranked and Gacha duplicate rewards grant Energy, cosmetics or boxes instead. Preserve legacy MP data/services only for old saves; do not show, award, spend or convert MP in MiniGame2 routes. Production currency and billing contracts remain open.
 
 ### Ranking
 
@@ -97,7 +97,7 @@ Keep explicit **demo-only** constants/config instead of pretending guessed price
 - Show three mission entitlement groups Free / VIP / Premium, each with Daily / Weekly / Season. Locked benefits stay visible with clear status and appropriate CTA.
 - After a mock game result, animate mission bar changes for matched missions (e.g., `2/5 → 3/5`); when completed, award XP **automatically and once**.
 - Reward-track items are **manually claimed** during active season; eligible unclaimed items auto-credited on season expiry once and shown in notification popup on next open. Do not auto-credit unowned Premium track.
-- Pass tables must use supported demo rewards: Energy, AIS Point, Gacha Boxes and owned cosmetics. Migrate legacy Gacha/Ranked ticket reward rows to Pet Gacha Boxes deterministically without changing claim indexes or player inventory. No bonus levels beyond MAX.
+- Pass tables must use supported demo rewards: Energy, Gacha Boxes and owned cosmetics. Convert legacy AIS Point reward rows to Energy and legacy Gacha/Ranked ticket reward rows to Pet Gacha Boxes deterministically without changing claim indexes or player inventory. No bonus levels beyond MAX.
 - Mission XP is automatic at completion and the post-game overlay shows matching mission progress before/after, bars and +XP. The Battle Pass mission tab is a progress summary/link only; no manual Mission XP claim controls remain.
 - Dev tools can simulate date/XP and force settlement but are inaccessible from customer navigation.
 
@@ -127,7 +127,7 @@ Keep explicit **demo-only** constants/config instead of pretending guessed price
 
 Provide **at least** these reproducible states (via reset + developer-only scenario selector, existing Demo Studio or local fixtures):
 
-1. New player with `?name=Mint&aispoint=100`, Energy 15/15 and no VIP/Premium.
+1. New player with `?name=Mint`, zero generated AIS balance, Energy 15/15 and no VIP/Premium.
 2. After one normal game: Energy 14/15, score, game history and progressing mission.
 3. Overflow: grant 20 Energy while at 14 → 34/15, no regen until below cap. (Amount is test-only.)
 4. VIP active + 2 days left → purchase a 3-day demo package → ~5 days remaining, normal entry free; revive still costs 1.

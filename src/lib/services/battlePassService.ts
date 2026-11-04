@@ -28,7 +28,7 @@ export function claimMockReward(player: PlayerState, rewardId: string, amount: n
   return {
     ...player,
     claimedRewards: [...player.claimedRewards, rewardId],
-    aisPoints: player.aisPoints + amount,
+    energy: player.energy + amount,
   };
 }
 
@@ -55,6 +55,10 @@ export function passTrack(legacy: DemoReward[], track: 'free' | 'premium', theme
     50: { title: 'Avatar: Nyx', type: 'avatar', itemId: 'nyx' },
   };
   const activeReward = (reward: DemoReward): DemoReward => {
+    if (reward.type === 'points') {
+      const amount = Math.max(1, Math.ceil((reward.amount ?? 0) / 25));
+      return { title: `Energy +${amount}`, type: 'energy', amount };
+    }
     if (reward.type === 'ticket' || reward.type === 'arena-ticket') {
       const amount = Math.max(1, reward.amount ?? 1);
       return { title: `Pet Gacha Box x${amount}`, type: 'gacha-box', amount, boxKind: 'pet' };
@@ -66,8 +70,8 @@ export function passTrack(legacy: DemoReward[], track: 'free' | 'premium', theme
     const level = index + 1;
     if (milestones[level]) return { ...milestones[level] };
     if (level % 5 === 0) return { title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' };
-    if (level % 4 === 0) return { title: 'AIS Point +50', type: 'points', amount: 50 };
+    if (level % 4 === 0) return { title: `Energy +${track === 'free' ? 2 : 3}`, type: 'energy', amount: track === 'free' ? 2 : 3 };
     if (level % 3 === 0) return { title: `Energy +${track === 'free' ? 2 : 3}`, type: 'energy', amount: track === 'free' ? 2 : 3 };
-    return { title: `AIS Point +${track === 'free' ? 25 : 40}`, type: 'points', amount: track === 'free' ? 25 : 40 };
+    return { title: `Energy +${track === 'free' ? 1 : 2}`, type: 'energy', amount: track === 'free' ? 1 : 2 };
   });
 }

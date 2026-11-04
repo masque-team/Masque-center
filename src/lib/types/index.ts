@@ -66,7 +66,7 @@ export type DemoScenario = 'energy-overflow' | 'vip-renewal' | 'premium-retro' |
 export type GachaKind = 'avatar' | 'pet';
 export type GachaDrawResult =
   | { kind: 'energy'; amount: number; duplicate: false }
-  | { kind: 'avatar' | 'pet'; itemId: string; duplicate: boolean; duplicatePoints?: number };
+  | { kind: 'avatar' | 'pet'; itemId: string; duplicate: boolean; duplicateEnergy?: number };
 export interface GachaOddsItem { kind: GachaDrawResult['kind']; itemId?: string; title: string; weight: number; rate: number; featured?: boolean }
 export interface GachaBatchResult { player: PlayerState; results: GachaDrawResult[]; paidCoupons: number; bonusDraws: number }
 export interface ProfileStyle { backgroundId: string; bio: string; badgeIds: string[] }
@@ -74,7 +74,7 @@ export interface ProfileBadge { id: string; title: string; earnedAt: number; sea
 
 export type Page = 'home' | 'hub' | 'world' | 'shop' | 'rewards' | 'ranking' | 'avatar' | 'profile' | 'room' | 'game' | 'detail' | 'battle' | 'admin' | 'wallet' | 'points' | 'gacha' | 'campaigns' | 'campaign' | 'achievements' | 'missions' | 'inventory' | 'history' | 'vip';
 
-export type ShopTab = 'items' | 'exchange' | 'energy' | 'vip';
+export type ShopTab = 'items' | 'energy' | 'vip';
 
 export type ModalState =
   | { kind: 'notice'; title: string; message: string; tone?: 'info' | 'success' | 'warn' }
@@ -84,7 +84,7 @@ export type ModalState =
   | { kind: 'item-confirm'; itemId: string }
   | { kind: 'gacha-result'; gachaKind: GachaKind; results: GachaDrawResult[]; paidCoupons: number; bonusDraws: number; source?: 'box' | 'legacy-ticket' }
   | { kind: 'gacha-coupon-confirm'; quantity: 1 | 10 }
-  | { kind: 'mission-progress'; score: number; rewardXp: number; rewardPoints: number; events: { title: string; before: number; after: number; target: number; xp: number }[] }
+  | { kind: 'mission-progress'; score: number; rewardXp: number; events: { title: string; before: number; after: number; target: number; xp: number }[] }
   | { kind: 'checkin-success' }
   | { kind: 'energy-empty' }
   | { kind: 'action-confirm'; title: string; message: string; label: string }
@@ -134,12 +134,12 @@ export interface DemoConfig {
   regenMinutes: number;
   energyCost: number;
   exchangeRate: number;
-  checkinReward: number;
+  checkinEnergyReward: number;
   missionTarget: number;
   missionXp: number;
   premiumPrice: number;
   gachaCost: number;
-  duplicatePoints: number;
+  duplicateEnergy: number;
   gachaPool: { petId: string; weight: number }[];
   games: Game[];
   vipPlans: VipPackage[];
@@ -155,10 +155,9 @@ export interface DemoConfig {
   passSeasonId: string;
   passAutomatic?: boolean;
   rankingSeasonId: string;
-  rankingPrize: number;
+  rankingEnergyPrize: number;
   battleEntry: number;
   arenaTicketPrice: number;
-  battlePrize: number;
   battleEnabled: boolean;
   worldEnabled: boolean;
   worldTheme: 'water' | 'lantern';

@@ -189,7 +189,7 @@
     </strong>
   </div>
   <p class="-mt-2 px-1 text-[10px] font-semibold text-[#647d8c]">
-    คูปอง 1 ใบ = หมุน 1 ครั้ง · ซื้อ 10 ใบเปิดจุใจ 11 ครั้ง · ซ้ำคืน {player.demo.config.duplicatePoints} MP · โอกาสออก Energy {energyOdds.toFixed(1)}%
+    คูปอง 1 ใบ = หมุน 1 ครั้ง · ซื้อ 10 ใบเปิดจุใจ 11 ครั้ง · ของซ้ำชดเชย Energy {player.demo.config.duplicateEnergy} · โอกาสออก Energy {energyOdds.toFixed(1)}%
   </p>
 
   <!-- 3D Game Pull Action Buttons -->

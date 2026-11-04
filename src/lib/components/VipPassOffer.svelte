@@ -26,7 +26,6 @@
   let levelThirty = $derived(milestones.find((item) => item.level === 30));
   let pending = $derived(offer ? season.premium.slice(0, Math.min(50, offer.levelAfter)).map((reward, index) => ({ reward, index })).filter((item) => !player.demo.passes[season.id]?.claims.includes(`premium-${item.index}`)) : []);
   let pendingEnergy = $derived(pending.filter((item) => item.reward.type === 'energy').reduce((total, item) => total + (item.reward.amount ?? 0), 0));
-  let pendingPoints = $derived(pending.filter((item) => item.reward.type === 'points').reduce((total, item) => total + (item.reward.amount ?? 0), 0));
   let pendingTickets = $derived(pending.filter((item) => item.reward.type === 'ticket').reduce((total, item) => total + (item.reward.amount ?? 0), 0));
   let highlights = $derived(pending.filter((item) => ['avatar', 'pet', 'wing', 'frame', 'background'].includes(item.reward.type)).slice(-4));
   let plan = $derived(player.demo.config.vipPlans[0]);
@@ -165,11 +164,6 @@
               <CurrencyIcon kind="energyPotion" size={14} />+{pendingEnergy} Energy
             </span>
           {/if}
-          {#if pendingPoints > 0}
-            <span class="inline-flex items-center gap-1 rounded-lg border border-white bg-white/90 px-2 py-1 text-amber-800">
-              <CurrencyIcon kind="aisPoints" size={14} />+{pendingPoints.toLocaleString()} AIS Point
-            </span>
-          {/if}
           {#if pendingTickets > 0}
             <span class="inline-flex items-center gap-1 rounded-lg border border-white bg-white/90 px-2 py-1 text-rose-700">
               <CurrencyIcon kind="petGachaTicket" size={14} />ตั๋วกาชา +{pendingTickets}
@@ -186,7 +180,7 @@
             {/each}
           </div>
         {/if}
-        <p class="text-[9px] font-semibold leading-relaxed text-[#947b4f]">* กดรับรางวัลที่ปลดล็อกได้ในหน้า Pass · ของซ้ำชดเชยเป็น AIS Point</p>
+        <p class="text-[9px] font-semibold leading-relaxed text-[#947b4f]">* กดรับรางวัลที่ปลดล็อกได้ในหน้า Pass · ของซ้ำชดเชยเป็น Energy</p>
       </section>
     {/if}
 

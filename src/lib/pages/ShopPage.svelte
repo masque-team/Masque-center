@@ -18,7 +18,6 @@
     onBuyGachaBox,
     onOpenGachaBox,
     onVip,
-    onMockAisTopUp,
   }: {
     player: PlayerState;
     vipActive: boolean;
@@ -29,7 +28,6 @@
     onBuyGachaBox: (kind: 'avatar' | 'pet') => void;
     onOpenGachaBox: (kind: 'avatar' | 'pet') => void;
     onVip: (id: string) => void;
-    onMockAisTopUp: (amount: number) => void;
   } = $props();
 
   let category = $state<'all' | 'avatar' | 'pet' | 'wing' | 'frame'>('all');
@@ -40,7 +38,6 @@
     { id: 'items', label: 'ของขาย', kind: 'points' as const },
     { id: 'energy', label: 'Energy', kind: 'energyPotion' as const },
     { id: 'vip', label: 'VIP', kind: 'aisPoints' as const },
-    { id: 'exchange', label: 'AIS Point', kind: 'aisPoints' as const },
   ] as const;
 
   let products = $derived(
@@ -109,16 +106,8 @@
     {/each}
   </div>
 
-  <section class="min-h-[calc(100dvh_-_180px)]" aria-label={tab === 'exchange' ? 'แพ็กเติมแต้ม' : tab === 'energy' ? 'เติม Energy' : 'สินค้า'}>
-    {#if tab === 'exchange'}
-      <div class="space-y-4">
-        <section class="space-y-3 rounded-2xl border-2 border-white bg-white/80 p-4" aria-label="AIS Point top-up จำลอง">
-          <h2 class="text-base font-black text-[#2b2468]">AIS Point · Demo top-up</h2>
-          <p class="text-xs text-[#71839a]">ยอด {player.aisPoints.toLocaleString()} · ไม่เรียก Billing API และไม่มีการตัดเงินจริง</p>
-          <div class="grid grid-cols-2 gap-2">{#each [100, 500] as amount (amount)}<GameButton block variant="mint" onclick={() => onMockAisTopUp(amount)}>จำลอง +{amount} AIS Point</GameButton>{/each}</div>
-        </section>
-      </div>
-    {:else if tab === 'vip'}
+  <section class="min-h-[calc(100dvh_-_180px)]" aria-label={tab === 'energy' ? 'เติม Energy' : 'สินค้า'}>
+    {#if tab === 'vip'}
       <div class="space-y-3">
         <h2 class="font-black text-[#2b2468]">VIP · เข้าเกมปกติฟรี · Energy MAX 15 → 30</h2>
         <p class="text-xs text-[#71839a]">Energy cap 30 ระหว่าง VIP · ไม่รวม Continue, Campaign Ticket หรือ Premium Pass · ราคาเป็น AIS Point เดโม</p>

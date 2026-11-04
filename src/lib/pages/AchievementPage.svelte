@@ -40,7 +40,7 @@
 
   <section class="card-25d space-y-3 p-3.5" aria-label="Daily check-in and streak">
     <div class="flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2"><CalendarCheck size={19} class="text-sky-700" /><div><h2 class="text-sm font-black">Daily Check-in</h2><p class="text-[10px] text-[#526c9c]">สถานะเดียวกับ Home · รับ AIS Point วันละครั้ง</p></div></div>
+    <div class="flex items-center gap-2"><CalendarCheck size={19} class="text-sky-700" /><div><h2 class="text-sm font-black">Daily Check-in</h2><p class="text-[10px] text-[#526c9c]">สถานะเดียวกับ Home · รับ Energy วันละครั้ง</p></div></div>
       <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#fff0c2] px-2.5 py-1 text-[10px] font-black text-[#925b00]"><Flame size={13} />{streak} วันติด</span>
     </div>
     <DailyCheckinCard reward={checkinReward} days={checkinDays} claimed={checkedIn} onClaim={onCheckin} />
@@ -48,7 +48,7 @@
       {#each Array.from({ length: 7 }, (_, index) => index + 1) as day (day)}
         <div class={['grid min-h-14 content-center justify-items-center gap-0.5 rounded-xl border border-white text-center', streak >= day ? 'bg-[#e0f2fe] text-[#075985]' : 'bg-white/65 text-[#64748b]']}>
           <strong class="text-[10px]">วันที่ {day}</strong>
-          <small class="text-[9px]">{day === 7 ? 'Badge +5 Energy' : `+${checkinReward} AIS`}</small>
+          <small class="text-[9px]">{day === 7 ? 'Badge +5 Energy' : `+${checkinReward} Energy`}</small>
         </div>
       {/each}
     </div>

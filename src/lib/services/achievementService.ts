@@ -37,8 +37,8 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   { id: 'games-played-100', title: 'ตำนานแห่งเกม', description: 'เล่นเกมจบครบ 100 ครั้ง', target: 100, metric: 'games-played', events: ['game_completed'], reward: { title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' } },
   { id: 'checkin-streak-7', title: 'เช็กอินต่อเนื่อง 7 วัน', description: 'เช็กอินทุกวันติดต่อกัน 7 วัน', target: 7, metric: 'checkin-streak', events: ['daily_checkin'], reward: { title: 'Energy +5', type: 'energy', amount: 5 } },
   { id: 'all-game-genres', title: 'นักสำรวจทุกประเภท', description: 'เล่นเกมครบทุกประเภทใน Catalog', target: 1, metric: 'unique-genres', events: ['game_completed'] },
-  { id: 'high-score-10000', title: 'ทำคะแนน 10,000', description: 'ทำ High Score เกมปกติถึง 10,000 คะแนน', target: 10_000, metric: 'high-score', events: ['game_score_updated'], reward: { title: 'AIS Point +50', type: 'points', amount: 50 } },
-  { id: 'campaign-joins-3', title: 'นักล่า Campaign', description: 'เข้าร่วม Campaign 3 ครั้ง', target: 3, metric: 'campaign-joins', events: ['campaign_joined'], reward: { title: 'AIS Point +50', type: 'points', amount: 50 } },
+  { id: 'high-score-10000', title: 'ทำคะแนน 10,000', description: 'ทำ High Score เกมปกติถึง 10,000 คะแนน', target: 10_000, metric: 'high-score', events: ['game_score_updated'], reward: { title: 'Energy +5', type: 'energy', amount: 5 } },
+  { id: 'campaign-joins-3', title: 'นักล่า Campaign', description: 'เข้าร่วม Campaign 3 ครั้ง', target: 3, metric: 'campaign-joins', events: ['campaign_joined'], reward: { title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' } },
   { id: 'campaign-completed-1', title: 'Campaign Finisher', description: 'ทำกิจกรรม Campaign จบ 1 ครั้ง', target: 1, metric: 'campaign-completions', events: ['campaign_completed'] },
 ];
 
@@ -71,7 +71,7 @@ export function claimDailyCheckin(player: PlayerState, at = Date.now()): PlayerS
   if (player.checkinDates.includes(date)) return null;
   return {
     ...player,
-    aisPoints: player.aisPoints + player.demo.config.checkinReward,
+    energy: player.energy + player.demo.config.checkinEnergyReward,
     checkinDates: [...player.checkinDates, date],
   };
 }

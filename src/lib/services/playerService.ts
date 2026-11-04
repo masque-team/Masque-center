@@ -9,19 +9,12 @@ import { settleExpiredCampaigns } from './campaignService';
 
 const STORAGE_KEY = 'masquegame_center_v2';
 
-export function parseAisPointSeed(value: string | null): number | null {
-  if (!value || !/^\d+$/.test(value)) return null;
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed)) return null;
-  return Math.min(parsed, PLAYER_MOCK_CONFIG.maxTestAisPoints);
-}
-
-function createPlayer(displayName: string | null, aisPointSeed: number | null): PlayerState {
+function createPlayer(displayName: string | null): PlayerState {
   return {
     id: `MG${crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`,
     displayName: displayName?.trim().slice(0, 40) || 'Guest Player',
     level: PLAYER_MOCK_CONFIG.level,
-    aisPoints: aisPointSeed ?? PLAYER_MOCK_CONFIG.aisPoints,
+    aisPoints: PLAYER_MOCK_CONFIG.aisPoints,
     masquePoints: PLAYER_MOCK_CONFIG.masquePoints,
     energy: ENERGY_CONFIG.max,
     energyUpdatedAt: Date.now(),
@@ -61,7 +54,7 @@ function isPlayerState(value: unknown): value is PlayerState {
     && Array.isArray(player.ownedPetIds);
 }
 
-export function loadPlayer(queryName: string | null, aisPointSeed: number | null = null, resetMock = false): PlayerState {
+export function loadPlayer(queryName: string | null, resetMock = false): PlayerState {
   let player: PlayerState | null = null;
   if (!resetMock) {
     try {
@@ -71,7 +64,7 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
       player = null;
     }
   }
-  const result = player ?? createPlayer(queryName, aisPointSeed);
+  const result = player ?? createPlayer(queryName);
   if (!result.demo || result.demo.version !== 1) {
     result.demo = createDemo();
     result.demo.passRevision = 1;
@@ -90,6 +83,9 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   result.demo.config.vipFreeEntry = true;
   result.demo.config.vipEnergyBonus = 15;
   result.demo.config.continueEnergyCost = 1;
+  result.demo.config.checkinEnergyReward ??= 3;
+  result.demo.config.duplicateEnergy ??= 1;
+  result.demo.config.rankingEnergyPrize ??= 5;
   delete result.demo.config.vipUnlimited;
   if (result.energyUpdatedAt > Date.now() + result.demo.clockOffset) result.energyUpdatedAt = Date.now() + result.demo.clockOffset;
   result.demo.weeklyGames ??= {};
@@ -117,7 +113,7 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
     { id: 'campaign-ticket-12', label: '12 Campaign Tickets', quantity: 12, cost: 200 },
   ];
   result.demo.backgrounds = [...new Set([...(result.demo.backgrounds ?? []), ...PROFILE_BACKGROUNDS.map((background) => background.id)])];
-  if (result.demo.passRevision !== 4) {
+  if (result.demo.passRevision !== 6) {
     const oldId = result.demo.config.passSeasonId;
     const oldPass = result.demo.passes[oldId] ?? { xp: 0, premium: false, claims: [] };
     result.demo.config.passAutomatic = true;
@@ -137,7 +133,7 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
     const today = dayKey(result);
     result.demo.missionCounts[`${id}:${today}`] ??= result.demo.missionCounts[today] ?? 0;
     if (result.demo.missionClaims.includes(`${oldId}-${today}`)) result.demo.missionClaims.push(`${id}-${today}`);
-    result.demo.passRevision = 4;
+    result.demo.passRevision = 6;
   }
   result.demo.pointPackClaims ??= [];
   result.demo.arenaTickets ??= 0;

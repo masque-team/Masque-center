@@ -2,9 +2,10 @@
 
 **Status:** Functional frontend demo through M1-M3; ready for Gemini/Argon visual exploration.  
 **Implementation commit:** `c484447` (pushed to `main`).
-**Final rules/UI follow-up commit:** `45c9288` (pushed to `main`). AIS Point only in customer flows, Shop Gacha Boxes, VIP Energy MAX 30 while active, and floating Simulate Finish.
+**Final rules/UI follow-up commit:** `45c9288` (pushed to `main`). AIS Point is purchase-only; game activities do not mint AIS Point. Shop Gacha Boxes, VIP Energy MAX 30 while active, and floating Simulate Finish.
 **Functional audit commit:** `560698c` (committed locally; not pushed per request).
 **Achievement/design regression commit:** `115b800` (committed locally; not pushed per request).
+**AIS Point policy follow-up:** Activity rewards use Energy/items only; fresh/reset accounts, URL parameters, Shop and Developer Studio cannot generate AIS Point. Existing balances and purchase debits are preserved. Local-only; do not push.
 **Scope:** Svelte 5 + Vite + TypeScript + Tailwind CSS 4. Frontend only; local mock state and the existing `masquegame_center_v2` localStorage save. No backend, database, AIS integration, billing, SSO, multiplayer service, or score verification was added.
 
 ## Screens And Routes
@@ -57,16 +58,16 @@ Bottom navigation order is **HOME / SHOP / GAME / Battle Pass / Achievement**. H
 - Achievement events (`game_completed`, `game_score_updated`, `daily_checkin`, `campaign_joined`, `campaign_completed`) update permanent metrics and Badge/reward notifications independently of `missionClaims` and Pass XP. The same game/check-in event may advance both systems, but never uses an Achievement reward to award Pass XP.
 - Normal ranking uses personal best, per-game all-time scope and earliest-achievement tie-break. Campaign scores use separate campaign+game keys.
 - Campaign prizes auto-credit once at configured expiry; acknowledging the popup does not grant a second time. History keeps the reward record. Developer Studio can force this only for tests.
-- AIS Point is the only customer-facing currency for demo prices/rewards; old MP save fields are preserved but are not spent, granted or shown in the MiniGame2 customer journey. Gacha Box purchases debit AIS Points; opening a box updates local ownership/energy and Rewards History.
+- AIS Point is a purchase currency only; gameplay never mints or grants it. Check-in, Achievement, High Score, Pass, Campaign, Ranked and Gacha duplicate rewards use Energy, cosmetics or boxes. Old MP save fields are preserved but are not spent, granted or shown in the MiniGame2 customer journey. Gacha Box purchases debit AIS Points; opening a box updates local ownership/Energy and Rewards History.
 - Campaign Ticket packs debit mock AIS Points, update the separate Campaign Ticket wallet and Purchases History. Confirmed ticket entry consumes the configured quantity once; VIP does not waive it. Campaign results auto-settle at `endAt`; Developer Studio force-settlement is test-only.
 - External campaigns without a real configured URL are non-launchable placeholders and consume no Energy or ticket. Never use a fabricated URL.
 - Legacy Pass Gacha/Ranked ticket rewards deterministically migrate to Pet Gacha Boxes without resetting claims or player inventory. No bonus levels exist after MAX.
-- Daily Check-in from Home and Achievement uses the same once-per-day state and AIS reward. Long-term achievement progress is derived from persistent play counts, scores, check-in dates and Campaign counters, not the monthly Pass season.
+- Daily Check-in from Home and Achievement uses the same once-per-day state and Energy reward. Long-term achievement progress is derived from persistent play counts, scores, check-in dates and Campaign counters, not the monthly Pass season.
 - Cosmetic purchases and equips update Shop, Inventory and Profile. Earned Achievement badges are stored once in `demo.achievements` and can be pinned from Profile.
 
 ## Acceptance Fixtures
 
-Use Demo Studio (`#admin`) to seed: Energy overflow; VIP with two days remaining; level-10 Free-only Pass with enough mock AIS Points to buy Premium; VIP without Premium; Alice-earlier all-time tie; separate Bird/Memory campaign scores; an expired Campaign ready for automatic settlement; next-calendar-season rollover with auto-delivery notification; and Pet/Avatar Gacha Boxes. The studio also edits Campaign dates/ticket packs and can force-settle for tests. Reset Demo recreates `?name=Mint&aispoint=100`. Normal play and Check-in exercise lifetime Achievements. The requested `DESIGN_HANDOFF.md` was not present in the workspace; current Gemini design work was audited directly from the dirty source/assets.
+Use Demo Studio (`#admin`) to seed: Energy overflow; VIP with two days remaining; level-10 Free-only Pass; VIP without Premium; Alice-earlier all-time tie; separate Bird/Memory campaign scores; an expired Campaign ready for automatic settlement; next-calendar-season rollover with auto-delivery notification; and Pet/Avatar Gacha Boxes. The studio also edits Campaign dates/ticket packs and can force-settle for tests. Reset Demo recreates `?name=Mint` with no generated AIS balance. Normal play and Check-in exercise lifetime Achievements. The requested `DESIGN_HANDOFF.md` was not present in the workspace; current Gemini design work was audited directly from the dirty source/assets.
 
 ## Visual Handoff
 
@@ -82,12 +83,13 @@ Design may change Tailwind/CSS, typography, art, layout and animation in `App.sv
 
 ## Demo Defaults And Open Decisions
 
-AIS Point top-ups, Campaign Ticket packs and Gacha Box prices are local mock values only; there are no billing calls. MP remains as an unused compatibility field in old local saves. Production AIS Point transactions, campaign ticket scope/refunds, external campaign URLs, real identity/WebView handoff, external result validation and anti-cheat remain unimplemented. Campaign dates, reward tiers/odds, VIP package demo prices and mission targets/XP are configurable examples, not production approvals. External-host gameplay and live myAIS WebView are Not Verified.
+Campaign Ticket packs and Gacha Box prices are local demo values; there are no billing calls or AIS Point top-up/reward actions. MP remains as an unused compatibility field in old local saves. Production AIS Point transactions, campaign ticket scope/refunds, external campaign URLs, real identity/WebView handoff, external result validation and anti-cheat remain unimplemented. Campaign dates, reward tiers/odds, VIP package demo prices and mission targets/XP are configurable examples, not production approvals. External-host gameplay and live myAIS WebView are Not Verified.
 
 ## Verification
 
 - `npm run check`: passed, 0 errors and 0 warnings.
 - `npm test`: passed, 71 tests.
 - `npm run build`: passed; Vite transformed 4,253 modules. Three.js is split to a 733 kB chunk; Rollup emitted its standard chunk-size advisory.
+- AIS policy smoke: fresh/reset state stayed at 0 AIS Point despite `?aispoint=1000`; Check-in changed Energy 15 to 18 and kept AIS at 0; Shop has no mock AIS top-up tab/actions. Unit tests cover no-mint reward paths, legacy reward conversion, saved-balance preservation and AIS purchase debits.
 - Browser smoke: five-tab navigation is HOME / SHOP / GAME / Battle Pass / Achievement; Home/Achievement Check-in shares one claim; `#missions` opens the nested Pass Mission page; 10 completed games unlock the permanent 10-game Achievement once; earned First Finish badge previews and pins in Profile; Pass XP and Achievement ledgers advance independently; Campaign ticket purchase/debit/consume, expiry settlement/popup and external placeholder; Gacha Box purchase/draw/History; VIP cap 15/30 with Premium locked; all seven configured game detail→iframe URL→back paths; ProfileRoom3D and accessible fallback. Widths 320/375/430 show no horizontal overflow; 25/25 sampled WebGL pixels were nontransparent in each Profile canvas; no browser page errors in exercised flows.
 - Browser base tested at `http://localhost:5173/maque-center/`. Remote-host gameplay, iframe error/retry behavior against live hosts, production AIS transactions and myAIS WebView remain **Not Verified**. `DESIGN_HANDOFF.md` was absent from the workspace; the current Gemini handoff was inspected from the modified source and assets.

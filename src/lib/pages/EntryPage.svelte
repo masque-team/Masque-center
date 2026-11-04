@@ -2,7 +2,7 @@
   import { ArrowRight, Crown, Sparkles, Star } from '@lucide/svelte';
   import GameButton from '../components/GameButton.svelte';
 
-  let { aisPointSeed, onEnter }: { aisPointSeed: number | null; onEnter: (name: string) => void } = $props();
+  let { onEnter }: { onEnter: (name: string) => void } = $props();
   let name = $state('');
   let error = $state('');
 
@@ -33,7 +33,6 @@
             <input id="player-name" bind:value={name} maxlength="40" autocomplete="nickname" placeholder="เช่น มะลิ, ลูมิน่า, SkyHero" aria-describedby={error ? 'name-error' : 'name-hint'} oninput={() => error = ''} />
           </label>
           {#if error}<p id="name-error" class="text-xs font-extrabold text-rose-600" role="alert">{error}</p>{:else}<p id="name-hint" class="text-[11px] font-bold text-[#526c9c]">ชื่อนี้ใช้แสดงบนกระดานจัดอันดับและหน้าโปรไฟล์</p>{/if}
-          {#if aisPointSeed !== null}<p class="seed-note">🪙 AIS Point ตั้งต้น: {aisPointSeed.toLocaleString()} แต้ม · พร้อมทดสอบระบบแลกรางวัล</p>{/if}
           <GameButton type="submit" block size="lg" variant="gold">เริ่มการผจญภัยเลย<ArrowRight size={18} /></GameButton>
         </form>
         <p class="disclaimer">DEMO MODE · จำลองการใช้ AIS Points ภายในเครื่องโดยไม่หักคะแนนจริง</p>
@@ -82,16 +81,6 @@
     font-weight: 800;
   }
   input:focus { border-color: #0ea5e9; outline: 3px solid rgb(14 165 233 / 22%); }
-  .seed-note {
-    margin: 0;
-    padding: 6px 10px;
-    border-radius: 12px;
-    border: 1.5px solid #fde68a;
-    background: #fffbeb;
-    color: #92400e;
-    font-size: 11px;
-    font-weight: 800;
-  }
   .disclaimer { margin: 12px 0 0; color: #647ea8; font-size: 10px; font-weight: 800; text-align: center; }
   @media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) { .entry { display: none; } }
 </style>

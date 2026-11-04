@@ -7,7 +7,7 @@
   import { currentPass, currentSeason } from '../services/demoService';
   import type { GameId, Page, PlayerState } from '../types';
 
-  let { page, player, now, campaignId = '', onNavigate, onPlay, onBuyCampaignTickets, onVip, onPremium, onAisTopUp, onRefill, onBuyItem, onAvatar, onPet, onWing }: {
+  let { page, player, now, campaignId = '', onNavigate, onPlay, onBuyCampaignTickets, onVip, onPremium, onRefill, onBuyItem, onAvatar, onPet, onWing }: {
     page: Page;
     player: PlayerState;
     now: number;
@@ -17,7 +17,6 @@
     onBuyCampaignTickets: (packId: string) => void;
     onVip: (id: string) => void;
     onPremium: () => void;
-    onAisTopUp: (amount: number) => void;
     onRefill: (id: string) => void;
     onBuyItem: (id: string) => void;
     onAvatar: (id: string) => void;
@@ -149,7 +148,6 @@
 {:else if page === 'shop'}
   <div class="page-stack">
     <PageTitle eyebrow="MOCK STORE · NO BILLING" title="Shop" subtitle="ยอดจำลองในเครื่องนี้เท่านั้น · ไม่มีการตัดเงินจริง">{#snippet icon()}<ShoppingBag size={25} />{/snippet}</PageTitle>
-    <section class="space-y-3 border-y border-white/80 py-3"><h2 class="font-black">AIS Point · Demo top-up</h2><p class="text-xs text-slate-600">ยอดปัจจุบัน {player.aisPoints.toLocaleString()} · การเติมด้านล่างเป็น mock เท่านั้น</p><div class="grid grid-cols-2 gap-2">{#each [100, 500] as amount (amount)}<button class="min-h-12 rounded-md bg-sky-100 px-2 text-sm font-black text-sky-900" onclick={() => onAisTopUp(amount)}>จำลอง +{amount} AIS Point</button>{/each}</div></section>
     <section class="space-y-2 border-b border-white/80 py-3"><h2 class="font-black">Energy</h2><p class="text-xs text-slate-600">{player.energy}/{player.demo.config.energyMax + (vipActive ? player.demo.config.vipEnergyBonus : 0)} · ฟื้น +1 ทุก {player.demo.config.regenMinutes} นาที · รับเกิน cap ได้</p>{#each player.demo.config.energyPacks as pack (pack.id)}<button class="flex min-h-11 w-full items-center justify-between border-t border-white/70 px-2 text-sm disabled:opacity-50" disabled={player.aisPoints < pack.cost} onclick={() => onRefill(pack.id)}><span>+{pack.energy} Energy</span><strong>{pack.cost} AIS Point</strong></button>{/each}</section>
     <section class="space-y-2 border-b border-white/80 py-3"><h2 class="font-black">Cosmetics & Pets</h2><div class="grid grid-cols-2 gap-2">{#each player.demo.config.shop as item (item.id)}{@const owned = (item.kind === 'avatar' ? player.ownedAvatarIds : item.kind === 'pet' ? player.ownedPetIds : item.kind === 'wing' ? player.demo.wings : player.demo.frames).includes(item.itemId)}{@const label = item.kind === 'avatar' ? AVATARS.find((entry) => entry.id === item.itemId)?.name : item.kind === 'pet' ? PETS.find((entry) => entry.id === item.itemId)?.name : item.kind === 'wing' ? WINGS.find((entry) => entry.id === item.itemId)?.name : `Profile frame · ${item.itemId}`}<button class="grid min-h-20 content-center gap-1 border-b border-white/80 bg-white/40 p-2 text-left disabled:opacity-50" disabled={owned || player.aisPoints < item.cost} onclick={() => onBuyItem(item.id)}><strong class="text-xs">{label ?? item.itemId}</strong><span class="text-[10px] text-slate-500">{item.kind} · {owned ? 'เป็นเจ้าของแล้ว' : `${item.cost} AIS Point · ราคาเดโม`}</span></button>{/each}</div></section>
     <section class="space-y-2 border-b border-white/80 py-3"><h2 class="font-black">Entitlements & items</h2><button class="flex min-h-11 w-full items-center justify-between border-t border-white/70 px-2 text-sm" onclick={() => onNavigate('vip')}><span>VIP packages</span><Crown size={17} /></button><button class="flex min-h-11 w-full items-center justify-between border-t border-white/70 px-2 text-sm" onclick={onPremium}><span>{pass.premium ? 'Premium Pass active' : `Premium Pass · ${player.demo.config.premiumPrice} AIS Point`}</span><Sparkles size={17} /></button><button class="flex min-h-11 w-full items-center justify-between border-t border-white/70 px-2 text-sm" onclick={() => onNavigate('gacha')}><span>Gacha</span><Gift size={17} /></button><button class="flex min-h-11 w-full items-center justify-between border-t border-white/70 px-2 text-sm" onclick={() => onNavigate('inventory')}><span>Inventory</span><Backpack size={17} /></button><button class="flex min-h-11 w-full items-center justify-between border-t border-white/70 px-2 text-sm" onclick={() => onNavigate('rewards')}><span>{season.name} · Battle Pass</span><Zap size={17} /></button></section>

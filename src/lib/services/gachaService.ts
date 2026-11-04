@@ -55,11 +55,14 @@ export function drawGacha(
 
   const owned = selected.kind === 'pet' ? charged.ownedPetIds : charged.ownedAvatarIds;
   const duplicate = owned.includes(selected.itemId!);
-  const result = { kind: selected.kind, itemId: selected.itemId!, duplicate, ...(duplicate ? { duplicatePoints: charged.demo.config.duplicatePoints } : {}) } as GachaDrawResult;
+  const duplicateEnergy = charged.demo.config.duplicateEnergy;
+  const result = { kind: selected.kind, itemId: selected.itemId!, duplicate, ...(duplicate ? { duplicateEnergy } : {}) } as GachaDrawResult;
+  const energy = charged.energy + (duplicate ? duplicateEnergy : 0);
   return {
     player: {
       ...charged,
-      aisPoints: charged.aisPoints + (duplicate ? charged.demo.config.duplicatePoints : 0),
+      energy,
+      energyUpdatedAt: energy >= energyCapacity(charged, isVip(charged, now)) ? now : charged.energyUpdatedAt,
       ...(duplicate ? {} : selected.kind === 'pet'
         ? { ownedPetIds: [...charged.ownedPetIds, selected.itemId!] }
         : { ownedAvatarIds: [...charged.ownedAvatarIds, selected.itemId!] }),
@@ -88,7 +91,7 @@ export function drawGachaBox(player: PlayerState, kind: GachaKind, random = Math
     detail = `Energy +${result.amount}`;
   } else {
     const item = result.kind === 'pet' ? PETS.find((entry) => entry.id === result.itemId) : AVATARS.find((entry) => entry.id === result.itemId);
-    detail = `${item?.name ?? result.itemId}${result.duplicate ? ' · ซ้ำ' : ''}`;
+    detail = `${item?.name ?? result.itemId}${result.duplicate ? ` · ซ้ำ · Energy +${result.duplicateEnergy ?? player.demo.config.duplicateEnergy}` : ''}`;
   }
   const history = { id: crypto.randomUUID(), kind: 'reward' as const, title: `${kind === 'pet' ? 'Pet' : 'Avatar'} Box`, detail, at: now };
   return {
@@ -118,7 +121,7 @@ export function drawGachaBatch(player: PlayerState, kind: GachaKind, count: 1 | 
   const detail = results.map((result) => {
     if (result.kind === 'energy') return `Energy +${result.amount}`;
     const item = result.kind === 'pet' ? PETS.find((entry) => entry.id === result.itemId) : AVATARS.find((entry) => entry.id === result.itemId);
-    return `${item?.name ?? result.itemId}${result.duplicate ? ' · ซ้ำ' : ''}`;
+    return `${item?.name ?? result.itemId}${result.duplicate ? ` · ซ้ำ · Energy +${result.duplicateEnergy ?? player.demo.config.duplicateEnergy}` : ''}`;
   }).join(' · ');
   const history = { id: crypto.randomUUID(), kind: 'reward' as const, title: `${kind === 'pet' ? 'Pet' : 'Avatar'} Gacha`, detail: `${detail} · ใช้ ${count} คูปอง${bonusDraws ? ` · โบนัส ${bonusDraws}` : ''}`, at: now };
   const withHistory = { ...current, demo: { ...current.demo, history: [history, ...(current.demo.history ?? [])].slice(0, 250) } };

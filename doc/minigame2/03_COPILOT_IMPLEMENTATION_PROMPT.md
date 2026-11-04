@@ -23,7 +23,7 @@ PRE-FLIGHT:
 - Confirm the actual stack from package.json: Svelte 5 + Vite + TS + Tailwind 4. DO NOT migrate to SvelteKit just because an older plan mentioned it.
 - Identify what already works, what needs to change, what is hidden legacy, and what is genuinely missing.
 - Create a short implementation checklist. Then implement, rather than stopping after planning.
-- Keep all 7 game catalog IDs, URLs, existing iframe launching behavior, query params (?name=... & ?aispoint=...), deploy base paths and valid local saves.
+- Keep all 7 game catalog IDs, URLs, existing iframe launching behavior, `?name=...`, deploy base paths and valid local saves. Never accept AIS Point balances from URL parameters or create a fresh balance.
 
 IMPORTANT PRODUCT RULES:
 - All normal games: Energy 1 per entry; VIP exempts NORMAL game entry only. VIP does not cover revive/continue or campaign tickets, and never unlocks Premium Pass rewards.
@@ -40,7 +40,7 @@ IMPORTANT PRODUCT RULES:
 - Hide, do not delete, out-of-scope Vease World, Battle Arena, Private Room and similar features from normal MiniGame2 navigation.
 
 SCOPE / UNKNOWN RULES:
-- The MiniGame2 frontend demo uses AIS Point only in customer flows. Preserve legacy MP values/services for old saves but do not display, spend, award or convert them in the demo. Production AIS Point/API/billing policy remains open.
+- The MiniGame2 frontend demo uses AIS Point for purchases only. Never mint or grant AIS Point from Check-in, Achievements, High Score, Pass, Campaign, Ranked, Gacha or any bonus; use Energy, cosmetics or boxes as rewards. Preserve legacy MP values/services for old saves but do not display, spend, award or convert them in the demo. Production AIS Point/API/billing policy remains open.
 - Production game count/M1 rollout, Campaign Ticket SKU/scope/refunds and campaign URLs still need approval. The demo provides configurable AIS ticket packs and mock timing; do not present them as production contracts.
 - Do not invent definitive production pricing, mission XP, Achievement catalog thresholds/rewards, reward top-N counts or ranking payouts. VIP cap 30 and free normal entry are confirmed; cooldown reductions are not approved. Use labeled demo configurations and fixtures.
 - FULL product admin, real anti-cheat, real SSO, real AIS Point transactions and persistent multiplayer are future scope only. No new server, DB, SDK or real payments.

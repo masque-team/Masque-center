@@ -38,7 +38,7 @@
   import { equipPet } from './lib/services/petService';
   import { claimDailyCheckin } from './lib/services/achievementService';
   import { buyGachaBox, buyGachaCoupons, drawGachaBatch, drawGachaBox } from './lib/services/gachaService';
-  import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
+  import { customizeProfile, loadPlayer, savePlayer } from './lib/services/playerService';
   import { buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
   import { beginGame, buyPremium, claimAvailablePass, claimPass, currentSeason, demoNow, finishGame, ledger, processAchievementEvent, progressMissions, recordPlayTime, seedDemoScenario, settleExpiredPasses, validateConfig, claimRankingReward } from './lib/services/demoService';
   import { passProgress } from './lib/services/battlePassService';
@@ -49,16 +49,14 @@
   const initialQuery = new URLSearchParams(window.location.search);
   const resetMockRequested = initialQuery.get('resetMock') === '1';
   const queryName = initialQuery.get('name')?.trim().replace(/\s+/g, ' ').slice(0, 40) || null;
-  const aisPointSeed = parseAisPointSeed(initialQuery.get('aispoint'));
   let player = $state<PlayerState>(loadPlayer(
     queryName,
-    aisPointSeed,
     resetMockRequested,
   ));
   let sessionName = $state(queryName ?? '');
   let hasEntered = $state(!!queryName);
   let mockScores = $derived(player.demo.scores);
-  let CHECKIN_REWARD = $derived(player.demo.config.checkinReward);
+  let CHECKIN_REWARD = $derived(player.demo.config.checkinEnergyReward);
   let page = $state<Page>('home');
   let campaignId = $state('');
   let homeGenre = $state('all');
@@ -177,7 +175,7 @@
     requestAction('Reset Demo?', 'ล้างข้อมูลเดโมทั้งหมดในเครื่อง แล้วคืนค่าตัวอย่างเริ่มต้น', 'ยืนยัน Reset', () => {
       if (gachaTimer) window.clearTimeout(gachaTimer);
       gachaBusy = false;
-      player = { ...loadPlayer(queryName, aisPointSeed, true), displayName: sessionName };
+      player = { ...loadPlayer(queryName, true), displayName: sessionName };
       now = demoNow(player);
       activeSessionId = '';
       navigate('home');
@@ -211,7 +209,7 @@
     persist(next, 'จบเกมจำลอง');
     navigate(session?.mode === 'campaign' && session.campaignId ? `campaign/${session.campaignId}` : `detail/${gameId}`);
     const missionSummary = next.demo.recentMissionEvents?.map((event) => `${event.title} ${event.before}/${event.target} → ${event.after}/${event.target}${event.xp ? ` (+${event.xp} XP)` : ''}`).join(' · ');
-    modal = { kind: 'mission-progress', score, rewardXp: reward.xp, rewardPoints: reward.points, events: next.demo.recentMissionEvents ?? [] };
+    modal = { kind: 'mission-progress', score, rewardXp: reward.xp, events: next.demo.recentMissionEvents ?? [] };
   }
 
   function todayKey(date = new Date(now)): string {
@@ -380,11 +378,6 @@
     const withAchievement = processAchievementEvent(checkedIn, { type: 'daily_checkin' }, at);
     persist(progressMissions(withAchievement, 'checkin', at), 'Daily check-in');
     modal = { kind: 'checkin-success' };
-  }
-
-  function mockAisTopUp(amount: number): void {
-    if (!Number.isSafeInteger(amount) || amount <= 0) return;
-    applyAction({ ...player, aisPoints: player.aisPoints + amount }, `DEMO · เติม AIS Point +${amount}`);
   }
 
   function purchaseBox(kind: GachaKind): void {
@@ -607,7 +600,7 @@
 </script>
 
 {#if !hasEntered}
-  <EntryPage {aisPointSeed} onEnter={enterSession} />
+  <EntryPage onEnter={enterSession} />
 {:else}
 <div class="app-frame" class:world-frame={page === 'world'}>
   {#if page === 'world' || page === 'avatar'}
@@ -675,7 +668,6 @@
             onBuyGachaBox={purchaseBox}
             onOpenGachaBox={openGachaBox}
             onVip={openVipConfirm}
-            onMockAisTopUp={mockAisTopUp}
           />
         {:else if page === 'achievements'}
           <AchievementPage {player} {now} checkinReward={CHECKIN_REWARD} checkinDays={checkinDays} checkedIn={checkedInToday} onCheckin={claimCheckin} onNavigate={navigate} />
@@ -691,7 +683,6 @@
             }}
             onVip={openVipConfirm}
             onPremium={purchasePremiumPass}
-            onAisTopUp={mockAisTopUp}
             onRefill={openRefill}
             onBuyItem={(itemId) => (modal = { kind: 'item-confirm', itemId })}
             onAvatar={chooseAvatar}
@@ -716,7 +707,6 @@
         {:else if page === 'admin'}
           <AdminPage {player} onSave={saveConfig} onReset={resetDemo} onRankingReset={resetRanking} onFinalizeCampaign={closeCampaign}
             onClock={(hours) => { const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + hours * 3_600_000 } }; now = demoNow(next); persist(refreshEnergy(next, now), 'เวลาจำลอง · ฟื้น Energy'); showToast('ปรับเวลาจำลองแล้ว'); }}
-            onSeed={() => applyAction({ ...player, aisPoints: player.aisPoints + 500 }, 'DEMO · เติม AIS Point')}
             onSeedScenario={loadScenario} />
         {:else if page === 'points'}
           <PointShop {player} onBuy={purchasePoints} onBack={returnFromPoints} />

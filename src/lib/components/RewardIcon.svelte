@@ -19,7 +19,7 @@
   let gachaBoxSrc = $derived(type === 'gacha-box' ? (boxKind === 'avatar' ? GACHA_ARTWORK.avatarBox : GACHA_ARTWORK.petBox) : undefined);
   let currencyKind: 'points' | 'aisPoints' | 'arenaTicket' | 'petGachaTicket' | 'energyPotion' | undefined = $derived(
     type === 'points'
-      ? 'aisPoints'
+      ? 'energyPotion'
       : type === 'arena-ticket'
         ? 'arenaTicket'
         : type === 'ticket'

@@ -23,7 +23,8 @@ describe('runtime game catalog', () => {
   });
 
   it('loads added, updated and removed games for existing players without resetting progress', async () => {
-    const player = loadPlayer('Player', 123, true);
+    const player = loadPlayer('Player', true);
+    player.aisPoints = 123;
     player.demo.scores.bird = 42;
     savePlayer(player);
     const fetchCatalog = vi.fn().mockResolvedValue({ ok: true, json: async () => [game, { ...game, id: 'hidden-game', published: false }] });

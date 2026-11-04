@@ -152,7 +152,7 @@
             <div class="grid min-w-0 justify-items-center gap-1 rounded-md border border-white bg-[#f7fbff] p-1.5">
               <RewardIcon type={result.kind} {itemId} size={38} />
               <small class="line-clamp-2 text-[8px] font-semibold">{result.kind === 'energy' ? `Energy +${result.amount}` : item?.name ?? itemId}</small>
-              {#if result.kind !== 'energy'}<span class={['text-[8px] font-bold', result.duplicate ? 'text-amber-700' : 'text-sky-700']}>{result.duplicate ? `ซ้ำ +${result.duplicatePoints ?? player.demo.config.duplicatePoints} AIS Point` : 'NEW'}</span>{/if}
+              {#if result.kind !== 'energy'}<span class={['text-[8px] font-bold', result.duplicate ? 'text-amber-700' : 'text-sky-700']}>{result.duplicate ? `ซ้ำ · Energy +${result.duplicateEnergy ?? player.demo.config.duplicateEnergy}` : 'NEW'}</span>{/if}
             </div>
           {/each}
         </div>
@@ -162,7 +162,7 @@
         <div class="medal green"><Target size={34} /></div>
         <p class="eyebrow">SIMULATED · GAME RESULT</p>
         <h2>เล่นจบแล้ว · {modal.score.toLocaleString()} คะแนน</h2>
-        <p class="summary">+{modal.rewardXp} EXP{modal.rewardPoints ? ` · +${modal.rewardPoints} AIS Point` : ''}</p>
+        <p class="summary">+{modal.rewardXp} EXP</p>
         {#if modal.events.length}
           <section class="mission-events" aria-label="Mission progress after game">
             {#each modal.events as event, index (`${event.title}-${index}`)}
@@ -181,7 +181,7 @@
         <div class="medal green"><Gift size={34} /></div>
         <p class="eyebrow">DAILY CHECK-IN</p>
         <h2>รับรางวัลแล้ว!</h2>
-        <div class="bigreward"><CurrencyIcon kind="aisPoints" size={32} /><b>+{checkinReward}</b><span>AIS Point</span></div>
+        <div class="bigreward"><CurrencyIcon kind="energyPotion" size={32} /><b>+{checkinReward}</b><span>Energy</span></div>
         <p class="summary">กลับมาเช็กอินพรุ่งนี้เพื่อรับรางวัลต่อนะ</p>
         <div class="actions one"><GameButton variant="mint" size="lg" onclick={onClose}><Check size={18} strokeWidth={3.5} />ตกลง</GameButton></div>
 

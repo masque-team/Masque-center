@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './playerService';
+import { customizeProfile, loadPlayer, savePlayer } from './playerService';
 import { energyCapacity, nextRefillIn, refreshEnergy, refillEnergy, spendContinueEnergy, spendGameEnergy } from './energyService';
 import { awardPassXp, beginGame, buyDecor, buyPremium, claimMission, claimPass, claimPassBonus, claimRankingReward, claimWeeklyMission, currentPass, currentSeason, dayKey, finishGame, gameMission, getMissions, hasPassAccess, ledger, nextPassBonus, progressMissions, recordPlayTime, seedDemoScenario, settleExpiredPasses, startBattle, validateConfig, weeklyPassMission } from './demoService';
 import { drawPet } from './petService';
@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 const sample = () => {
-  const player = loadPlayer('Demo', 100, true);
+  const player = loadPlayer('Demo', true);
   player.aisPoints = 1000;
   savePlayer(player);
   return player;
@@ -82,19 +82,20 @@ describe('shared demo economy', () => {
     expect(player.petId).toBe('pudding');
     expect(equipOutfit(player, { avatarId: 'mali', petId: null, wingId: null })?.petId).toBeNull();
   });
-  it('supports name and AIS test query inputs without persisting the login name', () => {
-    expect(parseAisPointSeed('125')).toBe(125);
-    expect(parseAisPointSeed('-1')).toBeNull();
-    expect(loadPlayer('Fresh Player', null, true).aisPoints).toBe(1000);
-    const player = loadPlayer('Demo One', 125, true);
+  it('starts with no generated AIS balance and preserves saved balance without persisting login name', () => {
+    expect(loadPlayer('Fresh Player', true).aisPoints).toBe(0);
+    const player = loadPlayer('Demo One', true);
+    player.aisPoints = 125;
+    savePlayer(player);
     expect(player.displayName).toBe('Demo One');
-    expect(player.aisPoints).toBe(125);
+    expect(loadPlayer('Demo One').aisPoints).toBe(125);
     expect(JSON.parse(localStorage.getItem('masquegame_center_v2')!).displayName).toBe('Guest Player');
     expect(loadPlayer(null).displayName).toBe('Guest Player');
     expect(loadPlayer('Demo Two').displayName).toBe('Demo Two');
   });
   it('adds new Avatar shop variants to saved players without changing their AIS balance', () => {
-    const saved = loadPlayer('Returning Player', 432, true);
+    const saved = loadPlayer('Returning Player', true);
+    saved.aisPoints = 432;
     saved.demo.config.shop = saved.demo.config.shop.filter((item) => !['avatar-nami', 'avatar-mali-festival', 'avatar-mali-ranked'].includes(item.id));
     savePlayer(saved);
     const migrated = loadPlayer('Returning Player');
@@ -165,8 +166,8 @@ describe('shared demo economy', () => {
     const oldSeasonId = currentSeason(player).id;
     const expiredAt = Date.UTC(2026, 10, 1);
     const settled = settleExpiredPasses(player, expiredAt);
-    expect(settled.energy).toBe(player.energy + 2);
-    expect(settled.aisPoints).toBe(player.aisPoints + 25);
+    expect(settled.energy).toBe(player.energy + 3);
+    expect(settled.aisPoints).toBe(player.aisPoints);
     expect(settled.demo.passes[oldSeasonId].premium).toBe(false);
     expect(settled.demo.settledPasses).toContain(oldSeasonId);
     expect(settled.demo.notifications?.[0]).toMatchObject({ id: `pass:${oldSeasonId}`, viewed: false });
@@ -190,6 +191,7 @@ describe('shared demo economy', () => {
     const started = beginCampaignGame(player, 'lantern-festival', 'bird')!;
     const sessionId = started.demo.sessions.at(-1)!.id;
     const finished = finishGame(started, sessionId, 20_000)!;
+    expect(finished.aisPoints).toBe(player.aisPoints);
     expect(finished.demo.scores.bird).toBeUndefined();
     expect(finished.demo.campaignScores?.['lantern-festival']?.bird?.score).toBe(20_000);
     expect(finished.demo.campaignScores?.['lantern-festival']?.memory).toBeUndefined();
@@ -197,6 +199,7 @@ describe('shared demo economy', () => {
     expect(ranking[0]).toMatchObject({ isCurrentPlayer: true, score: 20_000 });
     expect(finalizeCampaign(finished, 'lantern-festival')).toBeNull();
     const settled = finalizeCampaign(finished, 'lantern-festival', true)!;
+    expect(settled.aisPoints).toBe(player.aisPoints);
     expect(settled.energy).toBe(finished.energy + 5);
     expect(finalizeCampaign(settled, 'lantern-festival')).toBeNull();
     expect(settled.demo.notifications?.[0].viewed).toBe(false);
@@ -234,7 +237,8 @@ describe('shared demo economy', () => {
     expect(player.demo.campaignJoinCount).toBe(3);
     expect(player.demo.achievements.filter((badge) => badge.id === 'campaign-joins-3')).toHaveLength(1);
     expect(currentPass(player).xp).toBe(0);
-    expect(player.aisPoints).toBe(1050);
+    expect(player.aisPoints).toBe(sample().aisPoints);
+    expect(player.demo.gachaBoxes?.pet).toBe(1);
     const repeated = beginCampaignGame(player, 'lantern-festival', 'bird')!;
     expect(repeated.aisPoints).toBe(player.aisPoints);
     expect(repeated.demo.achievements.filter((badge) => badge.id === 'campaign-joins-3')).toHaveLength(1);
@@ -324,7 +328,8 @@ describe('shared demo economy', () => {
     const earnedIds = player.demo.achievements.map((badge) => badge.id);
     expect(earnedIds).toEqual(expect.arrayContaining(['games-played-50', 'games-played-100', 'all-game-genres', 'high-score-10000']));
     expect(player.demo.gachaBoxes?.pet).toBe(1);
-    expect(player.aisPoints).toBe(sample().aisPoints + 50);
+    expect(player.aisPoints).toBe(sample().aisPoints);
+    expect(player.energy).toBeGreaterThan(sample().energy);
     const energyAfterUnlocks = player.energy;
     player = { ...player, demo: { ...player.demo, clockOffset: Date.UTC(2026, 10, 2) - Date.now() } };
     const rolled = settleExpiredPasses(player);
@@ -355,7 +360,8 @@ describe('shared demo economy', () => {
     }
     expect(player.demo.achievements.filter((badge) => badge.id === 'checkin-streak-7')).toHaveLength(1);
     expect(currentPass(player).xp).toBe(210);
-    expect(player.energy).toBe(20);
+    expect(player.energy).toBe(sample().energy + 7 * player.demo.config.checkinEnergyReward + 5);
+    expect(player.aisPoints).toBe(sample().aisPoints);
     const repeated = processAchievementEvent(player, { type: 'daily_checkin' }, start + 6 * 86_400_000);
     expect(repeated.energy).toBe(player.energy);
     expect(repeated.demo.achievements.filter((badge) => badge.id === 'checkin-streak-7')).toHaveLength(1);
@@ -364,6 +370,7 @@ describe('shared demo economy', () => {
     const player = sample();
     const premiumScenario = seedDemoScenario(player, 'premium-retro');
     expect(currentPass(premiumScenario)).toMatchObject({ xp: 1000, premium: false });
+    expect(premiumScenario.aisPoints).toBe(player.aisPoints);
     expect(premiumScenario.vipExpiresAt).toBeNull();
     const tie = seedDemoScenario(player, 'ranking-tie');
     expect(getGameRanking('bird', 'allTime', tie, 0).slice(0, 2).map((entry) => entry.displayName)).toEqual(['Aomsin', tie.displayName]);
@@ -382,7 +389,9 @@ describe('shared demo economy', () => {
     expect(currentSeason(rolled).id).not.toBe(oldSeasonId);
     expect(rolled.demo.settledPasses).toContain(oldSeasonId);
     expect(rolled.demo.notifications?.some((item) => item.id === `pass:${oldSeasonId}` && !item.viewed)).toBe(true);
-    expect(seedDemoScenario(player, 'gacha-ready').demo.gachaBoxes?.pet).toBe(1);
+    const gachaReady = seedDemoScenario(player, 'gacha-ready');
+    expect(gachaReady.demo.gachaBoxes?.pet).toBe(1);
+    expect(gachaReady.aisPoints).toBe(player.aisPoints);
   });
   it('regenerates one unit per configured interval without exceeding the free cap', () => {
     const player = sample(); player.energy = 8;
@@ -411,7 +420,8 @@ describe('shared demo economy', () => {
     const result = drawPet(player, () => 0)!;
     expect(result.duplicate).toBe(true);
     expect(result.player.gachaTickets).toBe(0);
-    expect(result.player.aisPoints).toBe(1030);
+    expect(result.player.aisPoints).toBe(player.aisPoints);
+    expect(result.player.energy).toBe(player.energy + player.demo.config.duplicateEnergy);
     expect(result.player.petId).toBeNull();
   });
   it('requires Gacha coupons and grants the 10+1 draw without charging the bonus coupon', () => {
@@ -547,7 +557,8 @@ describe('progression and duplicate protection', () => {
     expect(currentPass(claimed).claims).toHaveLength(20);
     expect(claimAvailablePass(claimed)).toBeNull();
     const duplicate = grantReward(player, { title: 'Pudding', type: 'pet', itemId: 'pudding' });
-    expect(duplicate.aisPoints).toBe(player.aisPoints + player.demo.config.duplicatePoints);
+    expect(duplicate.aisPoints).toBe(player.aisPoints);
+    expect(duplicate.energy).toBe(player.energy + player.demo.config.duplicateEnergy);
     expect(duplicate.ownedPetIds).toEqual(player.ownedPetIds);
   });
   it('rolls over only season progress while retaining VIP time, profile and previous claims', () => {
@@ -645,7 +656,11 @@ describe('progression and duplicate protection', () => {
     const free = passTrack(old, 'free', 'water');
     const vip = passTrack([], 'premium', 'water');
     expect(free).toHaveLength(50); expect(vip).toHaveLength(50);
-    expect(free[0]).toEqual(old[0]); expect(free[49].type).toBe('badge');
+    expect(free[0]).toMatchObject({ title: 'Energy +1', type: 'energy', amount: 1 }); expect(free[49].type).toBe('badge');
+    const legacyGranted = grantReward(player, old[0]);
+    expect(legacyGranted.aisPoints).toBe(player.aisPoints);
+    expect(legacyGranted.energy).toBe(player.energy + 1);
+    expect(legacyGranted.demo.history?.[0].title).toBe('Energy +1');
     const wing = grantReward(player, vip[44]);
     expect(wing.demo.wings).toContain('sunrise-seraph');
     expect(player.demo.wings).toEqual([]);
@@ -693,7 +708,8 @@ describe('progression and duplicate protection', () => {
     const premium = buyPremium(player)!;
     expect(hasPassAccess(premium)).toBe(true);
     const next = claimPass(premium, 'premium', 0)!;
-    expect(next.aisPoints).toBe(premium.aisPoints + 40);
+    expect(next.aisPoints).toBe(premium.aisPoints);
+    expect(next.energy).toBeGreaterThan(premium.energy);
     expect(claimPass(next, 'premium', 0)).toBeNull();
     expect(hasPassAccess({ ...premium, vipExpiresAt: Date.now() - 1 })).toBe(true);
   });
@@ -721,7 +737,8 @@ describe('progression and duplicate protection', () => {
     player = claimMission(player, 'bird')!;
     expect(gameMission(player, 'bird').target).toBe(10);
     expect(currentPass(player).xp).toBe(50);
-    expect(player.aisPoints).toBe(1075);
+    expect(player.aisPoints).toBe(sample().aisPoints);
+    expect(player.energy).toBeGreaterThan(sample().energy);
     player.demo.playCounts.bird = 100;
     for (let index = 0; index < 4; index += 1) player = claimMission(player, 'bird')!;
     expect(gameMission(player, 'bird').target).toBe(150);
@@ -741,6 +758,8 @@ describe('progression and duplicate protection', () => {
   it('keeps lifetime scores after a season reset and guards ranking prizes', () => {
     const player = finishedSample();
     const next = claimRankingReward(player, 'bird')!;
+    expect(next.aisPoints).toBe(player.aisPoints);
+    expect(next.energy).toBe(player.energy + player.demo.config.rankingEnergyPrize);
     expect(claimRankingReward(next, 'bird')).toBeNull();
     next.demo.seasonScores['season-01'] = {};
     expect(getGameRanking('bird', 'allTime', next, 9999).find((row) => row.isCurrentPlayer)?.score).toBe(20000);
@@ -764,7 +783,7 @@ describe('progression and duplicate protection', () => {
     expect(startBattle(entered, 'bird')).toBeNull();
     const session = entered.demo.sessions.at(-1)!;
     const finished = finishGame(entered, session.id, 20000)!;
-    expect(finished.aisPoints).toBe(1090);
+    expect(finished.aisPoints).toBe(entered.aisPoints);
     expect(finished.demo.profileXp).toBe(80);
     expect(finished.demo.achievements.map((badge) => badge.id)).toEqual(['first-finish', 'ranked-debut', 'high-score-10000']);
     expect(finishGame(finished, session.id, 20000)).toBeNull();
@@ -780,7 +799,7 @@ describe('progression and duplicate protection', () => {
     const finished = finishGame(timed, session.id, 20000)!;
     expect(recordPlayTime(finished, session.id, 1000)).toBe(finished);
     expect(finished.demo.playCounts.bird).toBe(1);
-    expect(finished.aisPoints).toBe(1050);
+    expect(finished.aisPoints).toBe(sample().aisPoints);
     expect(finished.demo.profileXp).toBe(40);
   });
   it('saves unlocked profile backgrounds and only owned frames and earned badges', () => {
@@ -801,6 +820,9 @@ describe('progression and duplicate protection', () => {
   it('rejects invalid admin config rather than corrupting live rules', () => {
     const player = sample();
     expect(validateConfig(player.demo.config)).toBeNull();
+    const aisRewardConfig = structuredClone(player.demo.config);
+    aisRewardConfig.seasons[0].free[0] = { title: 'Forbidden AIS reward', type: 'points', amount: 99 };
+    expect(validateConfig(aisRewardConfig)).toContain('AIS Point');
     player.demo.config.regenMinutes = 0;
     expect(validateConfig(player.demo.config)).not.toBeNull();
   });

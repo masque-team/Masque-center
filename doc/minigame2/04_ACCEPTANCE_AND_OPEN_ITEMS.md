@@ -7,17 +7,18 @@
 ### Environment & regression
 - [x] Existing Svelte 5 / Vite / TS / Tailwind 4 app starts and navigates at original base path.
 - [ ] All 7 existing games remain available with unchanged URLs; iframe load/failure/retry/back and Simulate Finish behavior work. URLs/back flow were exercised; remote host gameplay and error/retry integration remain Not Verified.
-- [x] Mock entry `?name=...`, `?aispoint=...` and existing reset pathways still work.
+- [x] Mock entry `?name=...` and existing reset pathways work; fresh/reset state does not create AIS Point and URL parameters cannot seed it.
 - [x] Existing user saves migrate without resetting inventory/claims; added migration test covers old VIP values and legacy Pass ticket rewards.
 - [x] Vease World, Private Room, Battle Arena, old MP exchange/extra offer CTAs are hidden from standard MiniGame2 navigation; direct legacy routes redirect to Home/Shop while legacy code remains.
-- [x] AIS Point display and debit agree in active MiniGame2 purchase flows; MP remains only as hidden legacy save/service compatibility.
+- [x] AIS Point display and debit agree in active MiniGame2 purchase flows; no gameplay reward mints AIS Point, and MP remains only as hidden legacy save/service compatibility.
 
 ### M1 / player foundation
 - [x] Home, Game Hub and compact game cards show properly at 320, 375 and 430px portrait with no horizontal overflow.
 - [x] Category filters work; no Hot category tab; New/Hot/Hit card tags can appear without clutter.
 - [x] Home ordering and metrics use configurable/mock values; mock online/plays are visibly for demo, not live counts.
 - [x] Game detail/pre-game displays game-specific ranking and entry conditions; owned/purchasable cosmetics update local loadout and History without claiming iframe integration.
-- [x] Daily Check-in can be claimed once for demo date, displays streak and grants AIS Point; reload preserves the claimed state.
+- [x] Daily Check-in can be claimed once for demo date, displays streak and grants Energy; reload preserves the claimed state.
+- [x] Check-in, Achievement, High Score, Pass, Campaign, Ranked, Gacha duplicate and other activity rewards never increase AIS Point; they grant Energy, cosmetics or boxes instead.
 - [x] Profile shows identity, Energy, mock AIS Point and selectable appearance/cosmetics.
 - [x] Normal Energy MAX **15**, active VIP MAX **30**, +1 per **30 minutes below active cap**; purchase/reward overflow accepted, no regen at/above cap; no extra refill during overflow.
 - [x] Normal game entry costs 1 Energy (unless VIP); refresh/back preserves the spent balance without a second charge.
@@ -47,7 +48,7 @@
 ### Achievement and Check-in
 - [x] Fifth bottom tab is labeled **Achievement** and opens the Achievement Center; no navbar/Home item exposes Battle Pass EXP missions as a separate main destination.
 - [x] Historical `#missions` route remains a Battle Pass mission subpage reachable from Battle Pass and has a return path; Free/VIP/Premium and Daily/Weekly/Season remain available there.
-- [x] Home and Achievement Check-in show the same claimed state, streak and AIS reward; claiming from either surface cannot award twice that day.
+- [x] Home and Achievement Check-in show the same claimed state, streak and Energy reward; claiming from either surface cannot award twice that day.
 - [x] Lifetime Achievements cover game count, unique genres, normal High Score, check-in streak and Campaign activity; progress survives monthly Pass rollover.
 - [x] Matching event updates both Achievement and Pass mission progress independently; Achievements never add Pass XP, and Pass XP remains once-only.
 - [x] Achievement unlock adds one Badge/reward to the canonical `demo.achievements` collection, History and notification queue; repeating the event does not grant again.
@@ -85,7 +86,7 @@
 | VIP capacity | `vipEnergyBonus: 6`, active VIP capacity 18 | **CONFIRMED latest:** normal 15, active VIP 30; free normal entry only; retain legacy source but enforce demo rules |
 | VIP & premium access | `hasPassAccess() = isVip() || premium` | Premium requires **premiumOwned** independently |
 | VIP plans | 30-day packs keyed by pass level, priced in MP | Independent time offers, immediately active, add remaining duration; exact SKU/price **OPEN** |
-| Currency | `PlayerState.masquePoints`, AIS→MP point pack/exchange flows | Demo: AIS Point only in customer flows; legacy MP values/services remain for compatibility but are hidden and inactive. Production MP policy remains **OPEN** |
+| Currency | `PlayerState.masquePoints`, AIS→MP point pack/exchange flows | Demo: AIS Point is purchase-only and never a gameplay reward; legacy MP values/services remain for compatibility but are hidden and inactive. Production MP policy remains **OPEN** |
 | Pass window | `PASS_RULES.days:30` fixed-epoch cycles | Calendar-month season boundaries |
 | Pass cap/rewards | Bonus levels after 50 grant MP/tickets; hidden Ranked/Gacha ticket items | End at configured MAX; migrate legacy ticket reward rows to usable Gacha Boxes without resetting claims/inventory |
 | Rankings | `RankingPeriod = weekly | allTime`, legacy ranking season/prize MP | Normal all-time; campaign-specific rank/game context, tie earlier first |
@@ -117,7 +118,7 @@
 - Ranking score tie resolved by **earlier score timestamp**.
 - Energy natural cap **15**, +1 per 30 min; purchases/rewards **can exceed cap**.
 - Active VIP Energy MAX **30**; VIP normal-entry exemption only; continue/revive and Campaign Tickets still cost their own admission resource.
-- AIS Point is the only customer-facing currency in the frontend demo; MP conversion, MP prices and MP rewards are hidden. Old MP values remain in saves only.
+- AIS Point is the only customer-facing purchase currency in the frontend demo and is never a gameplay reward; MP conversion, MP prices and MP rewards are hidden. Old MP values remain in saves only.
 - Campaign Ticket purchase packs and countdown/expiry settlement are frontend mock behavior, not a production ticket or payment contract.
 - VIP and Premium Battle Pass **separate entitlements**; VIP purchase adds duration to existing expiry.
 - Battle Pass **monthly season**, retroactive reward access after Premium purchase within same season, manual track claims.
