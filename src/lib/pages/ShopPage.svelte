@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { ShoppingBag, Sparkles, Zap } from '@lucide/svelte';
+  import { Crown, ShoppingBag, Sparkles } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
+  import AvatarFrame from '../components/AvatarFrame.svelte';
   import CurrencyIcon from '../components/CurrencyIcon.svelte';
   import GameButton from '../components/GameButton.svelte';
   import RarityChip from '../components/RarityChip.svelte';
-  import { AVATARS, GACHA_ARTWORK, NAV_ARTWORK, PETS, WINGS } from '../data/config';
+  import { AVATARS, GACHA_ARTWORK, NAV_ARTWORK, PETS, PROFILE_FRAMES, WINGS } from '../data/config';
   import { energyCapacity } from '../services/energyService';
   import type { PlayerState, ShopTab } from '../types';
 
@@ -44,6 +45,7 @@
     player.demo.config.shop
       .filter((item) => category === 'all' || item.kind === category)
       .map((item) => {
+        const frameMeta = item.kind === 'frame' ? PROFILE_FRAMES.find((entry) => entry.id === item.itemId) : undefined;
         const art =
           item.kind === 'avatar'
             ? AVATARS.find((entry) => entry.id === item.itemId)
@@ -61,28 +63,32 @@
                 ? player.demo.wings
                 : player.demo.frames
         ).includes(item.itemId);
-        return { ...item, art, owned };
+        return { ...item, art, frameMeta, owned };
       }),
   );
 </script>
 
 <div class="space-y-4 pb-8 [overflow-anchor:none]">
-  <div class="flex h-15 items-center justify-between rounded-2xl border-2 border-white bg-gradient-to-r from-white/90 via-[#fff8eb]/90 to-[#e8f4ff]/90 px-3.5 shadow-[0_4px_0_#c8d8ec]">
+  <div class="flex min-h-16 items-center justify-between gap-2 rounded-2xl border-2 border-white bg-gradient-to-r from-white/95 via-[#f7fff0]/95 to-[#e8f4ff]/95 px-3.5 py-2 shadow-[0_4px_0_#c8d8ec]">
     <div class="flex items-center gap-2.5">
       <img class="size-11 shrink-0 object-contain drop-shadow-[0_3px_4px_rgba(60,40,120,0.22)]" src={NAV_ARTWORK.shop} alt="" />
       <div>
-        <p class="text-[10px] font-extrabold tracking-wider text-sky-700">AIS POINT · DEMO STORE</p>
-        <h1 class="text-xl font-black leading-tight text-[#2b2468]">Shop ร้านค้าแฟนตาซี</h1>
+        <p class="text-[9.5px] font-black tracking-wider text-[#3d7d00]">REDEEM WITH myAIS POINTS · DEMO</p>
+        <h1 class="text-lg font-black leading-tight text-[#1f305e]">Shop ร้านค้าแลกรางวัล</h1>
+        <small class="block text-[10px] font-bold text-[#526c9c]">AIS Point สะสมจาก myAIS · ไม่ใช่เหรียญที่เกมแจกเอง</small>
       </div>
     </div>
-    <div class="flex items-center gap-1.5 rounded-full border border-amber-200 bg-[#fff9e6] px-2.5 py-1 text-xs font-black text-[#6f4b0c] shadow-xs">
-      <CurrencyIcon kind="aisPoints" size={20} />
-      <span class="tabular-nums">{player.aisPoints.toLocaleString()}</span>
+    <div class="flex flex-col items-end gap-0.5 rounded-2xl border border-[#8cd738] bg-[#f4fce8] px-2.5 py-1 text-right shadow-2xs">
+      <span class="text-[8.5px] font-black text-[#3d7d00]">myAIS POINTS</span>
+      <div class="flex items-center gap-1 text-xs font-black text-[#1f4d00]">
+        <CurrencyIcon kind="aisPoints" size={18} />
+        <span class="tabular-nums">{player.aisPoints.toLocaleString()}</span>
+      </div>
     </div>
   </div>
 
   <div
-    class="sticky top-[74px] z-20 grid grid-cols-4 gap-1 rounded-2xl border-2 border-white bg-[#e8f1ff]/95 p-1.5 shadow-[0_4px_0_#c5d5eb] backdrop-blur-md"
+    class="sticky top-[74px] z-20 grid grid-cols-3 gap-1.5 rounded-2xl border-2 border-white bg-[#e8f1ff]/95 p-1.5 shadow-[0_4px_0_#c5d5eb] backdrop-blur-md"
     role="tablist"
     aria-label="หมวดร้านค้า"
   >
@@ -109,10 +115,35 @@
   <section class="min-h-[calc(100dvh_-_180px)]" aria-label={tab === 'energy' ? 'เติม Energy' : 'สินค้า'}>
     {#if tab === 'vip'}
       <div class="space-y-3">
-        <h2 class="font-black text-[#2b2468]">VIP · เข้าเกมปกติฟรี · Energy MAX 15 → 30</h2>
-        <p class="text-xs text-[#71839a]">Energy cap 30 ระหว่าง VIP · ไม่รวม Continue, Campaign Ticket หรือ Premium Pass · ราคาเป็น AIS Point เดโม</p>
-        {#if vipActive && player.vipExpiresAt}<p class="border-y border-white py-2 text-xs font-bold">ใช้งานถึง {new Date(player.vipExpiresAt).toLocaleString('th-TH')}</p>{/if}
-        {#each player.demo.config.vipPlans as plan (plan.id)}<button class="flex min-h-14 w-full items-center justify-between gap-3 border-b border-white/80 px-2 text-left" aria-label={`${vipActive ? 'ต่ออายุ' : 'ซื้อ'} ${plan.label} · ${plan.cost} AIS Point`} onclick={() => onVip(plan.id)}><span><strong class="block text-sm">{plan.label}</strong><small class="text-xs text-[#71839a]">{plan.durationDays < 1 ? `${Math.round(plan.durationDays * 24)} ชั่วโมง` : `${plan.durationDays} วัน`} · ราคาเดโม</small></span><b class="shrink-0 text-amber-800">{plan.cost} AIS Point</b></button>{/each}
+        <div class="card-gold-25d space-y-1.5 p-4">
+          <div class="flex items-center justify-between">
+            <h2 class="flex items-center gap-1.5 text-sm font-black text-[#593100]">
+              <Crown size={17} fill="currentColor" /> VIP · เข้าเกมปกติฟรี & Energy MAX 30
+            </h2>
+            <CurrencyIcon kind="aisPoints" size={16} showBrandBadge />
+          </div>
+          <p class="text-xs font-bold text-[#784300]">Energy cap เพิ่มเป็น 30 ระหว่าง VIP · ไม่รวม Continue, Campaign Ticket หรือ Premium Pass</p>
+          {#if vipActive && player.vipExpiresAt}
+            <p class="rounded-xl bg-white/80 px-2.5 py-1.5 text-xs font-black text-[#166534]">✓ ใช้งานถึง {new Date(player.vipExpiresAt).toLocaleString('th-TH')}</p>
+          {/if}
+        </div>
+
+        {#each player.demo.config.vipPlans as plan (plan.id)}
+          <button
+            class="card-25d flex min-h-16 w-full items-center justify-between gap-3 p-3.5 text-left transition-transform active:translate-y-0.5"
+            aria-label={`${vipActive ? 'ต่ออายุ' : 'ซื้อ'} ${plan.label} · ${plan.cost} AIS Point`}
+            onclick={() => onVip(plan.id)}
+          >
+            <span>
+              <strong class="block text-sm font-black text-[#1f305e]">{plan.label}</strong>
+              <small class="text-xs font-bold text-[#526c9c]">{plan.durationDays < 1 ? `${Math.round(plan.durationDays * 24)} ชั่วโมง` : `${plan.durationDays} วัน`} · เข้าเกมปกติฟรี · ราคาเดโม</small>
+            </span>
+            <span class="btn-gold-3d inline-flex shrink-0 items-center gap-1.5 px-3 py-2 text-xs">
+              <CurrencyIcon kind="aisPoints" size={16} />
+              {plan.cost} AIS Point
+            </span>
+          </button>
+        {/each}
       </div>
     {:else if tab === 'energy'}
       <div class="space-y-4">
@@ -157,7 +188,7 @@
               <span class="absolute -top-2.5 rounded-full border border-white bg-gradient-to-r from-sky-500 to-indigo-500 px-2.5 py-0.5 text-[9px] font-extrabold text-white">
                 {idx === 0 ? '⚡ แพ็กพกพา' : '🌟 แพ็กสุดคุ้ม'}
               </span>
-              <div class="my-1 grid size-20 place-items-center rounded-2xl border border-white bg- radial from-white to-sky-50">
+              <div class="my-1 grid size-20 place-items-center rounded-2xl border border-white bg-radial from-white to-sky-50">
                 <CurrencyIcon kind="energyPotion" size={idx === 0 ? 58 : 70} />
               </div>
               <strong class="text-2xl font-black text-[#1e4b6e]">+{pack.energy} Energy</strong>
@@ -181,16 +212,20 @@
     {:else}
       <div class="space-y-4">
         <section class="space-y-2" aria-label="กล่องสุ่ม Gacha">
-          <h2 class="text-sm font-black text-[#2b2468]">Gacha Boxes · ซื้อแล้วสุ่มจากกล่อง</h2>
+          <h2 class="text-sm font-black text-[#2b2468]">Gacha Boxes · แลกกล่องสุ่มด้วย AIS Point</h2>
           <div class="grid grid-cols-2 gap-3">
-            {#each [{ kind: 'pet' as const, label: 'Pet Box' }, { kind: 'avatar' as const, label: 'Avatar Box' }] as box (box.kind)}
+            {#each [{ kind: 'pet' as const, label: 'Pet Box', art: GACHA_ARTWORK.petBox }, { kind: 'avatar' as const, label: 'Avatar Box', art: GACHA_ARTWORK.avatarBox }] as box (box.kind)}
               {@const ownedBoxes = player.demo.gachaBoxes?.[box.kind] ?? 0}
               <article class="grid min-w-0 justify-items-center gap-2 rounded-2xl border-2 border-white bg-gradient-to-b from-white to-[#eef7ff] p-3 text-center shadow-[0_5px_0_#c4d9eb]">
-                <img class="h-16 w-16 object-contain" src={GACHA_ARTWORK.capsule ?? 'assets/gacha/gacha-capsule.png'} alt="" />
+                <img class="h-16 w-16 object-contain drop-shadow-xs" src={box.art ?? GACHA_ARTWORK.capsule ?? 'assets/gacha/gacha-capsule.png'} alt="" />
                 <strong class="text-sm font-black text-[#29436b]">{box.label}</strong>
-                <span class="text-[10px] text-slate-600">ในกระเป๋า {ownedBoxes} กล่อง · {gachaCost} AIS Point/กล่อง</span>
-                <GameButton block size="sm" variant="gold" disabled={player.aisPoints < gachaCost} onclick={() => onBuyGachaBox(box.kind)}><CurrencyIcon kind="aisPoints" size={15} />ซื้อกล่อง</GameButton>
-                <GameButton block size="sm" variant="purple" disabled={ownedBoxes < 1} onclick={() => onOpenGachaBox(box.kind)}>สุ่มจากกล่อง</GameButton>
+                <span class="text-[10px] font-bold text-slate-600">ในกระเป๋า {ownedBoxes} กล่อง · {gachaCost} AIS Point/กล่อง</span>
+                <GameButton block size="sm" variant="gold" disabled={player.aisPoints < gachaCost} onclick={() => onBuyGachaBox(box.kind)}>
+                  <CurrencyIcon kind="aisPoints" size={15} /> ซื้อกล่อง
+                </GameButton>
+                <GameButton block size="sm" variant="purple" disabled={ownedBoxes < 1} onclick={() => onOpenGachaBox(box.kind)}>
+                  สุ่มจากกล่อง ({ownedBoxes})
+                </GameButton>
               </article>
             {/each}
           </div>
@@ -199,13 +234,13 @@
         <!-- Category Filter Pills -->
         <div class="flex items-center justify-between pt-1">
           <h2 class="flex items-center gap-1.5 text-sm font-black text-[#2b2468]">
-            <ShoppingBag size={16} class="text-sky-600" />คอลเลกชันแฟชั่น & สัตว์เลี้ยง
+            <ShoppingBag size={16} class="text-sky-600" />คอลเลกชันแฟชั่น, กรอบรูป & สัตว์เลี้ยง
           </h2>
           <span class="text-[10px] font-bold text-[#71839a]">{products.length} รายการ</span>
         </div>
 
         <div class="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="ประเภทสินค้า">
-          {#each [{ id: 'all', label: 'ทั้งหมด' }, { id: 'avatar', label: 'Avatar' }, { id: 'pet', label: 'Pet' }, { id: 'wing', label: 'ปีก' }, { id: 'frame', label: 'กรอบ' }] as item (item.id)}
+          {#each [{ id: 'all', label: 'ทั้งหมด' }, { id: 'frame', label: 'กรอบรูปสะสม' }, { id: 'avatar', label: 'Avatar' }, { id: 'pet', label: 'Pet' }, { id: 'wing', label: 'ปีก' }] as item (item.id)}
             <button
               class={[
                 'min-h-9 shrink-0 rounded-full border-2 px-3.5 text-xs font-extrabold transition-all',
@@ -229,21 +264,22 @@
               <article class="grid min-w-0 content-start gap-2 rounded-2xl border-2 border-white bg-gradient-to-b from-white via-[#fbfdff] to-[#eef5ff] p-3 shadow-[0_5px_0_#c9d9eb]">
                 <div
                   class="relative grid h-30 w-full place-items-center overflow-hidden rounded-xl border border-white bg-gradient-to-b from-[#e8f5ff] via-[#f7f4ff] to-[#fff5e4] p-1.5"
-                  data-frame={item.kind === 'frame' ? item.itemId : undefined}
                 >
                   {#if item.kind === 'wing'}
                     <img class="h-full w-full object-contain drop-shadow-[0_4px_6px_rgba(60,40,120,0.2)]" src={item.art.imagePath} alt={item.art.name} />
+                  {:else if item.kind === 'frame'}
+                    <AvatarFrame avatarId={player.avatarId} frameId={item.itemId} size="lg" />
                   {:else}
                     <AssetPortrait src={item.art.imagePath} alt={item.art.name} placeholder="*" kind={item.kind === 'pet' ? 'pet' : 'avatar'} />
                   {/if}
                 </div>
                 <div class="flex items-start justify-between gap-1">
                   <h3 class="truncate text-sm font-black text-[#2b2468]">
-                    {item.kind === 'frame' ? `กรอบ ${item.itemId}` : item.art.name}
+                    {item.kind === 'frame' ? (item.frameMeta?.name ?? `กรอบ ${item.itemId}`) : item.art.name}
                   </h3>
-                  <RarityChip rarity={item.kind === 'frame' ? 'Rare' : item.art.rarity} />
+                  <RarityChip rarity={item.kind === 'frame' ? (item.frameMeta?.rarity ?? 'Rare') : item.art.rarity} />
                 </div>
-                <span class="inline-flex items-center gap-1.5 text-xs font-black text-[#7c5310]">
+                <span class="inline-flex items-center gap-1.5 text-xs font-black text-[#245900]">
                   <CurrencyIcon kind="aisPoints" size={17} />
                   {item.cost.toLocaleString()} AIS Point
                 </span>

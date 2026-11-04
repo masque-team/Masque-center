@@ -5,11 +5,10 @@
   import RewardIcon from './RewardIcon.svelte';
   import PassArtwork from './PassArtwork.svelte';
   import { passBenefitMilestones, vipOffer } from '../services/passService';
-  import { PASS_RULES } from '../services/battlePassService';
   import { currentSeason, hasPassAccess } from '../services/demoService';
   import type { PlayerState } from '../types';
 
-  let { player, packageId, now, onSelect, onConfirm, onTopUp, onClose }: {
+  let { player, packageId, now, onSelect, onConfirm, onTopUp: _onTopUp, onClose }: {
     player: PlayerState; packageId: string; now: number;
     onSelect: (id: string) => void; onConfirm: () => void; onTopUp: () => void; onClose: () => void;
   } = $props();
@@ -23,17 +22,10 @@
   let season = $derived(currentSeason(player, now));
   let existingTrack = $derived(hasPassAccess(player, now));
   let milestones = $derived(passBenefitMilestones(player, now));
-  let levelThirty = $derived(milestones.find((item) => item.level === 30));
   let pending = $derived(offer ? season.premium.slice(0, Math.min(50, offer.levelAfter)).map((reward, index) => ({ reward, index })).filter((item) => !player.demo.passes[season.id]?.claims.includes(`premium-${item.index}`)) : []);
   let pendingEnergy = $derived(pending.filter((item) => item.reward.type === 'energy').reduce((total, item) => total + (item.reward.amount ?? 0), 0));
   let pendingTickets = $derived(pending.filter((item) => item.reward.type === 'ticket').reduce((total, item) => total + (item.reward.amount ?? 0), 0));
   let highlights = $derived(pending.filter((item) => ['avatar', 'pet', 'wing', 'frame', 'background'].includes(item.reward.type)).slice(-4));
-  let plan = $derived(player.demo.config.vipPlans[0]);
-  let allOffers = $derived(player.demo.config.vipPlans.map((item) => ({ plan: item, offer: vipOffer(player, item.id, now) })).filter((entry) => entry.offer && entry.offer.eligible));
-  let upgrades = $derived(player.demo.config.vipPlans.filter((item) => {
-    const candidate = vipOffer(player, item.id, now);
-    return candidate?.active && candidate.boosted && candidate.eligible;
-  }));
 
   function durationLabel(days: number): string {
     return days < 1 ? `${Math.round(days * 24)} ชั่วโมง` : days === 1 ? '1 วัน' : `${days} วัน`;
@@ -102,7 +94,7 @@
                 {candidate.active ? `เพิ่มเวลา ${durationLabel(candidate.plan.durationDays)}` : `ใช้งาน ${durationLabel(candidate.plan.durationDays)}`}
               </span>
               <span class="mt-2 flex w-full items-center justify-between border-t border-amber-200/70 pt-1.5">
-                <strong class="inline-flex items-center gap-1 text-[11px] font-black tabular-nums text-[#6d4200]">
+                <strong class="inline-flex items-center gap-1 text-[11px] font-black tabular-nums text-[#245900]">
                   <CurrencyIcon kind="aisPoints" size={13} />
                   {candidate.cost.toLocaleString()}
                 </strong>
@@ -149,14 +141,13 @@
       <p class="flex items-center gap-2"><Clock3 size={15} class="shrink-0 text-sky-600" />หมดอายุ {new Date(offer.expiresAt).toLocaleString('th-TH')}</p>
     </div>
 
-    <!-- Instant Unlock Rewards Preview -->
     {#if false}
       <section class="space-y-2 rounded-2xl border-2 border-amber-200 bg-gradient-to-b from-[#fffdf4] to-[#fff3cc] p-3" aria-label="รางวัลที่ปลดล็อกหลังซื้อ">
         <div class="flex items-center justify-between">
           <h3 class="flex items-center gap-1 text-xs font-black text-[#7a4b00]">
             <Sparkles size={13} class="text-amber-500" />ปลดล็อกทันที {pending.length} ขั้น VIP ให้กดรับ!
           </h3>
-            <span class="rounded-full bg-amber-400/25 px-2 py-0.5 text-[9px] font-black text-[#855200]">ถึง LV.{Math.min(50, offer?.levelAfter ?? 0)}</span>
+          <span class="rounded-full bg-amber-400/25 px-2 py-0.5 text-[9px] font-black text-[#855200]">ถึง LV.{Math.min(50, offer?.levelAfter ?? 0)}</span>
         </div>
         <div class="flex flex-wrap gap-2 text-[11px] font-black">
           {#if pendingEnergy > 0}
@@ -180,26 +171,15 @@
             {/each}
           </div>
         {/if}
-        <p class="text-[9px] font-semibold leading-relaxed text-[#947b4f]">* กดรับรางวัลที่ปลดล็อกได้ในหน้า Pass · ของซ้ำชดเชยเป็น Energy</p>
       </section>
-    {/if}
-
-    {#if false}
       <details class="rounded-xl border border-[#e5ebf2] bg-white/70 px-3 py-2">
         <summary class="flex min-h-8 cursor-pointer items-center justify-between text-xs font-extrabold text-[#4b5e78]">
-          ตารางรางวัล Energy สะสมตามเลเวล<ChevronDown size={15} />
+          {existingTrack ? 'ตารางรางวัล' : 'ตารางรางวัล Energy'}<ChevronDown size={15} />
         </summary>
         <table class="mt-2 w-full text-center text-[10px]">
-          <thead class="text-[#8795a8]">
-            <tr><th class="py-1.5 font-bold">ถึง LV.</th><th class="font-bold">ฟรีสะสม</th><th class="font-bold text-amber-700">VIP เพิ่มอีก</th></tr>
-          </thead>
           <tbody>
             {#each milestones as row (row.level)}
-              <tr class="border-t border-[#edf0f5]">
-                <th class="py-1.5 font-extrabold">{row.level}</th>
-                <td>{row.freeEnergy}</td>
-                <td class="font-extrabold text-amber-700">+{row.vipEnergy}</td>
-              </tr>
+              <tr><th>{row.level}</th><td>{row.freeEnergy}</td><td>+{row.vipEnergy}</td></tr>
             {/each}
           </tbody>
         </table>
@@ -209,18 +189,18 @@
     <!-- Sticky Purchase Footer -->
     <footer class="sticky bottom-0 space-y-2 border-t-2 border-white bg-[#fcfbff]/95 pt-3 pb-1 backdrop-blur-md">
       {#if offer}
-        <div class="flex items-center justify-between gap-2 rounded-xl bg-[#f5f0ff] px-3 py-2">
+        <div class="flex items-center justify-between gap-2 rounded-xl bg-[#f4fce8] border border-[#b9e682] px-3 py-2">
           <div class="flex items-center gap-1.5">
             <CurrencyIcon kind="aisPoints" size={22} />
-            <strong class="text-lg font-black tabular-nums text-[#4b2e83]">{offer.cost.toLocaleString()} <span class="text-xs">AIS Point</span></strong>
+            <strong class="text-lg font-black tabular-nums text-[#245900]">{offer.cost.toLocaleString()} <span class="text-xs">AIS Point</span></strong>
           </div>
-          <span class="text-right text-[10px] font-extrabold tabular-nums text-[#6e7f96]">
-            ยอดของคุณ: <b class="text-[#352b73]">{player.aisPoints.toLocaleString()} AIS Point</b>
+          <span class="text-right text-[10px] font-extrabold tabular-nums text-[#4b6b2c]">
+            ยอด myAIS: <b class="text-[#1f4d00]">{player.aisPoints.toLocaleString()} AIS Point</b>
           </span>
         </div>
         {#if short > 0}
-          <p class="flex items-center gap-1 text-[10px] font-extrabold text-rose-600" role="status">
-            <TriangleAlert size={13} />AIS Point ไม่พอ ขาดอีก {short.toLocaleString()}
+          <p class="flex items-center gap-1 text-[10.5px] font-extrabold text-rose-600" role="status">
+            <TriangleAlert size={13} />AIS Point สะสมจาก myAIS ไม่พอ ขาดอีก {short.toLocaleString()} คะแนน
           </p>
         {/if}
         <div class="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-2">
@@ -236,11 +216,6 @@
             {offer.active ? `ต่อ VIP +${durationLabel(offer.plan.durationDays)}` : `ซื้อ VIP ${durationLabel(offer.plan.durationDays)}`}
           </GameButton>
         </div>
-        {#if short > 0}
-          <GameButton block size="sm" variant="mint" onclick={onTopUp}>
-            <CurrencyIcon kind="aisPoints" size={15} />เติม AIS Point
-          </GameButton>
-        {/if}
       {/if}
     </footer>
   </section>

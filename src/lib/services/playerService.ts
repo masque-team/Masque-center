@@ -1,5 +1,5 @@
 import type { PlayerState } from '../types';
-import { ENERGY_CONFIG, PLAYER_MOCK_CONFIG, PROFILE_BACKGROUNDS, SHOP_ITEMS, VIP_PACKAGES, WINGS } from '../data/config';
+import { ENERGY_CONFIG, PLAYER_MOCK_CONFIG, PROFILE_BACKGROUNDS, PROFILE_FRAMES, SHOP_ITEMS, VIP_PACKAGES, WINGS } from '../data/config';
 import type { ProfileStyle } from '../types';
 import { createDemo, currentSeason, dayKey, settleExpiredPasses } from './demoService';
 import { PASS_RULES, passTrack } from './battlePassService';
@@ -148,6 +148,9 @@ export function loadPlayer(queryName: string | null, resetMock = false): PlayerS
   if (!result.demo.wings.includes(result.demo.wingId ?? '') || !WINGS.some((wing) => wing.id === result.demo.wingId)) result.demo.wingId = null;
   for (const wing of WINGS) {
     if (!result.demo.config.shop.some((item) => item.kind === 'wing' && item.itemId === wing.id)) result.demo.config.shop.push({ id: `wing-${wing.id}`, kind: 'wing', itemId: wing.id, cost: wing.cost });
+  }
+  for (const frame of PROFILE_FRAMES) {
+    if (!result.demo.config.shop.some((item) => item.kind === 'frame' && item.itemId === frame.id)) result.demo.config.shop.push({ id: `frame-${frame.id}`, kind: 'frame', itemId: frame.id, cost: frame.cost });
   }
   for (const item of SHOP_ITEMS) {
     if (!result.demo.config.shop.some((existing) => existing.id === item.id)) result.demo.config.shop.push({ ...item });

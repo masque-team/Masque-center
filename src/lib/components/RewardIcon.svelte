@@ -2,7 +2,7 @@
   import { Award, Coins, Frame, Gift, Image as ImageIcon, Swords, Ticket, Zap } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
   import CurrencyIcon from './CurrencyIcon.svelte';
-  import { AVATARS, BADGE_ARTWORK, GACHA_ARTWORK, PETS, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
+  import { AVATARS, BADGE_ARTWORK, GACHA_ARTWORK, PETS, PROFILE_BACKGROUNDS, PROFILE_FRAMES, WINGS } from '../data/config';
   import type { DemoReward } from '../types';
 
   let { type, itemId, boxKind, size = 52 }: {
@@ -15,6 +15,7 @@
   let avatar = $derived(type === 'avatar' ? AVATARS.find((item) => item.id === itemId) : undefined);
   let pet = $derived(type === 'pet' ? PETS.find((item) => item.id === itemId) : undefined);
   let wing = $derived(type === 'wing' ? WINGS.find((item) => item.id === itemId) : undefined);
+  let frame = $derived(type === 'frame' ? (PROFILE_FRAMES.find((item) => item.id === itemId) ?? PROFILE_FRAMES[0]) : undefined);
   let background = $derived(type === 'background' ? PROFILE_BACKGROUNDS.find((item) => item.id === itemId) : undefined);
   let gachaBoxSrc = $derived(type === 'gacha-box' ? (boxKind === 'avatar' ? GACHA_ARTWORK.avatarBox : GACHA_ARTWORK.petBox) : undefined);
   let currencyKind: 'points' | 'aisPoints' | 'arenaTicket' | 'petGachaTicket' | 'energyPotion' | undefined = $derived(
@@ -37,6 +38,7 @@
   {:else if pet}
     <AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" className="icon-art" style={`--pet-color:${pet.color}`} />
   {:else if wing}<img class="h-full w-full object-contain" src={wing.imagePath} alt={wing.name} />
+  {:else if frame}<img class="h-full w-full object-contain p-0.5" src={frame.imagePath} alt={frame.name} />
   {:else if background}<img class="h-full w-full object-cover" src={background.imagePath} alt={background.name} />
   {:else if gachaBoxSrc}<img class="h-full w-full object-contain p-0.5" src={gachaBoxSrc} alt="" />
   {:else if badgeArtwork}<img class="h-full w-full object-contain p-0.5" src={badgeArtwork} alt="" />
@@ -57,7 +59,7 @@
   .points { color: #7a4a00; background: linear-gradient(160deg, #fff8dc, #ffd875); }
   .ticket { background: linear-gradient(160deg, #e7f6ff, #a9d9ff); }
   .avatar, .pet { background: linear-gradient(160deg, #efe8ff, #cdbdf7); }
-  .wing, .frame, .background, .badge, .arena-ticket, .gacha-box { color: #947123; background: #fff1c7; }
+  .wing, .frame, .background, .badge, .arena-ticket, .gacha-box { color: #947123; background: linear-gradient(160deg, #fff9e6, #ffe8aa); }
   .icon :global(.icon-art) { width: 100%; height: 100%; background: transparent; }
   .icon :global(.avatar-art img) { object-fit: cover; object-position: 50% 8%; }
 </style>

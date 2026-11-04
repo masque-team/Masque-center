@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Clock3, Coins, FlaskConical, RotateCcw, Save, Settings2, Sparkles, Trophy, CalendarClock } from '@lucide/svelte';
+  import { Clock3, FlaskConical, RotateCcw, Save, Settings2, Sparkles, Trophy, CalendarClock } from '@lucide/svelte';
   import GameButton from '../components/GameButton.svelte';
   import PageTitle from '../components/PageTitle.svelte';
   import { createDemo } from '../services/demoService';
-  import { AVATARS, PETS, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
+  import { AVATARS, PETS, PROFILE_BACKGROUNDS, PROFILE_FRAMES, WINGS } from '../data/config';
   import { getCampaignStatus } from '../services/campaignService';
   import type { DemoConfig, DemoReward, DemoScenario, PlayerState } from '../types';
   let { player, onSave, onReset, onClock, onRankingReset, onFinalizeCampaign, onSeedScenario }: {
@@ -31,7 +31,7 @@
     if (type === 'wing') return WINGS;
     if (type === 'background') return PROFILE_BACKGROUNDS;
     if (type === 'badge') return [{ id: 'season-explorer', name: 'Season Explorer' }];
-    return [{ id: 'ocean', name: 'Ocean' }, { id: 'sunrise', name: 'Sunrise' }];
+    return PROFILE_FRAMES;
   }
 
   function addProduct() {

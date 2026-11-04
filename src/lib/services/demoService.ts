@@ -1,4 +1,4 @@
-import { AVATARS, BATTLE_PASS, ENERGY_CONFIG, PETS, PROFILE_BACKGROUNDS, SHOP_ITEMS, VIP_PACKAGES, WINGS } from '../data/config';
+import { AVATARS, BATTLE_PASS, ENERGY_CONFIG, PETS, PROFILE_BACKGROUNDS, PROFILE_FRAMES, SHOP_ITEMS, VIP_PACKAGES, WINGS } from '../data/config';
 import { PASS_RULES, passTrack, passWindow } from './battlePassService';
 import { GAMES } from '../data/games';
 import { CAMPAIGNS } from '../data/campaigns';
@@ -26,14 +26,14 @@ export function createDemo(): DemoState {
       energyMax: 15, regenMinutes: 30, energyCost: 1, exchangeRate: 10, checkinEnergyReward: 3,
       missionTarget: 1, missionXp: 100, premiumPrice: 200, gachaCost: 90, duplicateEnergy: 1,
       gachaPool: PETS.map((pet) => ({ petId: pet.id, weight: pet.rarity === 'Legendary' ? 2 : pet.rarity === 'Epic' ? 8 : 20 })),
-        games: GAMES.map((game) => ({ ...game, published: game.published ?? true })), vipPlans: structuredClone(VIP_PACKAGES), vipFreeEntry: true, vipEnergyBonus: 15, continueEnergyCost: 1,
+      games: GAMES.map((game) => ({ ...game, published: game.published ?? true })), vipPlans: structuredClone(VIP_PACKAGES), vipFreeEntry: true, vipEnergyBonus: 15, continueEnergyCost: 1,
       energyPacks: ENERGY_CONFIG.refillPacks.map((pack) => ({ ...pack })),
       campaigns: structuredClone(CAMPAIGNS),
       campaignTicketPacks: [
         { id: 'campaign-ticket-5', label: '5 Campaign Tickets', quantity: 5, cost: 100 },
         { id: 'campaign-ticket-12', label: '12 Campaign Tickets', quantity: 12, cost: 200 },
       ],
-      shop: [...SHOP_ITEMS.map((item) => ({ ...item })), ...WINGS.map((wing) => ({ id: `wing-${wing.id}`, kind: 'wing' as const, itemId: wing.id, cost: wing.cost })), { id: 'frame-sunrise', kind: 'frame', itemId: 'sunrise', cost: 80 }, { id: 'frame-ocean', kind: 'frame', itemId: 'ocean', cost: 80 }],
+      shop: [...SHOP_ITEMS.map((item) => ({ ...item })), ...WINGS.map((wing) => ({ id: `wing-${wing.id}`, kind: 'wing' as const, itemId: wing.id, cost: wing.cost })), ...PROFILE_FRAMES.map((frame) => ({ id: `frame-${frame.id}`, kind: 'frame' as const, itemId: frame.id, cost: frame.cost }))],
       seasons: [
         { id: 'songkran', name: 'Songkran Splash', theme: 'water', starts: '2026-04-01', ends: '2026-04-30', free: structuredClone(BATTLE_PASS.freeRewards) as DemoReward[], premium: structuredClone(BATTLE_PASS.vipRewards) as DemoReward[] },
         { id: 'loy-krathong', name: 'Loy Krathong Lights', theme: 'lantern', starts: '2026-11-01', ends: '2026-11-30', free: [{ title: 'Energy +2', type: 'energy', amount: 2 }, { title: 'Energy +3', type: 'energy', amount: 3 }, { title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' }, { title: 'Avatar: Aqua', type: 'avatar', itemId: 'aqua' }, { title: 'Energy +4', type: 'energy', amount: 4 }], premium: [{ title: 'Energy +3', type: 'energy', amount: 3 }, { title: 'Pet: Mooncat', type: 'pet', itemId: 'mooncat' }, { title: 'Energy +8', type: 'energy', amount: 8 }, { title: 'Avatar: Luna', type: 'avatar', itemId: 'luna' }, { title: 'Pet Gacha Box x2', type: 'gacha-box', amount: 2, boxKind: 'pet' }] },
@@ -116,7 +116,7 @@ export function validateConfig(config: DemoConfig): string | null {
       if (reward.type === 'avatar' || reward.type === 'pet') {
         if (!(reward.type === 'avatar' ? AVATARS : PETS).some((item) => item.id === reward.itemId)) return 'กรุณาเลือก Item ของรางวัล';
       } else if (['wing', 'frame', 'background', 'badge'].includes(reward.type)) {
-        const valid = reward.type === 'wing' ? WINGS.some((item) => item.id === reward.itemId) : reward.type === 'frame' ? ['ocean', 'sunrise'].includes(reward.itemId ?? '') : reward.type === 'background' ? PROFILE_BACKGROUNDS.some((item) => item.id === reward.itemId) : reward.itemId === 'season-explorer';
+        const valid = reward.type === 'wing' ? WINGS.some((item) => item.id === reward.itemId) : reward.type === 'frame' ? PROFILE_FRAMES.some((item) => item.id === reward.itemId) : reward.type === 'background' ? PROFILE_BACKGROUNDS.some((item) => item.id === reward.itemId) : reward.itemId === 'season-explorer';
         if (!valid) return 'Item ของรางวัลไม่ถูกต้อง';
       } else if (reward.type === 'gacha-box') {
         if (!Number.isSafeInteger(reward.amount) || (reward.amount ?? 0) < 1 || !['avatar', 'pet'].includes(reward.boxKind ?? '')) return 'กรุณาตรวจสอบชนิดและจำนวน Gacha Box';
@@ -275,7 +275,7 @@ export function grantReward(player: PlayerState, reward: DemoReward): PlayerStat
     next.demo = { ...next.demo, gachaBoxes: { ...next.demo.gachaBoxes, [kind]: (next.demo.gachaBoxes?.[kind] ?? 0) + (reward.amount ?? 1) } };
   }
   if (reward.type === 'wing' && WINGS.some((item) => item.id === reward.itemId)) next.demo = { ...next.demo, wings: [...new Set([...next.demo.wings, reward.itemId!])] };
-  if (reward.type === 'frame' && ['ocean', 'sunrise'].includes(reward.itemId ?? '')) next.demo = { ...next.demo, frames: [...new Set([...next.demo.frames, reward.itemId!])] };
+  if (reward.type === 'frame' && PROFILE_FRAMES.some((item) => item.id === reward.itemId)) next.demo = { ...next.demo, frames: [...new Set([...next.demo.frames, reward.itemId!])] };
   if (reward.type === 'background' && PROFILE_BACKGROUNDS.some((item) => item.id === reward.itemId)) next.demo = { ...next.demo, backgrounds: [...new Set([...(next.demo.backgrounds ?? ['canal-day']), reward.itemId!])] };
   if (reward.type === 'badge' && reward.itemId === 'season-explorer') {
     const season = currentSeason(player);

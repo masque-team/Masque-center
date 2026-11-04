@@ -100,7 +100,18 @@ export const CAMPAIGN_ARTWORK: Record<string, string> = {
   'lantern-festival': 'assets/campaigns/lantern-festival.webp',
   'starlight-sprint': 'assets/campaigns/starlight-sprint.webp',
   'loy-krathong-external': 'assets/campaigns/loy-krathong.webp',
+  'new-year-festival': 'assets/campaigns/new-year-festival.webp',
 };
+
+export const PROFILE_FRAMES = [
+  { id: 'meadow', name: 'Meadow Sprout', rarity: 'Common', theme: 'Nature Breeze', imagePath: 'assets/frames/frame-meadow.webp', cost: 50, color: '#68c964', source: 'Shop / Achievement' },
+  { id: 'ocean', name: 'Ocean Tide', rarity: 'Rare', theme: 'Aqua Kingdom', imagePath: 'assets/frames/frame-ocean.webp', cost: 80, color: '#38bdf8', source: 'Battle Pass / Shop' },
+  { id: 'sunrise', name: 'Sunrise Royal', rarity: 'Epic', theme: 'Solar Aurelia', imagePath: 'assets/frames/frame-sunrise.webp', cost: 80, color: '#f59e0b', source: 'Campaign / Shop' },
+  { id: 'celestial', name: 'Celestial Sovereign', rarity: 'Legendary', theme: 'Astral Crown', imagePath: 'assets/frames/frame-celestial.webp', cost: 220, color: '#fbbf24', source: 'Top 1 Ranking / Shop' },
+  { id: 'krathong', name: 'Lotus Festival', rarity: 'Seasonal', theme: 'Loy Krathong Event', imagePath: 'assets/frames/frame-krathong.webp', cost: 160, color: '#f43f5e', source: 'Seasonal Event / Shop' },
+] as const;
+
+export type ProfileFrameId = (typeof PROFILE_FRAMES)[number]['id'];
 
 export const PROFILE_BACKGROUNDS = [
   { id: 'canal-day', name: 'Canal Day', imagePath: 'assets/profile/canal-day.png' },
@@ -130,6 +141,13 @@ export const BADGE_ARTWORK: Record<string, string> = {
   'ranked-debut': 'assets/badges/ranked-debut.png',
   explorer: 'assets/badges/explorer.png',
   'frequent-player': 'assets/badges/frequent-player.png',
+  'games-played-50': 'assets/badges/games-played-50.png',
+  'games-played-100': 'assets/badges/games-played-100.png',
+  'checkin-streak-7': 'assets/badges/checkin-streak-7.png',
+  'all-game-genres': 'assets/badges/all-game-genres.png',
+  'high-score-10000': 'assets/badges/high-score-10000.png',
+  'campaign-joins-3': 'assets/badges/campaign-joins-3.png',
+  'campaign-completed-1': 'assets/badges/campaign-completed-1.png',
   'season-explorer': 'assets/badges/explorer.png',
   'season-top-1': 'assets/badges/season-top-1.png',
   'season-top-2': 'assets/badges/season-top-2.png',

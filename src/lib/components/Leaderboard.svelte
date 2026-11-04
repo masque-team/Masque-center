@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Info, Trophy } from '@lucide/svelte';
-  import AssetPortrait from './AssetPortrait.svelte';
-  import { AVATARS } from '../data/config';
+  import AvatarFrame from './AvatarFrame.svelte';
+  import { AVATARS, PROFILE_FRAMES } from '../data/config';
   import { getGameRanking } from '../services/rankingService';
   import type { GameId, PlayerState, RankingEntry, RankingPeriod } from '../types';
 
@@ -17,7 +17,11 @@
   let rows = $derived(getGameRanking(gameId, period, player, currentScore));
   let me = $derived(rows.findIndex((entry) => entry.isCurrentPlayer));
   let podium = $derived(rows.slice(0, 3));
-  let list = $derived(view === 'top' ? rows.slice(3, 10).map((entry, index) => ({ entry, rank: index + 4 })) : rows.slice(Math.max(0, me - 2), me + 3).map((entry, index) => ({ entry, rank: Math.max(0, me - 2) + index + 1 })));
+  let list = $derived(
+    view === 'top'
+      ? rows.slice(3, 10).map((entry, index) => ({ entry, rank: index + 4 }))
+      : rows.slice(Math.max(0, me - 2), me + 3).map((entry, index) => ({ entry, rank: Math.max(0, me - 2) + index + 1 }))
+  );
   let games = $derived(player.demo.config.games.filter((game) => game.published !== false));
   let activeGame = $derived(games.find((game) => game.id === gameId) ?? games[0]);
 
@@ -26,36 +30,59 @@
     const seed = [...entry.playerId].reduce((sum, char) => sum + char.charCodeAt(0), 0);
     return AVATARS[seed % AVATARS.length];
   }
+
+  function frameFor(entry: RankingEntry, rank: number): string | null {
+    if (entry.isCurrentPlayer) return player.demo.frameId;
+    if (rank === 1) return 'celestial';
+    if (rank === 2) return 'sunrise';
+    if (rank === 3) return 'krathong';
+    const seed = [...entry.playerId].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    return seed % 2 === 0 ? 'ocean' : 'meadow';
+  }
+
+  function frameMeta(frameId: string | null) {
+    return frameId ? PROFILE_FRAMES.find((f) => f.id === frameId) ?? null : null;
+  }
 </script>
 
 <div class="rank">
   {#if !fixedGame}
-  <div class="games" role="tablist" aria-label="เลือกเกม">
-    {#each games as game (game.id)}
-      <button role="tab" aria-selected={gameId === game.id} class:on={gameId === game.id} onclick={() => (gameId = game.id)}>
-        {#if game.cover}<img src={`images/${game.cover}`} alt="" loading="lazy" />{:else}<span class="ph">?♥</span>{/if}
-        <span>{game.name}</span>
-      </button>
-    {/each}
-  </div>
+    <div class="games" role="tablist" aria-label="เลือกเกม">
+      {#each games as game (game.id)}
+        <button role="tab" aria-selected={gameId === game.id} class:on={gameId === game.id} onclick={() => (gameId = game.id)}>
+          {#if game.cover}<img src={`images/${game.cover}`} alt="" loading="lazy" />{:else}<span class="ph">?♥</span>{/if}
+          <span>{game.name}</span>
+        </button>
+      {/each}
+    </div>
   {/if}
 
   <div class="bar">
-    <span class="period-label">ALL-TIME HIGH SCORE</span>
+    <span class="period-label">ALL-TIME HIGH SCORE · COLLECTIBLE FRAMES</span>
     <span class="myrank"><Trophy size={14} />อันดับของฉัน <b>#{me + 1}</b></span>
   </div>
 
+  <!-- Top 3 Podium with Showcase Collectible Frames -->
   <div class="stage" aria-label={`Top 3 · ${activeGame.name}`}>
     <span class="stars" aria-hidden="true">✦ ✧ ✦</span>
     <div class="podium">
       {#each podium as entry, index (entry.playerId)}
         {@const rank = index + 1}
         {@const avatar = avatarFor(entry)}
+        {@const fId = frameFor(entry, rank)}
+        {@const fMeta = frameMeta(fId)}
         <article class={`place p${rank}`} class:mine={entry.isCurrentPlayer}>
           <span class="medal"><img src={`assets/badges/season-top-${rank}.png`} alt="" /></span>
-          <span class="portrait" style={`--avatar-color:${avatar.color}`}>
-            <AssetPortrait src={avatar.imagePath} alt="" placeholder={avatar.placeholder} kind="avatar" className="rank-avatar" />
-          </span>
+          <div class="podium-avatar-wrap">
+            <AvatarFrame
+              avatarId={avatar.id}
+              frameId={fId}
+              size={rank === 1 ? 'xl' : 'lg'}
+            />
+          </div>
+          {#if fMeta}
+            <span class="podium-frame-tag" style="--f-color: {fMeta.color}">{fMeta.rarity}</span>
+          {/if}
           <strong>{entry.displayName}{#if entry.isCurrentPlayer}<small>คุณ</small>{/if}</strong>
           <span class="score">{entry.score.toLocaleString('en-US')}</span>
           <span class="block"><b>{rank}</b></span>
@@ -72,16 +99,23 @@
   <ol class="list">
     {#each list as item (item.entry.playerId)}
       {@const avatar = avatarFor(item.entry)}
+      {@const fId = frameFor(item.entry, item.rank)}
+      {@const fMeta = frameMeta(fId)}
       <li class:mine={item.entry.isCurrentPlayer}>
         <span class="no">{item.rank}</span>
-        <span class="mini" style={`--avatar-color:${avatar.color}`}><AssetPortrait src={avatar.imagePath} alt="" placeholder={avatar.placeholder} kind="avatar" className="rank-mini" /></span>
-        <span class="name">{item.entry.displayName}{#if item.entry.isCurrentPlayer}<small>คุณ</small>{/if}</span>
+        <AvatarFrame avatarId={avatar.id} frameId={fId} size="sm" />
+        <div class="name-col">
+          <span class="name">{item.entry.displayName}{#if item.entry.isCurrentPlayer}<small>คุณ</small>{/if}</span>
+          {#if fMeta}
+            <span class="frame-sub">{fMeta.name} · {fMeta.rarity}</span>
+          {/if}
+        </div>
         <b>{item.entry.score.toLocaleString('en-US')}</b>
       </li>
     {/each}
   </ol>
 
-  <p class="disclaimer"><Info size={14} />คะแนนเป็นข้อมูลตัวอย่างแยกตามเกม ยังไม่เชื่อมต่อคะแนนจริงจากเกม · Free และ VIP จัดอันดับได้เท่ากัน</p>
+  <p class="disclaimer"><Info size={14} />กรอบรูปโปรไฟล์ของคุณซิงก์จากหน้า Profile · คะแนนเป็นข้อมูลตัวอย่างแยกตามเกม</p>
 </div>
 
 <style>
@@ -96,46 +130,52 @@
 
   .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
   .period-label { color: #5b6d84; font-size: 10px; font-weight: 900; }
-  .myrank { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; border: 2px solid #fff; border-radius: 99px; color: #8a5a06; background: linear-gradient(180deg, #fff6cf, #ffe39a); font-size: 13px; font-weight: 800; white-space: nowrap; }
-  .myrank b { font-size: 17px; font-weight: 900; }
+  .myrank { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border: 2px solid #fff; border-radius: 99px; color: #8a5a06; background: linear-gradient(180deg, #fff6cf, #ffe39a); font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+  .myrank b { font-size: 16px; font-weight: 900; }
 
-  .stage { position: relative; padding: 14px 10px 0; overflow: hidden; border: 2.5px solid #fff; border-radius: 24px; background: linear-gradient(180deg, #8fb8ff 0%, #c9b6ff 62%, #f0d7ff 100%); box-shadow: var(--g-card-shadow); }
+  .stage { position: relative; padding: 14px 8px 0; overflow: hidden; border: 2.5px solid #fff; border-radius: 24px; background: linear-gradient(180deg, #5c8df6 0%, #8e78e8 58%, #d7b8ff 100%); box-shadow: var(--g-card-shadow); }
   .stars { position: absolute; top: 8px; right: 0; left: 0; color: #fff; text-align: center; font-size: 14px; letter-spacing: 34px; text-shadow: 0 0 8px #fff; opacity: 0.8; }
-  .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 7px; }
-  .place { position: relative; display: grid; justify-items: center; gap: 3px; min-width: 0; padding-top: 8px; }
+  .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 6px; }
+  .place { position: relative; display: grid; justify-items: center; gap: 3px; min-width: 0; padding-top: 6px; }
   .place.p1 { order: 2; } .place.p2 { order: 1; } .place.p3 { order: 3; }
-  .medal { display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid #fff; border-radius: 50%; color: #6b3d00; box-shadow: 0 3px 0 rgb(40 20 100 / 30%); }
+  .medal { display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid #fff; border-radius: 50%; color: #6b3d00; box-shadow: 0 3px 0 rgb(40 20 100 / 30%); }
   .p1 .medal { background: linear-gradient(160deg, #fff09a, #ffb42b); }
   .p2 .medal { background: linear-gradient(160deg, #f4f7fb, #b9c4d8); }
   .p3 .medal { background: linear-gradient(160deg, #ffd9b8, #d98f5a); }
-  .portrait { display: block; width: 66px; height: 74px; overflow: hidden; border: 3px solid #fff; border-radius: 22px 22px 14px 14px; background: var(--avatar-color); box-shadow: 0 4px 10px rgb(40 20 100 / 30%); }
-  .p1 .portrait { width: 80px; height: 90px; box-shadow: 0 0 0 3px #ffc23d, 0 0 20px rgb(255 200 70 / 70%); }
-  .portrait :global(.rank-avatar) { width: 100%; height: 100%; background: transparent; }
-  .portrait :global(.rank-avatar img) { object-fit: cover; object-position: 50% 8%; }
-  .place strong { max-width: 100%; overflow: hidden; color: #fff; font-size: 13px; font-weight: 900; text-overflow: ellipsis; text-shadow: 0 2px 0 rgb(40 20 110 / 50%); white-space: nowrap; }
+  .podium-avatar-wrap { margin: 2px 0; }
+  .podium-frame-tag {
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--f-color, #fbbf24);
+    color: #2e1a47;
+    font-size: 8.5px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .place strong { max-width: 100%; overflow: hidden; color: #fff; font-size: 12.5px; font-weight: 900; text-overflow: ellipsis; text-shadow: 0 2px 0 rgb(40 20 110 / 50%); white-space: nowrap; }
   .place strong small { margin-left: 3px; color: #ffe68a; font-size: 10px; }
-  .score { padding: 2px 9px; border-radius: 99px; color: #4b32a8; background: rgb(255 255 255 / 88%); font-size: 12px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .score { padding: 2px 8px; border-radius: 99px; color: #4b32a8; background: rgb(255 255 255 / 92%); font-size: 11.5px; font-weight: 900; font-variant-numeric: tabular-nums; }
   .block { display: grid; place-items: start center; width: 100%; padding-top: 6px; border: 2.5px solid #fff; border-bottom: 0; border-radius: 14px 14px 0 0; color: #fff; }
-  .block b { font-size: 26px; font-weight: 900; line-height: 1; text-shadow: 0 2px 0 rgb(0 0 0 / 25%); }
-  .p1 .block { height: 78px; background: linear-gradient(180deg, #ffd34d, #e7a31a); }
-  .p2 .block { height: 56px; background: linear-gradient(180deg, #c3cde0, #8c9ab5); }
-  .p3 .block { height: 42px; background: linear-gradient(180deg, #e6a877, #b8703c); }
-  .place.mine .portrait { box-shadow: 0 0 0 3px #7a5ce0, 0 4px 10px rgb(40 20 100 / 30%); }
+  .block b { font-size: 24px; font-weight: 900; line-height: 1; text-shadow: 0 2px 0 rgb(0 0 0 / 25%); }
+  .p1 .block { height: 72px; background: linear-gradient(180deg, #ffd34d, #e7a31a); }
+  .p2 .block { height: 52px; background: linear-gradient(180deg, #c3cde0, #8c9ab5); }
+  .p3 .block { height: 40px; background: linear-gradient(180deg, #e6a877, #b8703c); }
 
   .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 5px; border: 2.5px solid #fff; border-radius: 18px; background: #e4dcf8; }
-  .tabs button { min-height: 44px; border: 0; border-radius: 13px; color: #8a7fc4; background: transparent; font-size: 14px; font-weight: 900; }
+  .tabs button { min-height: 42px; border: 0; border-radius: 13px; color: #8a7fc4; background: transparent; font-size: 13.5px; font-weight: 900; }
   .tabs button.on { color: #fff; background: linear-gradient(180deg, #a78bfa, #6a4fd6); box-shadow: 0 3px 0 #4b32a8; }
 
   .list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-  .list li { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 7px 12px 7px 8px; border: 2.5px solid #fff; border-radius: 18px; background: linear-gradient(160deg, #fff, #f6f2ff); box-shadow: 0 5px 0 -2px #d3c8f5; }
+  .list li { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 7px 12px 7px 8px; border: 2.5px solid #fff; border-radius: 18px; background: linear-gradient(160deg, #fff, #f6f2ff); box-shadow: 0 5px 0 -2px #d3c8f5; }
   .list li.mine { background: linear-gradient(150deg, #efe8ff, #d9ccff); box-shadow: 0 5px 0 -2px #8a72dc, 0 0 0 2px #7a5ce0; }
-  .no { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 auto; border-radius: 12px; color: #6b5cb5; background: #ece6ff; font-size: 16px; font-weight: 900; }
-  .mini { display: block; width: 40px; height: 40px; flex: 0 0 auto; overflow: hidden; border: 2px solid #fff; border-radius: 50%; background: var(--avatar-color); }
-  .mini :global(.rank-mini) { width: 100%; height: 100%; background: transparent; }
-  .mini :global(.rank-mini img) { object-fit: cover; object-position: 50% 8%; }
-  .name { min-width: 0; flex: 1; overflow: hidden; color: var(--g-ink); font-size: 15px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-  .name small { margin-left: 5px; padding: 1px 7px; border-radius: 99px; color: #fff; background: #7a5ce0; font-size: 11px; }
-  .list b { color: #4b32a8; font-size: 16px; font-weight: 900; font-variant-numeric: tabular-nums; }
-  .disclaimer { display: flex; align-items: flex-start; gap: 6px; margin: 0; padding: 0 4px; color: #8a7fc4; font-size: 12px; font-weight: 700; line-height: 1.45; }
+  .no { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 auto; border-radius: 11px; color: #6b5cb5; background: #ece6ff; font-size: 14px; font-weight: 900; }
+  .name-col { min-width: 0; flex: 1; display: grid; gap: 1px; }
+  .name { overflow: hidden; color: var(--g-ink); font-size: 14px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+  .name small { margin-left: 5px; padding: 1px 7px; border-radius: 99px; color: #fff; background: #7a5ce0; font-size: 10px; }
+  .frame-sub { font-size: 10px; font-weight: 800; color: #6b5cb5; }
+  .list b { color: #4b32a8; font-size: 15px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .disclaimer { display: flex; align-items: flex-start; gap: 6px; margin: 0; padding: 0 4px; color: #8a7fc4; font-size: 11.5px; font-weight: 700; line-height: 1.45; }
   .disclaimer :global(svg) { flex: 0 0 auto; margin-top: 2px; }
 </style>
