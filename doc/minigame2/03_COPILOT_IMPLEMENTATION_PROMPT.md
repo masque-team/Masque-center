@@ -30,7 +30,9 @@ IMPORTANT PRODUCT RULES:
 - Normal Energy MAX 15; active VIP Energy MAX 30. Both regenerate +1 per 30 minutes below the active cap. Purchases/prizes may overflow; do not clamp grant balances. VIP waives normal-game entry only; continue/revive costs 1 Energy and Campaign Ticket is not waived.
 - VIP activates immediately; renew while active by adding bought time to old expiry. The demo exposes configurable 6-hour/1-day/3-day duration and AIS Point examples; capacity, entry waiver and regeneration are fixed rules.
 - Battle Pass is by CALENDAR MONTH, not old rolling 30-day epoch. Free/Premium share XP/level; Premium purchased late unlocks eligible earlier reward levels, but never gives instant XP. Premium rewards require Premium entitlement, NOT VIP.
-- Missions are Free / VIP / Premium, grouped Daily / Weekly / Season. Locked premium/vip missions are visible. On game end show animated mission progress; completed mission XP automatically credits once. Pass level rewards require manual claim while active, with once-only end-season automatic settlement for eligible unclaimed items.
+- Battle Pass Missions are Free / VIP / Premium, grouped Daily / Weekly / Season. Keep them inside Battle Pass or its nested mission subpage, not the fifth bottom tab. Locked premium/vip missions are visible. On game end show animated mission progress; completed mission XP automatically credits once. Pass level rewards require manual claim while active, with once-only end-season automatic settlement for eligible unclaimed items.
+- The fifth bottom tab is **Achievement**, separate from Pass Missions. It owns Daily Check-in/streak, permanent game/activity progress, once-only achievement rewards, Badge Gallery and Profile badge selection. Home may keep a shortcut to the same Check-in state. Achievement progress does not reset at monthly Pass rollover.
+- Achievement and Pass systems may process the same event, but maintain independent progress and reward ledgers; never grant Pass XP from an Achievement reward implicitly. Store earned badges once in the existing Profile badge collection.
 - Rank: HIGH SCORE (never cumulative). Normal game leaderboard is all-time; Campaign leaderboard is separate per campaign AND game. Equal score: earlier achiever wins.
 - Campaign gifts: gift button in Ranking opens tier preview; Campaigns have mock `startAt`/`endAt`; after end they auto-award rank prizes once, next app open shows a reward popup, and History records it. Ticket packs use mock AIS Points and are separate from Ranked tickets. Player pages cannot finalize; Developer Studio may force settlement for tests only.
 - History: separate tabs Game sessions/counts, AIS Point mock purchases/transactions, Rewards.
@@ -40,16 +42,16 @@ IMPORTANT PRODUCT RULES:
 SCOPE / UNKNOWN RULES:
 - The MiniGame2 frontend demo uses AIS Point only in customer flows. Preserve legacy MP values/services for old saves but do not display, spend, award or convert them in the demo. Production AIS Point/API/billing policy remains open.
 - Production game count/M1 rollout, Campaign Ticket SKU/scope/refunds and campaign URLs still need approval. The demo provides configurable AIS ticket packs and mock timing; do not present them as production contracts.
-- Do not invent definitive production pricing, mission XP, badge lists, reward top-N counts or ranking payouts. VIP cap 30 and free normal entry are confirmed; cooldown reductions are not approved. Use labeled demo configurations and fixtures.
+- Do not invent definitive production pricing, mission XP, Achievement catalog thresholds/rewards, reward top-N counts or ranking payouts. VIP cap 30 and free normal entry are confirmed; cooldown reductions are not approved. Use labeled demo configurations and fixtures.
 - FULL product admin, real anti-cheat, real SSO, real AIS Point transactions and persistent multiplayer are future scope only. No new server, DB, SDK or real payments.
 
 IMPLEMENTATION:
-1. Add and wire all main customer-facing pages: Home, Game Hub, Game Detail/Pre-game, Game Player/Results, Ranking, Campaign, Shop, VIP Promotion, Battle Pass, Missions, Inventory/Gacha, Profile/Avatar, History/Notifications.
+1. Add and wire all main customer-facing pages: Home, Game Hub, Game Detail/Pre-game, Game Player/Results, Ranking, Campaign, Shop, VIP Promotion, Battle Pass with nested Missions, Achievement Center, Inventory/Gacha, Profile/Avatar, History/Notifications.
 2. Reuse existing Svelte components/services. Prefer minimal additive, typed changes to existing DemoState and migrations. Preserve legacy localStorage save and write tests for new rules. If a full refactor is unavoidable, justify it before doing it.
 3. Make every visible action functional (mock purchase, reward grant, claim, equip, check-in, play, simulate finish, open gift preview, advance mock campaign time/use Developer Studio settlement, switch season, open history); changes must reflect globally in UI and history.
 4. Favor Tailwind CSS for styling and clear component states. Keep placeholders until later design pass. Do not create a giant new art system or unnecessary 3D engine right now.
 5. Hide obsolete user-facing MP exchange, Ranked Ticket/coupon cabinet, ranked Battle, World/Room and duplicate VIP/Pass representations while preserving legacy services/files where practical.
-6. Add reproducible dev-only scenarios to test Energy overflow, VIP renewal, Premium retroactive claims, mission overlays, ranking ties, campaign settlement popup, month change, and History. Dev controls must not appear in the customer nav.
+6. Add reproducible dev-only scenarios to test Energy overflow, VIP renewal, Premium retroactive claims, separate Achievement/Pass event ledgers, Check-in once, badge pinning, mission overlays, ranking ties, campaign settlement popup, month change and History. Dev controls must not appear in the customer nav.
 7. Work through all M1–M3 pages; do not stop after Home/Profile. If a requirement is OPEN, use a reversible demo fixture, label it, and log it rather than blocking completion.
 
 QUALITY:

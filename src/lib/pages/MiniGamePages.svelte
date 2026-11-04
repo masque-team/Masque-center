@@ -43,11 +43,6 @@
   let ownedAvatars = $derived(AVATARS.filter((item) => player.ownedAvatarIds.includes(item.id)));
   let ownedPets = $derived(PETS.filter((item) => player.ownedPetIds.includes(item.id)));
   let ownedWings = $derived(WINGS.filter((item) => player.demo.wings.includes(item.id)));
-  let achievementMissions = $derived([
-    { id: 'first-finish', title: 'First Finish', count: player.demo.sessions.filter((session) => session.finished).length, target: 1 },
-    { id: 'explorer', title: 'เล่นครบ 5 เกม', count: Object.keys(player.demo.playCounts ?? {}).length, target: 5 },
-    { id: 'frequent-player', title: 'นักเล่นเกมตัวยง', count: Object.values(player.demo.playCounts ?? {}).reduce<number>((total, count) => total + (count ?? 0), 0), target: 10 },
-  ].map((item) => ({ ...item, earned: player.demo.achievements.some((badge) => badge.id === item.id) })));
 
   function durationLabel(days: number): string {
     return days < 1 ? `${Math.round(days * 24)} ชั่วโมง` : days === 1 ? '1 วัน' : `${days} วัน`;
@@ -105,7 +100,8 @@
   {:else}<div class="page-stack"><PageTitle eyebrow="CAMPAIGN" title="ไม่พบ Campaign" /><button class="text-left text-sm font-bold" onclick={() => onNavigate('campaigns')}>กลับไปหน้า Campaign</button></div>{/if}
 {:else if page === 'missions'}
   <div class="page-stack">
-    <PageTitle eyebrow="SHARED SEASON XP" title="Missions" subtitle="XP ภารกิจรับอัตโนมัติ · Pass rewards กดรับแยก">{#snippet icon()}<Sparkles size={25} />{/snippet}</PageTitle>
+    <PageTitle eyebrow="BATTLE PASS XP" title="Pass Missions" subtitle="Free / VIP / Premium · Daily / Weekly / Season · XP รับอัตโนมัติ">{#snippet icon()}<Sparkles size={25} />{/snippet}</PageTitle>
+    <button class="flex min-h-10 items-center gap-2 text-xs font-bold text-sky-800 underline" onclick={() => onNavigate('rewards')}>กลับ Battle Pass</button>
     <div class="grid grid-cols-3 gap-1 border-y border-white py-2" role="tablist" aria-label="ช่วงเวลาภารกิจ">
       {#each [{ id: 'daily', label: 'Daily' }, { id: 'weekly', label: 'Weekly' }, { id: 'season', label: 'Season' }] as item (item.id)}<button role="tab" aria-selected={period === item.id} class="min-h-10 rounded-md text-xs font-bold" class:bg-white={period === item.id} onclick={() => period = item.id as typeof period}>{item.label}</button>{/each}
     </div>
@@ -119,17 +115,6 @@
         {#if mission.locked}<div class="flex items-center justify-between gap-2 rounded-md bg-slate-100 p-2 text-xs"><span class="flex items-center gap-1"><Lock size={14} />ล็อก · {mission.entitlement === 'vip' ? 'VIP' : 'Premium Pass'} แยกสิทธิ์จากกัน</span><button class="font-black text-sky-800" onclick={() => onNavigate(mission.entitlement === 'vip' ? 'vip' : 'rewards')}>ดูสิทธิ์</button></div>{:else if mission.complete}<p class="flex items-center gap-1 text-xs font-bold text-sky-800"><Check size={14} />XP รับอัตโนมัติแล้ว</p>{:else}<p class="text-xs text-slate-500">Progress จะอัปเดตหลัง {mission.trigger === 'game' ? 'จบเกม' : 'เช็กอิน'}</p>{/if}
       </article>
     {/each}
-    <section class="space-y-2 border-t border-white/80 pt-4" aria-label="Achievement badges">
-      <h2 class="font-black text-[#332973]">Achievements · Profile badges</h2>
-      <p class="text-xs text-slate-600">ทำเป้าหมายให้สำเร็จเพื่อปลดล็อกป้ายผลงานบน Profile</p>
-      {#each achievementMissions as achievement (achievement.id)}
-        <article class="flex items-center gap-3 border-b border-white/80 py-3">
-          <span class="grid size-10 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-800"><Trophy size={18} /></span>
-          <span class="min-w-0 flex-1"><strong class="block text-sm">{achievement.title}</strong><small class="text-xs text-slate-500">เล่นจบ {Math.min(achievement.count, achievement.target)}/{achievement.target} รอบ · รางวัล Profile badge</small></span>
-          {#if achievement.earned}<span class="flex items-center gap-1 text-[10px] font-black text-sky-800"><Check size={14} />ได้รับ</span>{:else}<span class="text-[10px] font-bold text-slate-500">กำลังทำ</span>{/if}
-        </article>
-      {/each}
-    </section>
     <p class="text-[11px] text-slate-500">เป้าหมายและ XP เป็น Demo Configuration ชั่วคราว</p>
   </div>
 {:else if page === 'history'}

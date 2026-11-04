@@ -1,5 +1,5 @@
 import type { Campaign, GameId, PlayerState, RankingEntry } from '../types';
-import { demoNow, grantReward } from './demoService';
+import { demoNow, grantReward, processAchievementEvent } from './demoService';
 import { CAMPAIGNS } from '../data/campaigns';
 
 const CAMPAIGN_FIXTURES: Record<string, RankingEntry[]> = {
@@ -52,14 +52,16 @@ export function beginCampaignGame(player: PlayerState, campaignId: string, gameI
   const tickets = player.demo.campaignTickets ?? 0;
   if (campaign.entry === 'ticket' && tickets < campaign.ticketCost) return null;
   const session = { id: crypto.randomUUID(), gameId, mode: 'campaign' as const, campaignId, startedAt: demoNow(player), finished: false, reward: { points: 0, xp: 40 } };
-  return {
+  const next: PlayerState = {
     ...player,
     demo: {
       ...player.demo,
       campaignTickets: campaign.entry === 'ticket' ? tickets - campaign.ticketCost : tickets,
+      campaignJoinCount: (player.demo.campaignJoinCount ?? 0) + 1,
       sessions: [...player.demo.sessions, session].slice(-100),
     },
   };
+  return processAchievementEvent(next, { type: 'campaign_joined', campaignId }, session.startedAt);
 }
 
 export function getCampaignRanking(campaignId: string, gameId: GameId, player: PlayerState): RankingEntry[] {
@@ -91,16 +93,20 @@ export function finalizeCampaign(player: PlayerState, campaignId: string, force 
   }
   const detail = awarded.length ? awarded.join(' · ') : 'ไม่มีรางวัลตามอันดับในรอบนี้';
   const notification = { id: `campaign:${campaignId}`, title: `สรุปผล ${campaign.title}`, detail, viewed: false, at };
-  return {
+  const participated = next.demo.sessions.some((session) => session.mode === 'campaign' && session.campaignId === campaignId)
+    || Object.keys(next.demo.campaignScores?.[campaignId] ?? {}).length > 0;
+  const settled: PlayerState = {
     ...next,
     demo: {
       ...next.demo,
       closedCampaigns: [...new Set([...(next.demo.closedCampaigns ?? []), campaignId])],
       settledCampaigns: [...new Set([...(next.demo.settledCampaigns ?? []), campaignId])],
+      campaignCompletedCount: (next.demo.campaignCompletedCount ?? 0) + (participated ? 1 : 0),
       notifications: [notification, ...(next.demo.notifications ?? []).filter((item) => item.id !== notification.id)],
       history: [{ id: `settlement:${campaignId}`, kind: 'reward' as const, title: `รางวัล ${campaign.title}`, detail, at }, ...(next.demo.history ?? [])].slice(0, 250),
     },
   };
+  return participated ? processAchievementEvent(settled, { type: 'campaign_completed', campaignId }, at) : settled;
 }
 
 export function settleExpiredCampaigns(player: PlayerState, now = demoNow(player)): PlayerState {

@@ -44,6 +44,15 @@
 - [x] Gacha Boxes purchase/draw from a mock pool, show an outcome, record a grant and update Inventory without a real charge.
 - [x] Pass tables contain no usable-path Ranked/Arena Tickets or legacy Gacha Coupons; old reward rows migrate deterministically to Pet Boxes without resetting claims/inventory.
 
+### Achievement and Check-in
+- [x] Fifth bottom tab is labeled **Achievement** and opens the Achievement Center; no navbar/Home item exposes Battle Pass EXP missions as a separate main destination.
+- [x] Historical `#missions` route remains a Battle Pass mission subpage reachable from Battle Pass and has a return path; Free/VIP/Premium and Daily/Weekly/Season remain available there.
+- [x] Home and Achievement Check-in show the same claimed state, streak and AIS reward; claiming from either surface cannot award twice that day.
+- [x] Lifetime Achievements cover game count, unique genres, normal High Score, check-in streak and Campaign activity; progress survives monthly Pass rollover.
+- [x] Matching event updates both Achievement and Pass mission progress independently; Achievements never add Pass XP, and Pass XP remains once-only.
+- [x] Achievement unlock adds one Badge/reward to the canonical `demo.achievements` collection, History and notification queue; repeating the event does not grant again.
+- [x] Badge Gallery previews locked/unlocked criteria and rewards; earned badges appear in Profile and can be pinned using the existing Profile selection state.
+
 ### Campaigns / rankings / rewards / History
 - [x] Campaign can show details and eligible games; configured/free mock or ticket mock entry is discoverable.
 - [x] Campaign Ticket packs can be purchased with AIS Points, update the separate ticket wallet and Purchases History; confirmed entry consumes once and VIP does not waive it.
@@ -95,11 +104,12 @@
 5. **VIP SKUs:** Demo uses configurable 6-hour/1-day/3-day packages; production durations, prices and SKU names remain open. *Extension of time is confirmed.*
 6. **Battle Pass:** Exact levels, per-level XP, season start/end timezone and reward table; auto-grant on expiry is confirmed, but retention/archive policy is open.
 7. **Mission values:** Exact Daily/Weekly/Season quest list, counts, entitlement mapping and XP amounts; separate Free/VIP/Premium is confirmed.
-8. **Campaign entry:** Demo supports configurable Campaign Ticket packs bought with AIS Points and configured per-round consumption. Production ticket scope, refund-on-failure and pricing remain open; tickets are distinct from Ranked/Arena tickets.
-9. **Ranking rewards:** Exact paid places (top 5/10/20), artwork, amounts and distribution; only admin-configurable tiers and gift preview are established.
-10. **Reward/point integration:** How AIS Point is charged and refunded, ownership/ledger, SSO, API receipts, anti-cheat validation.
-11. **History retention:** Full per-round logs versus aggregated counts + latest records, storage/retention and audit policy.
-12. **Profile 3D:** Real 3D avatar pipeline and 3D room asset/graphics are deferred; 2D image on a plane is confirmed for demo.
+8. **Achievement configuration:** Demo includes lifetime examples and once-only rewards; final production catalog, thresholds, reward amounts and any explicitly seasonal Achievements remain open. Achievement is distinct from Battle Pass Missions.
+9. **Campaign entry:** Demo supports configurable Campaign Ticket packs bought with AIS Points and configured per-round consumption. Production ticket scope, refund-on-failure and pricing remain open; tickets are distinct from Ranked/Arena tickets.
+10. **Ranking rewards:** Exact paid places (top 5/10/20), artwork, amounts and distribution; only admin-configurable tiers and gift preview are established.
+11. **Reward/point integration:** How AIS Point is charged and refunded, ownership/ledger, SSO, API receipts, anti-cheat validation.
+12. **History retention:** Full per-round logs versus aggregated counts + latest records, storage/retention and audit policy.
+13. **Profile 3D:** Real 3D avatar pipeline and 3D room asset/graphics are deferred; 2D image on a plane is confirmed for demo.
 
 ## D. Confirmed decisions not to reopen accidentally
 
@@ -112,6 +122,7 @@
 - VIP and Premium Battle Pass **separate entitlements**; VIP purchase adds duration to existing expiry.
 - Battle Pass **monthly season**, retroactive reward access after Premium purchase within same season, manual track claims.
 - Mission XP **automatic**, post-game progress overlay; three entitlement groups Free/VIP/Premium and periods Daily/Weekly/Season.
+- Navbar **Achievement** is lifetime/check-in/badge progression. Battle Pass EXP Missions remain nested inside Battle Pass; both can share events but never reward through the other system's ledger.
 - Campaign rank prizes **auto credited after close**, show popup next open; rank has gift icon to preview prizes.
 - Dedicated **History** categories: Games / Purchases / Rewards; no extra mailbox required.
 - 2D avatar **textured on 3D plane**, **not** generated as actual 3D mesh; no World.

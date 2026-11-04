@@ -20,6 +20,7 @@
 - **[CONFIRMED]** Cards may show: editorial badge/ribbon (upper left), current online count (upper right) and cumulative play count (lower right), provided the UI does not become cluttered. Numbers may be mocked in the demo. Displaying all three metrics is an information/design idea, not a locked layout.
 - **[BACKLOG]** Admin configures Banner image and URL. **[PROPOSED]** Additional system-generated promotional banners (all-time most-played, trending) and automatic card badge rules, overrideable by admin.
 - **[BACKLOG]** Navigation supports Home, Shop, Game Hub, and by M3 Battle Pass/Mission. Placement and number of bottom tabs are a UX design decision, not a requirement to expose every page as a bottom tab.
+- **[CONFIRMED latest UX clarification]** The fifth customer bottom tab is **Achievement**, not Mission. The historical Backlog term “Mission” refers to Battle Pass EXP missions, which remain inside Battle Pass or its nested mission subpage; they are not the Achievement tab.
 - **[BACKLOG]** Selecting a game opens its pre-game/entry experience and then the existing playable game URL; back/return preserves session state.
 - **[BACKLOG]** The seven source game concepts are whac-a-mole, duck shooting, memory card, fruit slicing, timber/chopping, flying bird and animal runner. Each has its own catalog ID and scores.
 
@@ -31,6 +32,7 @@
 - **[BACKLOG]** Frame, Badge and Pet become selectable as milestone features; character level is explicitly a **future** feature.
 - **[CONFIRMED]** Ranking banner is a cosmetic displayed behind/beside player name in Profile or ranking presentation; not the same thing as a home promotional banner.
 - **[BACKLOG]** Achievement/Badge from missions is displayed on Profile. Exact achievement catalog and rules remain configurable.
+- **[CONFIRMED latest UX clarification]** Achievement is a separate, persistent player system for Daily Check-in/streaks and long-term gameplay/activity goals. Its progress does not reset with the monthly Battle Pass unless an explicitly seasonal Achievement is defined. Earned badges use the same Profile badge collection and pin-selection state; do not create a duplicate badge inventory.
 - **[CONFIRMED]** Profile or a notification icon should lead to a central player History (see section 12).
 
 ## 4. Energy and normal gameplay
@@ -92,14 +94,17 @@
 - **[CONFIRMED]** Once a user reaches the season's configured level cap, stop at MAX (no automatically invented uncapped bonus economy). Exact max level/XP table is **[OPEN]**.
 - **[CONFIRMED]** Unclaimed, **eligible** Pass rewards at the end of a season should be automatically credited and reported via popup on next open. Never grant locked Premium rewards to non-owners.
 
-## 10. Missions and UX
+## 10. Battle Pass Missions, Achievement and UX
 
 - **[CONFIRMED]** Mission entitlements: **Free, VIP, Premium Battle Pass**. These are three distinct mission groups; XP from all eligible completed missions feeds the same Battle Pass season level.
 - **[CONFIRMED]** Time scopes: **Daily, Weekly, Season**. Mission targets and XP may vary by entitlement group. VIP and Premium missions may yield higher XP, amounts configurable.
 - **[CONFIRMED]** Locked VIP and Premium missions remain **visible but locked**, with clear purchase prompts; do not hide benefits completely.
 - **[CONFIRMED]** After game completion, visually animate the relevant mission progress (e.g., 2/5 → 3/5) in a post-game overlay. Display +XP on completion.
 - **[CONFIRMED]** Completed mission **XP is granted automatically**. Battle Pass **level rewards are claimed manually** from their track while season is active (except the end-of-season fallback stated above).
-- **[BACKLOG]** Daily Check-in (M1) shows streak, immediate check-in prize and participation in missions. Reward amounts/streak policy are **[OPEN]**.
+- **[CONFIRMED latest UX clarification]** Free/VIP/Premium Daily/Weekly/Season EXP missions belong inside Battle Pass or its nested mission subpage. A game event may update both an Achievement and a Pass Mission, but each has separate progress and reward ledgers; Achievement rewards never grant Pass XP unless explicitly configured as a Pass mission reward.
+- **[CONFIRMED latest UX clarification]** The Achievement Center owns Daily Check-in, streak, permanent game/activity milestones, progress, reward previews and locked/unlocked Badge Gallery. Home may keep a Check-in shortcut, but both surfaces use the same date ledger and award once per day.
+- **[DEMO DEFAULT]** Lifetime examples include 10/50/100 completed games, 7-day check-in streak, all game genres, personal-best threshold and Campaign participation/completion. Keep thresholds/rewards configurable and never reset lifetime progress on monthly Pass rollover.
+- **[BACKLOG]** Daily Check-in (M1) shows streak, immediate check-in prize and participation in Battle Pass missions. Production reward amounts/streak policy are **[OPEN]**.
 
 ## 11. Administration / integration — full product, NOT current demo
 

@@ -92,9 +92,17 @@ export const PETS = [
 
 export const PET_GACHA_COST = 90;
 
-export const GACHA_ARTWORK: Record<'machine' | 'capsule', string | null> = {
+export const GACHA_ARTWORK: Record<'machine' | 'capsule' | 'petBox' | 'avatarBox', string | null> = {
   machine: 'assets/gacha/pet-gacha-machine.png',
   capsule: 'assets/gacha/gacha-capsule.png',
+  petBox: 'assets/gacha/pet-box.webp',
+  avatarBox: 'assets/gacha/avatar-box.webp',
+};
+
+export const CAMPAIGN_ARTWORK: Record<string, string> = {
+  'lantern-festival': 'assets/campaigns/lantern-festival.webp',
+  'starlight-sprint': 'assets/campaigns/starlight-sprint.webp',
+  'loy-krathong-external': 'assets/campaigns/loy-krathong.webp',
 };
 
 export const PROFILE_BACKGROUNDS = [
@@ -109,6 +117,7 @@ export const CURRENCY_ARTWORK = {
   arenaTicket: 'assets/currency/arena-ticket.png',
   petGachaTicket: 'assets/currency/pet-gacha-ticket.png',
   energyPotion: 'assets/currency/energy-potion.png',
+  campaignTicket: 'assets/currency/campaign-ticket.png',
 } as const;
 
 export const NAV_ARTWORK = {
@@ -123,6 +132,7 @@ export const BADGE_ARTWORK: Record<string, string> = {
   'first-finish': 'assets/badges/first-finish.png',
   'ranked-debut': 'assets/badges/ranked-debut.png',
   explorer: 'assets/badges/explorer.png',
+  'frequent-player': 'assets/badges/frequent-player.png',
   'season-explorer': 'assets/badges/explorer.png',
   'season-top-1': 'assets/badges/season-top-1.png',
   'season-top-2': 'assets/badges/season-top-2.png',

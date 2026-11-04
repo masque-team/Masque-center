@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
   import { SvelteDate } from 'svelte/reactivity';
-  import { Crown, Gamepad2, Settings2, ArrowUpRight } from '@lucide/svelte';
+  import { Crown, Gamepad2, Settings2, ArrowUpRight, Trophy, Sparkles, ShoppingBag, Package, Clock3, Flag, Target, Star } from '@lucide/svelte';
   import AppHeader from './lib/components/AppHeader.svelte';
   import BottomNav from './lib/components/BottomNav.svelte';
   import DailyCheckinCard from './lib/components/DailyCheckinCard.svelte';
@@ -18,6 +18,7 @@
   import PetGacha from './lib/components/PetGacha.svelte';
   import PointShop from './lib/components/PointShop.svelte';
   import MiniGamePages from './lib/pages/MiniGamePages.svelte';
+  import AchievementPage from './lib/pages/AchievementPage.svelte';
   import PassPage from './lib/pages/SeasonPage.svelte';
   import BattlePage from './lib/pages/BattlePage.svelte';
   import WalletPage from './lib/pages/WalletPage.svelte';
@@ -35,10 +36,12 @@
   import { purchaseVip, vipOffer } from './lib/services/passService';
   import { beginCampaignGame, buyCampaignTicketPack, finalizeCampaign, markNotificationViewed, settleExpiredCampaigns } from './lib/services/campaignService';
   import { equipPet } from './lib/services/petService';
+  import { claimDailyCheckin } from './lib/services/achievementService';
   import { buyGachaBox, buyGachaCoupons, drawGachaBatch, drawGachaBox } from './lib/services/gachaService';
   import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
   import { buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
-  import { beginGame, buyPremium, claimAvailablePass, claimPass, currentSeason, demoNow, finishGame, ledger, progressMissions, recordPlayTime, seedDemoScenario, settleExpiredPasses, validateConfig, claimRankingReward } from './lib/services/demoService';
+  import { beginGame, buyPremium, claimAvailablePass, claimPass, currentSeason, demoNow, finishGame, ledger, processAchievementEvent, progressMissions, recordPlayTime, seedDemoScenario, settleExpiredPasses, validateConfig, claimRankingReward } from './lib/services/demoService';
+  import { passProgress } from './lib/services/battlePassService';
   import type { DemoConfig, DemoScenario, GameId, GameMode, GachaKind, ModalState, Page, PlayerState, RankingPeriod, ShopTab, VipPackage } from './lib/types';
   import './app.css';
 
@@ -95,6 +98,7 @@
   let gameFilters = $derived([{ id: 'all', label: 'ทั้งหมด' }, ...[...new Set(catalogGames.map((game) => game.genre))].map((genre) => ({ id: genre, label: genre }))]);
   let vipActive = $derived(isVip(player, now));
   let activePassSeason = $derived(currentSeason(player, now));
+  let activePassLevel = $derived(passProgress(player.demo.passes[activePassSeason.id]?.xp ?? 0).level);
   let refillCountdown = $derived(nextRefillIn(player, now));
   let checkedInToday = $derived(player.checkinDates.includes(todayKey(new Date(now))));
   let hasUnreadNotifications = $derived(player.demo.notifications?.some((notification) => !notification.viewed) ?? false);
@@ -247,7 +251,7 @@
       window.scrollTo({ top: 0 });
       return;
     }
-    const routes: Page[] = ['home', 'hub', 'shop', 'rewards', 'ranking', 'profile', 'admin', 'campaigns', 'campaign', 'missions', 'inventory', 'history', 'vip'];
+    const routes: Page[] = ['home', 'hub', 'shop', 'rewards', 'ranking', 'profile', 'admin', 'campaigns', 'campaign', 'achievements', 'missions', 'inventory', 'history', 'vip'];
     if (route === 'campaign' && requestedGame) {
       campaignId = requestedGame;
       page = 'campaign';
@@ -370,9 +374,11 @@
   }
 
   function claimCheckin(): void {
-    if (player.checkinDates.includes(todayKey())) return;
-    const checkedIn = { ...player, checkinDates: [...player.checkinDates, todayKey()], aisPoints: player.aisPoints + CHECKIN_REWARD };
-    persist(progressMissions(checkedIn, 'checkin'), 'Daily check-in');
+    const at = demoNow(player);
+    const checkedIn = claimDailyCheckin(player, at);
+    if (!checkedIn) return;
+    const withAchievement = processAchievementEvent(checkedIn, { type: 'daily_checkin' }, at);
+    persist(progressMissions(withAchievement, 'checkin', at), 'Daily check-in');
     modal = { kind: 'checkin-success' };
   }
 
@@ -641,23 +647,23 @@
           <div class="home">
             <AvatarGreeting avatarId={homeAvatar.id} petId={player.petId} displayName={player.displayName} onAvatarClick={() => navigate('profile')} />
             <DailyCheckinCard compact reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} />
-            <div class="flex items-center justify-between gap-3 pt-2"><div class="flex min-w-0 items-center gap-2.5"><img class="size-12 shrink-0 object-contain" src="assets/brand/masque-game-center-symbol.png" alt="" /><div><p class="text-[10px] font-extrabold text-sky-700">MASQUE <span class="ml-1 rounded border border-sky-300 bg-white/80 px-1.5 text-[9px]">DEMO</span></p><h1 class="text-xl font-black leading-tight text-[#2b2468]">Game Center</h1></div></div>{#if import.meta.env.DEV}<button class="grid size-10 shrink-0 place-items-center rounded-md border border-white bg-white/80 text-sky-700" onclick={() => navigate('admin')} aria-label="เปิด Demo Studio" title="Demo Studio"><Settings2 size={18} /></button>{/if}</div>
+            <div class="card-25d flex items-center justify-between gap-3 px-3.5 py-2.5"><div class="flex min-w-0 items-center gap-2.5"><img class="size-11 shrink-0 object-contain drop-shadow-xs" src="assets/brand/masque-game-center-symbol.png" alt="" /><div><p class="text-[10px] font-black tracking-wide text-[#0284c7]">MASQUE SKY KINGDOM <span class="ml-1 rounded-full border border-[#fde68a] bg-[#fffbeb] px-2 py-0.5 text-[9px] font-black text-[#92400e]">DEMO</span></p><h1 class="text-lg font-black leading-tight text-[#1f305e]">Game Center</h1></div></div>{#if import.meta.env.DEV}<button class="grid size-10 shrink-0 place-items-center rounded-xl border-2 border-white bg-[#e0f2fe] text-[#0284c7] shadow-[0_3px_0_#9bcdf0]" onclick={() => navigate('admin')} aria-label="เปิด Demo Studio" title="Demo Studio"><Settings2 size={18} /></button>{/if}</div>
             {#if homeGenre === 'all'}<section class="block">
               <FeaturedGameCard game={featuredGame} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${featuredGame.id}`)} />
-              <p class="mt-3 flex items-center justify-between px-1 text-xs text-[var(--g-muted)]"><span>Personal Best · SIMULATED</span><strong>{(player.demo.scores[featuredGame.id] ?? 0).toLocaleString()}</strong></p>
+              <div class="mt-2.5 flex items-center justify-between rounded-2xl border-2 border-white bg-gradient-to-r from-[#fffdf7] to-[#e8f6ff] px-3.5 py-2 text-xs shadow-[0_3px_0_#abd7f5]"><span class="inline-flex items-center gap-1.5 font-extrabold text-[#4f6899]"><Trophy size={14} class="text-[#d98b00]" />Personal Best · {featuredGame.name}</span><strong class="rounded-full bg-[#fff4c2] px-2.5 py-0.5 font-black text-[#8a5200]">{(player.demo.scores[featuredGame.id] ?? 0).toLocaleString()} pts</strong></div>
             </section>{/if}
-            <button class="flex min-h-14 w-full items-center gap-3 border-y border-amber-200/80 bg-[#fff7df]/75 px-3 text-left" onclick={() => navigate('vip')}><Crown size={20} class="shrink-0 text-amber-700" fill="currentColor" /><span class="min-w-0 flex-1"><strong class="block text-sm text-[#59400d]">VIP · {vipActive ? 'ใช้งานอยู่' : 'เข้าเกมปกติฟรี · Energy MAX 30'}</strong><small class="block text-[11px] text-[#816d43]">{vipActive ? `Energy MAX 30 · หมดอายุ ${new Date(player.vipExpiresAt!).toLocaleDateString('th-TH')}` : 'Energy MAX 15 → 30 ระหว่าง VIP · ราคา AIS Point เดโม'}</small></span><ArrowUpRight size={17} class="shrink-0 text-amber-800" /></button>
-            <div class="space-y-2 border-y border-white/80 py-3"><div class="flex justify-between text-xs"><span>LV.{player.level} · Profile EXP</span><strong>{player.demo.profileXp % 100} / 100</strong></div><progress class="h-1.5 w-full accent-sky-600" value={player.demo.profileXp % 100} max="100" aria-label="Profile EXP"></progress></div>
+            <button class="card-gold-25d flex min-h-16 w-full items-center gap-3 px-3.5 py-2.5 text-left transition-transform active:translate-y-0.5" onclick={() => navigate('vip')}><span class="grid size-11 shrink-0 place-items-center rounded-2xl border-2 border-white bg-gradient-to-b from-[#ffe985] to-[#f5a623] text-[#6e3b00] shadow-[0_3px_0_#b87300]"><Crown size={22} fill="currentColor" /></span><span class="min-w-0 flex-1"><strong class="block text-sm font-black text-[#693b00]">VIP ROYAL PASS · {vipActive ? 'ใช้งานอยู่' : 'เข้าเกมปกติฟรี · Energy MAX 30'}</strong><small class="block text-[11px] font-bold text-[#8c580c]">{vipActive ? `Energy MAX 30 · หมดอายุ ${new Date(player.vipExpiresAt!).toLocaleDateString('th-TH')}` : 'เพิ่มความจุ Energy 15 → 30 + เข้าเล่นเกมปกติฟรีด้วย AIS Point'}</small></span><span class="grid size-8 shrink-0 place-items-center rounded-full border border-white bg-white/80 text-[#8c580c]"><ArrowUpRight size={17} /></span></button>
+            <div class="card-25d space-y-2 px-3.5 py-3"><div class="flex items-center justify-between text-xs"><span class="inline-flex items-center gap-1.5 font-black text-[#1f305e]"><Star size={14} class="text-[#f59e0b]" fill="currentColor" />LV.{player.level} · Adventurer EXP</span><strong class="rounded-full bg-[#e0f2fe] px-2.5 py-0.5 font-black text-[#0369a1]">{player.demo.profileXp % 100} / 100 EXP</strong></div><progress class="h-2.5 w-full" value={player.demo.profileXp % 100} max="100" aria-label="Profile EXP"></progress></div>
             <nav class="grid grid-cols-2 gap-2 py-2" aria-label="กิจกรรม">
-              {#each [{ route: 'hub', label: 'Game Hub' }, { route: 'campaigns', label: 'Campaign' }, { route: 'ranking', label: 'Ranking' }, { route: 'missions', label: 'Missions' }, { route: 'rewards', label: 'Battle Pass' }, { route: 'vip', label: 'VIP' }, { route: 'shop', label: 'Shop' }, { route: 'inventory', label: 'Inventory' }, { route: 'history', label: 'History' }] as item (item.route)}<button class="flex min-h-12 items-center justify-between gap-2 border-b border-white/80 bg-white/45 px-3 text-left text-sm font-bold text-[#2b4160]" onclick={() => navigate(item.route)}>{item.label}<ArrowUpRight size={17} class="shrink-0" />{#if item.route === 'history' && player.demo.notifications?.some((notification) => !notification.viewed)}<span class="size-2 rounded-full bg-rose-500" aria-label="มีการแจ้งเตือนใหม่"></span>{/if}</button>{/each}
+              {#each [{ route: 'hub', label: 'Game Hub', sub: 'รวม 7 เกมฮิต', Icon: Gamepad2, tone: 'sky' }, { route: 'campaigns', label: 'Campaign', sub: 'แข่งชิงรางวัลใหญ่', Icon: Flag, tone: 'gold' }, { route: 'ranking', label: 'Ranking', sub: 'อันดับคะแนนสูงสุด', Icon: Trophy, tone: 'gold' }, { route: 'achievements', label: 'Achievement', sub: 'เช็กอินและสะสมเหรียญ', Icon: Trophy, tone: 'sky' }, { route: 'rewards', label: 'Battle Pass', sub: `LV.${activePassLevel} Season Track`, Icon: Sparkles, tone: 'gold' }, { route: 'vip', label: 'VIP Pass', sub: 'เล่นฟรี · MAX 30', Icon: Crown, tone: 'gold' }, { route: 'shop', label: 'Shop & Gacha', sub: 'แลกไอเทม & สุ่มกล่อง', Icon: ShoppingBag, tone: 'sky' }, { route: 'inventory', label: 'Inventory', sub: 'คลังของตกแต่ง', Icon: Package, tone: 'sky' }, { route: 'history', label: 'History', sub: 'ประวัติ & แจ้งเตือน', Icon: Clock3, tone: 'sky' }] as item (item.route)}<button class={['relative flex min-h-14 items-center gap-2.5 rounded-2xl border-2 border-white px-3 py-2 text-left transition-transform active:translate-y-0.5', item.tone === 'gold' ? 'bg-gradient-to-b from-[#fffdf4] to-[#fff2c6] shadow-[0_4px_0_#e2be62]' : 'bg-gradient-to-b from-[#ffffff] to-[#eaf6ff] shadow-[0_4px_0_#a9d6f5]']} onclick={() => navigate(item.route)}><span class={['grid size-9 shrink-0 place-items-center rounded-xl border border-white shadow-xs', item.tone === 'gold' ? 'bg-[#ffe694] text-[#8a5200]' : 'bg-[#d8f0ff] text-[#0284c7]']}><item.Icon size={17} /></span><span class="min-w-0 flex-1"><strong class="block truncate text-xs font-black text-[#1f305e]">{item.label}</strong><small class="block truncate text-[10px] font-bold text-[#526c9c]">{item.sub}</small></span><ArrowUpRight size={15} class="shrink-0 text-[#526c9c]" />{#if item.route === 'history' && player.demo.notifications?.some((notification) => !notification.viewed)}<span class="absolute -top-1 -right-1 size-3 rounded-full border-2 border-white bg-rose-500" aria-label="มีการแจ้งเตือนใหม่"></span>{/if}</button>{/each}
             </nav>
-            <button class="flex w-full items-center justify-between gap-3 border-y border-white bg-white/35 px-2 py-3 text-left" onclick={() => navigate('rewards')}><span><small class="text-sky-700">CURRENT SEASON</small><strong class="block">{activePassSeason.name}</strong></span><ArrowUpRight size={22} /></button>
+            <button class="relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-2xl border-2 border-white bg-cover bg-center p-3.5 text-left text-white shadow-[0_5px_0_#99cef0,0_10px_22px_rgba(20,80,150,0.18)]" style="background-image: linear-gradient(95deg, rgba(15,42,88,0.88) 0%, rgba(2,132,199,0.72) 60%, rgba(245,158,11,0.72) 100%), url('assets/pass/season-keyart.png')" onclick={() => navigate('rewards')}><span><small class="inline-flex items-center gap-1 rounded-full bg-[#ffe58f] px-2 py-0.5 text-[9px] font-black text-[#783f00]">★ CURRENT SEASON · LV.{activePassLevel}</small><strong class="mt-1 block text-base font-black drop-shadow-xs">{activePassSeason.name}</strong><span class="block text-[11px] font-bold text-sky-100">สะสม XP จากภารกิจ ปลดล็อกรางวัล Free / VIP / Premium</span></span><span class="grid size-9 shrink-0 place-items-center rounded-full border-2 border-white bg-[#ffd257] text-[#6b3d00] shadow-sm"><ArrowUpRight size={18} /></span></button>
           </div>
         {:else if page === 'hub'}
           <div class="home">
             <SectionHeading eyebrow="ALL PLAYABLE TITLES" title="Game Hub" chip={`${catalogGames.length} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
-            <div class="flex gap-1 overflow-x-auto pb-2" role="group" aria-label="กรองประเภทเกม">{#each gameFilters as filter (filter.id)}<button class={['min-h-9 shrink-0 rounded-md border px-3 text-[10px] font-semibold', homeGenre === filter.id ? 'border-sky-500 bg-sky-600 text-white' : 'border-white bg-white/70 text-[#71839a]']} aria-pressed={homeGenre === filter.id} onclick={() => homeGenre = filter.id}>{filter.label}</button>{/each}</div>
-            {#if hubGames.length}<div class="game-list">{#each hubGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 grid gap-1 px-1 text-[10px] text-[var(--g-muted)]"><span>Personal Best · {(player.demo.scores[game.id] ?? 0).toLocaleString()}</span><span>{12 + index * 7} online · {(2400 + index * 731).toLocaleString()} plays · MOCK</span></p></div>{/each}</div>{:else}<p class="py-8 text-center text-xs text-[var(--g-muted)]">ไม่มีเกมในหมวดนี้</p>{/if}
+            <div class="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="กรองประเภทเกม">{#each gameFilters as filter (filter.id)}<button class={['min-h-9 shrink-0 rounded-full border-2 px-3.5 text-xs font-black transition-transform active:translate-y-0.5', homeGenre === filter.id ? 'border-white bg-gradient-to-b from-[#4fd1ff] to-[#0284c7] text-white shadow-[0_3px_0_#0369a1]' : 'border-white bg-[#fffdf7] text-[#4f6899] shadow-[0_3px_0_#b9dcf4]']} aria-pressed={homeGenre === filter.id} onclick={() => homeGenre = filter.id}>{filter.label}</button>{/each}</div>
+            {#if hubGames.length}<div class="game-list">{#each hubGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${game.id}`)} /><div class="mt-1.5 flex items-center justify-between rounded-xl border border-white bg-white/85 px-2.5 py-1 text-[10px] font-extrabold text-[#4f6899] shadow-2xs"><span>🏆 {(player.demo.scores[game.id] ?? 0).toLocaleString()}</span><span>{(2400 + index * 731 + (player.demo.playCounts[game.id] ?? 0)).toLocaleString()} plays</span></div></div>{/each}</div>{:else}<p class="card-25d py-8 text-center text-xs font-bold text-[#526c9c]">ไม่มีเกมในหมวดนี้</p>{/if}
           </div>
         {:else if page === 'detail'}
           {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId] ?? 0} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('home')} onRefill={() => openRefill()} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onBuyItem={(itemId) => (modal = { kind: 'item-confirm', itemId })} />{/key}
@@ -671,6 +677,8 @@
             onVip={openVipConfirm}
             onMockAisTopUp={mockAisTopUp}
           />
+        {:else if page === 'achievements'}
+          <AchievementPage {player} {now} checkinReward={CHECKIN_REWARD} checkinDays={checkinDays} checkedIn={checkedInToday} onCheckin={claimCheckin} onNavigate={navigate} />
         {:else if page === 'campaigns' || page === 'campaign' || page === 'missions' || page === 'inventory' || page === 'history' || page === 'vip'}
           <MiniGamePages
             {page} {player} {now} {campaignId}
@@ -715,7 +723,7 @@
         {:else if page === 'gacha'}
           <PetGacha {player} busy={gachaBusy} onDraw={startGacha} onBuyCoupons={(quantity) => openGachaCouponPurchase(quantity)} />
         {:else if page === 'profile' || page === 'room'}
-          {#key page}<ProfilePage {player} editable={true} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onSave={(style, frameId) => applyAction(customizeProfile(player, style, frameId), 'บันทึกโปรไฟล์แล้ว')} />{/key}
+          {#key page}<ProfilePage {player} {vipActive} editable={true} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onSave={(style, frameId) => applyAction(customizeProfile(player, style, frameId), 'บันทึกโปรไฟล์แล้ว')} />{/key}
         {:else if page === 'ranking'}
           <RankingPage {player} bind:gameId={rankingGameId} bind:period={rankingPeriod} scores={mockScores} onClaim={(id) => applyAction(claimRankingReward(player, id), 'รับรางวัล Ranking แล้ว')} />
         {/if}

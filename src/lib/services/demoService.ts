@@ -4,6 +4,7 @@ import { GAMES } from '../data/games';
 import { CAMPAIGNS } from '../data/campaigns';
 import { getGameRanking } from './rankingService';
 import { isVip, spendGameEnergy } from './energyService';
+import { evaluateAchievementEvent, type AchievementEvent } from './achievementService';
 import type { DemoConfig, DemoReward, DemoScenario, DemoState, GameId, GameMode, PlayerState, ProfileBadge } from '../types';
 
 const MISSION_DEFINITIONS = [
@@ -211,6 +212,10 @@ export function awardPassXp(player: PlayerState, amount: number): PlayerState {
   const pass = currentPass(player);
   return { ...player, demo: { ...player.demo, passes: { ...player.demo.passes, [id]: { ...pass, xp: Math.min(PASS_RULES.levels * PASS_RULES.xpPerLevel, pass.xp + amount) } } } };
 }
+export function processAchievementEvent(player: PlayerState, event: AchievementEvent, at = demoNow(player)): PlayerState {
+  const result = evaluateAchievementEvent(player, event, at);
+  return result.unlocked.reduce((next, achievement) => achievement.reward ? grantReward(next, achievement.reward) : next, result.player);
+}
 export function claimWeeklyMission(player: PlayerState): PlayerState | null {
   const mission = weeklyPassMission(player);
   if (mission.games.length < mission.target || player.demo.missionClaims.includes(mission.id)) return null;
@@ -306,34 +311,24 @@ export function finishGame(player: PlayerState, sessionId: string, score: number
   const improvesCampaign = isCampaign && campaignAcceptsScore && (!campaignBest || score > campaignBest.score);
   const reward = session.reward ?? { points: 0, xp: 40 };
   const profileXp = player.demo.profileXp + reward.xp;
-  const achievements = [...player.demo.achievements];
-  const newAchievements: ProfileBadge[] = [];
-  const addAchievement = (badge: ProfileBadge) => {
-    if (achievements.some((earned) => earned.id === badge.id)) return;
-    achievements.push(badge);
-    newAchievements.push(badge);
-  };
-  addAchievement({ id: 'first-finish', title: 'First Finish', earnedAt: demoNow(player), gameId: session.gameId });
-  if (session.mode === 'ranked') addAchievement({ id: 'ranked-debut', title: 'Ranked Debut', earnedAt: demoNow(player), gameId: session.gameId });
   const playCounts = { ...player.demo.playCounts, [session.gameId]: (player.demo.playCounts[session.gameId] ?? 0) + 1 };
-  if (Object.keys(playCounts).length >= 5) addAchievement({ id: 'explorer', title: '5-Game Explorer', earnedAt: demoNow(player) });
-  if (Object.values(playCounts).reduce<number>((total, count) => total + (count ?? 0), 0) >= 10) addAchievement({ id: 'frequent-player', title: 'นักเล่นเกมตัวยง', earnedAt: demoNow(player) });
   const today = dayKey(player);
   const passId = currentSeason(player).id;
   const week = weeklyPassMission(player);
   const gameHistory = { id: crypto.randomUUID(), kind: 'game' as const, title: GAMES.find((game) => game.id === session.gameId)?.name ?? session.gameId, detail: `${session.mode === 'campaign' ? 'Campaign' : 'Normal'} · ${score.toLocaleString()} คะแนน`, at, gameId: session.gameId };
-  const achievementHistory = newAchievements.map((badge) => ({ id: `achievement:${badge.id}`, kind: 'reward' as const, title: badge.title, detail: 'ปลดล็อก Profile badge', at }));
-  const finished: PlayerState = { ...player, aisPoints: player.aisPoints + reward.points, level: 18 + Math.floor(profileXp / 100), demo: { ...player.demo, profileXp, achievements, playCounts,
+  const finished: PlayerState = { ...player, aisPoints: player.aisPoints + reward.points, level: 18 + Math.floor(profileXp / 100), demo: { ...player.demo, profileXp, playCounts,
     sessions: player.demo.sessions.map((entry) => entry.id === sessionId ? { ...entry, finished: true, score } : entry),
     scores: isCampaign || !improvesBest ? player.demo.scores : { ...player.demo.scores, [session.gameId]: score },
     scoreTimes: !isCampaign && improvesBest ? { ...player.demo.scoreTimes, [session.gameId]: at } : player.demo.scoreTimes,
     campaignScores: improvesCampaign ? { ...player.demo.campaignScores, [session.campaignId!]: { ...player.demo.campaignScores?.[session.campaignId!], [session.gameId]: { score, achievedAt: at } } } : player.demo.campaignScores,
     seasonScores: isCampaign ? player.demo.seasonScores : { ...player.demo.seasonScores, [seasonId]: { ...seasonScores, [session.gameId]: Math.max(score, seasonScores[session.gameId] ?? 0) } },
-    history: [...achievementHistory, gameHistory, ...(player.demo.history ?? [])].slice(0, 250),
+    history: [gameHistory, ...(player.demo.history ?? [])].slice(0, 250),
     missionCounts: { ...player.demo.missionCounts, [today]: (player.demo.missionCounts[today] ?? 0) + 1, [`${passId}:${today}`]: (player.demo.missionCounts[`${passId}:${today}`] ?? 0) + 1 },
     weeklyGames: { ...player.demo.weeklyGames, [week.id]: [...new Set([...week.games, session.gameId])] },
   } };
-  return progressMissions(finished, 'game', at);
+  let next = processAchievementEvent(finished, { type: 'game_completed', gameId: session.gameId }, at);
+  if (!isCampaign && improvesBest) next = processAchievementEvent(next, { type: 'game_score_updated', gameId: session.gameId, score }, at);
+  return progressMissions(next, 'game', at);
 }
 export function buyPremium(player: PlayerState): PlayerState | null {
   if (hasPassAccess(player) || player.aisPoints < player.demo.config.premiumPrice) return null;

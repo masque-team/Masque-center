@@ -3,7 +3,7 @@
   import { CURRENCY_ARTWORK } from '../data/config';
 
   let { kind, size = 22, className = '' }: {
-    kind: 'points' | 'aisPoints' | 'arenaTicket' | 'petGachaTicket' | 'energyPotion';
+    kind: 'points' | 'aisPoints' | 'arenaTicket' | 'petGachaTicket' | 'energyPotion' | 'campaignTicket';
     size?: number;
     className?: string;
   } = $props();

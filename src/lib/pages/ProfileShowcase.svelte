@@ -6,12 +6,14 @@
   import GameButton from '../components/GameButton.svelte';
   import PageTitle from '../components/PageTitle.svelte';
   import RewardIcon from '../components/RewardIcon.svelte';
+  import ProfileRoom3D from '../components/ProfileRoom3D.svelte';
   import { AVATARS, PETS, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
   import type { PlayerState, ProfileStyle } from '../types';
 
-  let { player, editable = false, onSave, onAvatar, onPet, onWing }: {
+  let { player, editable = false, vipActive = false, onSave, onAvatar, onPet, onWing }: {
     player: PlayerState;
     editable?: boolean;
+    vipActive?: boolean;
     onSave: (style: ProfileStyle, frameId: string | null) => void;
     onAvatar: (id: string) => void;
     onPet: (id: string | null) => void;
@@ -40,15 +42,10 @@
   <PageTitle eyebrow="PLAYER SPACE" title={editable ? 'แต่งโปรไฟล์' : 'My Profile'} subtitle="">
     {#snippet icon()}<UserRound size={26} />{/snippet}
   </PageTitle>
-  <section class="relative isolate min-h-[330px] overflow-hidden border-y border-white" aria-label="ฉากโปรไฟล์">
-    <img class="absolute inset-0 -z-20 h-full w-full object-cover" src={background.imagePath} alt={background.name} />
-    <div class="absolute inset-x-0 bottom-0 -z-10 h-28 bg-gradient-to-t from-[#14394b]/90 to-transparent"></div>
-    <div class="relative mx-auto mt-4 h-56 w-48">
-      {#if wing}<img class="absolute inset-0 h-full w-full scale-150 object-contain" src={wing.imagePath} alt={wing.name} />{/if}
-      <span class="relative block h-full w-full" data-frame={editable ? frameId : player.demo.frameId}><AssetPortrait src={avatar.imagePath} alt={avatar.name} placeholder={avatar.placeholder} kind="avatar" loading="eager" /></span>
-      {#if pet}<span class="absolute -right-5 bottom-0 h-24 w-20"><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" /></span>{/if}
-    </div>
-    <div class="relative flex min-h-24 items-end justify-between gap-3 px-4 pb-4 text-white"><div class="min-w-0"><h2 class="break-words text-xl font-semibold">{player.displayName}</h2><p class="mt-1 text-xs">LV.{player.level} · {avatar.name}</p>{#if style.bio}<p class="mt-1 break-words text-xs">{style.bio}</p>{/if}</div>{#if !editable}<a class="grid size-10 shrink-0 place-items-center rounded-md border border-white/60 bg-white/20" href="#profile" aria-label="แต่งโปรไฟล์" title="แต่งโปรไฟล์"><Pencil size={18} /></a>{/if}</div>
+  <section class="relative isolate min-h-[390px] overflow-hidden border-y border-white" aria-label="ฉากโปรไฟล์">
+    <div class="absolute inset-0 h-full w-full"><ProfileRoom3D {avatar} {pet} {wing} {background} frameId={editable ? frameId : player.demo.frameId} {vipActive} /></div>
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-32 bg-gradient-to-t from-[#14394b]/90 to-transparent"></div>
+    <div class="absolute inset-x-0 bottom-0 z-20 flex min-h-24 items-end justify-between gap-3 px-4 pb-4 text-white"><div class="min-w-0"><h2 class="break-words text-xl font-semibold">{player.displayName}</h2><p class="mt-1 text-xs">LV.{player.level} · {avatar.name}</p>{#if style.bio}<p class="mt-1 break-words text-xs">{style.bio}</p>{/if}</div>{#if !editable}<a class="grid size-10 shrink-0 place-items-center rounded-md border border-white/60 bg-white/20" href="#profile" aria-label="แต่งโปรไฟล์" title="แต่งโปรไฟล์"><Pencil size={18} /></a>{/if}</div>
     {#if pinned.length}<div class="absolute top-2 left-2 flex max-w-[calc(100%_-_16px)] flex-wrap gap-1" aria-label="ป้ายที่ปักไว้">{#each pinned as badge (badge.id)}<span class="flex items-center gap-1 rounded-md border border-white bg-white/90 px-2 py-1 text-[10px] font-semibold"><RewardIcon type="badge" itemId={badge.id} size={20} />{badge.title}{#if badge.seasonId}<small>{badge.seasonId}</small>{/if}</span>{/each}</div>{/if}
   </section>
 

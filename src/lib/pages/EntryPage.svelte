@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowRight, Sparkles } from '@lucide/svelte';
+  import { ArrowRight, Crown, Sparkles, Star } from '@lucide/svelte';
   import GameButton from '../components/GameButton.svelte';
 
   let { aisPointSeed, onEnter }: { aisPointSeed: number | null; onEnter: (name: string) => void } = $props();
@@ -13,40 +13,85 @@
   }
 </script>
 
-<main class="entry min-h-dvh overflow-hidden px-4 pb-[max(24px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] text-[#24485f]">
+<main class="entry min-h-dvh overflow-hidden px-4 pb-[max(24px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))] text-[#1f305e]">
   <div class="entry-art" style:--entry-background={`url("${import.meta.env.BASE_URL}assets/entry/entry-island.png")`} aria-hidden="true"></div>
-  <div class="relative mx-auto flex min-h-[calc(100dvh_-_42px)] w-full max-w-[460px] flex-col">
-    <header class="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"><img class="h-10 w-40 object-contain object-left" src="assets/brand/masque-game-center-logo.png" alt="Masque Game Center" /><small class="text-[10px] text-[#607f91]">MYAIS DEMO WORLD</small></header>
-    <div class="flex flex-1 flex-col justify-end pb-4">
+  <div class="relative mx-auto flex min-h-[calc(100dvh_-_40px)] w-full max-w-[460px] flex-col">
+    <header class="flex items-center justify-between gap-2 rounded-2xl border-2 border-white/90 bg-white/85 px-3 py-2 shadow-[0_4px_0_#a6d4f2,0_8px_18px_rgba(14,116,184,0.14)] backdrop-blur-md">
+      <img class="h-9 w-36 object-contain object-left" src="assets/brand/masque-game-center-logo.png" alt="Masque Game Center" />
+      <span class="inline-flex items-center gap-1 rounded-full border border-[#ffe28a] bg-gradient-to-r from-[#fff8db] to-[#ffe699] px-2.5 py-1 text-[10px] font-black tracking-wide text-[#8c5300] shadow-xs">
+        <Crown size={12} /> MYAIS WORLD
+      </span>
+    </header>
+    <div class="flex flex-1 flex-col justify-end pb-3 pt-6">
       <section class="entry-panel" aria-labelledby="entry-title">
-        <span class="eyebrow"><Sparkles size={14} />YOUR ADVENTURE STARTS HERE</span>
-        <h1 id="entry-title">มาเล่นกัน<br /><span>เรียกคุณว่าอะไรดี?</span></h1>
-        <p class="intro">ชื่อตัวละครนี้ใช้เฉพาะรอบที่เปิดอยู่ ไม่ต้องสมัครหรือตั้งรหัสผ่าน</p>
-        <form class="mt-6 grid gap-3" onsubmit={(event) => { event.preventDefault(); submit(); }}>
-          <label class="grid gap-2 text-sm font-semibold" for="player-name">ชื่อในเกม
-            <input id="player-name" bind:value={name} maxlength="40" autocomplete="nickname" placeholder="เช่น มะลิ" aria-describedby={error ? 'name-error' : 'name-hint'} oninput={() => error = ''} />
+        <span class="eyebrow"><Sparkles size={13} />YOUR FANTASY ARCADE STARTS HERE</span>
+        <h1 id="entry-title">ยินดีต้อนรับสู่เกาะลอยฟ้า!<br /><span>ให้เราเรียกคุณว่าอะไรดีคะ?</span></h1>
+        <p class="intro">ตั้งชื่อนักผจญภัยของคุณสำหรับรอบนี้ เล่นเกมสะสมคะแนน ปลดล็อก Chibi Avatar และรางวัลมากมายได้ทันที</p>
+        <form class="mt-4 grid gap-3" onsubmit={(event) => { event.preventDefault(); submit(); }}>
+          <label class="grid gap-1.5 text-xs font-black text-[#1f305e]" for="player-name">
+            <span class="flex items-center gap-1"><Star size={13} class="text-[#d98b00]" /> ชื่อในเกม (Display Name)</span>
+            <input id="player-name" bind:value={name} maxlength="40" autocomplete="nickname" placeholder="เช่น มะลิ, ลูมิน่า, SkyHero" aria-describedby={error ? 'name-error' : 'name-hint'} oninput={() => error = ''} />
           </label>
-          {#if error}<p id="name-error" class="text-xs font-semibold text-rose-700" role="alert">{error}</p>{:else}<p id="name-hint" class="text-xs text-[#668394]">ไม่บันทึกชื่อไว้หลังปิดหน้านี้</p>{/if}
-          {#if aisPointSeed !== null}<p class="seed-note">AIS seed: {aisPointSeed.toLocaleString()} · ใช้เมื่อสร้าง Player ใหม่หรือ Reset</p>{/if}
-          <GameButton type="submit" block size="lg" variant="purple">เข้า Game Center<ArrowRight size={18} /></GameButton>
+          {#if error}<p id="name-error" class="text-xs font-extrabold text-rose-600" role="alert">{error}</p>{:else}<p id="name-hint" class="text-[11px] font-bold text-[#526c9c]">ชื่อนี้ใช้แสดงบนกระดานจัดอันดับและหน้าโปรไฟล์</p>{/if}
+          {#if aisPointSeed !== null}<p class="seed-note">🪙 AIS Point ตั้งต้น: {aisPointSeed.toLocaleString()} แต้ม · พร้อมทดสอบระบบแลกรางวัล</p>{/if}
+          <GameButton type="submit" block size="lg" variant="gold">เริ่มการผจญภัยเลย<ArrowRight size={18} /></GameButton>
         </form>
-        <p class="disclaimer">DEMO · ไม่เชื่อมต่อ AIS Points หรือบัญชีจริง</p>
+        <p class="disclaimer">DEMO MODE · จำลองการใช้ AIS Points ภายในเครื่องโดยไม่หักคะแนนจริง</p>
       </section>
     </div>
   </div>
 </main>
 
 <style>
-  .entry { position: relative; isolation: isolate; background: linear-gradient(180deg, #d9eff7, #edf0f8 58%, #f7edf0); }
-  .entry-art { position: absolute; inset: 0 0 auto; height: min(67dvh, 580px); background: linear-gradient(180deg, rgb(218 241 249 / 8%) 35%, #e9eff7 100%), var(--entry-background) center 48% / cover; }
-  .entry-panel { padding: 22px 19px 17px; border: 1px solid rgb(255 255 255 / 85%); border-radius: 10px; background: rgb(250 253 254 / 94%); box-shadow: 0 18px 60px rgb(43 82 103 / 12%); backdrop-filter: blur(16px); }
-  .eyebrow { display: flex; align-items: center; gap: 6px; color: #387f9c; font-size: 10px; font-weight: 800; }
-  h1 { margin: 13px 0 0; color: #24485f; font-size: 31px; font-weight: 800; line-height: 1.18; }
-  h1 span { color: #55839a; }
-  .intro { max-width: 32ch; margin: 9px 0 0; color: #607f91; font-size: 13px; line-height: 1.55; }
-  input { width: 100%; min-height: 52px; padding: 0 14px; border: 1px solid #cfdee6; border-radius: 8px; color: #24485f; background: #fff; font-size: 16px; }
-  input:focus { border-color: #387f9c; outline: 3px solid rgb(56 127 156 / 18%); }
-  .seed-note { margin: 0; color: #8a620d; font-size: 12px; font-weight: 700; }
-  .disclaimer { margin: 15px 0 0; color: #8298a3; font-size: 10px; text-align: center; }
+  .entry { position: relative; isolation: isolate; background: linear-gradient(180deg, #bce6ff 0%, #dff3ff 48%, #fff8e7 100%); }
+  .entry-art { position: absolute; inset: 0 0 auto; height: min(68dvh, 580px); background: linear-gradient(180deg, rgb(188 230 255 / 4%) 40%, #eaf6ff 92%, #fff8e7 100%), var(--entry-background) center 36% / cover no-repeat; }
+  .entry-panel {
+    padding: 20px 18px 16px;
+    border: 3px solid #ffffff;
+    border-radius: 26px;
+    background: linear-gradient(180deg, rgb(255 253 247 / 96%) 0%, rgb(240 249 255 / 96%) 100%);
+    box-shadow: 0 7px 0 #9bcdf0, 0 18px 38px rgb(20 68 122 / 22%), inset 0 2px 0 #ffffff;
+    backdrop-filter: blur(14px);
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1.5px solid #bae6fd;
+    background: linear-gradient(90deg, #e0f2fe, #fff9db);
+    color: #0369a1;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+  }
+  h1 { margin: 10px 0 0; color: #1f305e; font-size: clamp(23px, 6.4vw, 28px); font-weight: 900; line-height: 1.2; }
+  h1 span { color: #0284c7; }
+  .intro { margin: 7px 0 0; color: #4f6899; font-size: 12.5px; font-weight: 700; line-height: 1.5; }
+  input {
+    width: 100%;
+    min-height: 50px;
+    padding: 0 14px;
+    border: 2.5px solid #bae6fd;
+    border-radius: 16px;
+    color: #1f305e;
+    background: #ffffff;
+    box-shadow: inset 0 2px 4px rgb(14 116 184 / 8%), 0 2px 0 #d8effc;
+    font-size: 15px;
+    font-weight: 800;
+  }
+  input:focus { border-color: #0ea5e9; outline: 3px solid rgb(14 165 233 / 22%); }
+  .seed-note {
+    margin: 0;
+    padding: 6px 10px;
+    border-radius: 12px;
+    border: 1.5px solid #fde68a;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .disclaimer { margin: 12px 0 0; color: #647ea8; font-size: 10px; font-weight: 800; text-align: center; }
   @media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) { .entry { display: none; } }
 </style>

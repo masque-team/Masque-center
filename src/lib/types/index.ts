@@ -13,6 +13,7 @@ export interface Game {
   featured?: boolean;
   editorialTag?: EditorialGameTag;
   displayOrder?: number;
+  onlineBase?: number;
   published?: boolean;
 }
 
@@ -71,7 +72,7 @@ export interface GachaBatchResult { player: PlayerState; results: GachaDrawResul
 export interface ProfileStyle { backgroundId: string; bio: string; badgeIds: string[] }
 export interface ProfileBadge { id: string; title: string; earnedAt: number; seasonId?: string; gameId?: GameId }
 
-export type Page = 'home' | 'hub' | 'world' | 'shop' | 'rewards' | 'ranking' | 'avatar' | 'profile' | 'room' | 'game' | 'detail' | 'battle' | 'admin' | 'wallet' | 'points' | 'gacha' | 'campaigns' | 'campaign' | 'missions' | 'inventory' | 'history' | 'vip';
+export type Page = 'home' | 'hub' | 'world' | 'shop' | 'rewards' | 'ranking' | 'avatar' | 'profile' | 'room' | 'game' | 'detail' | 'battle' | 'admin' | 'wallet' | 'points' | 'gacha' | 'campaigns' | 'campaign' | 'achievements' | 'missions' | 'inventory' | 'history' | 'vip';
 
 export type ShopTab = 'items' | 'exchange' | 'energy' | 'vip';
 
@@ -187,6 +188,8 @@ export interface DemoState {
   seasonScores: Record<string, Partial<Record<GameId, number>>>;
   campaignScores?: Record<string, Partial<Record<GameId, { score: number; achievedAt: number }>>>;
   campaignTickets?: number;
+  campaignJoinCount?: number;
+  campaignCompletedCount?: number;
   settledCampaigns?: string[];
   settledPasses?: string[];
   closedCampaigns?: string[];

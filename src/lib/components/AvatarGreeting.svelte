@@ -161,40 +161,40 @@
   .comic-bubble {
     position: relative;
     margin-left: 8px;
-    padding: 12px 14px 10px;
-    border: 3px solid #3a2d78;
+    padding: 11px 13px 9px;
+    border: 2.5px solid #ffffff;
     border-radius: 22px 24px 22px 18px;
-    background: linear-gradient(180deg, #ffffff 0%, #fffdf5 100%);
+    background: linear-gradient(180deg, #fffdf7 0%, #f0f9ff 100%);
     box-shadow:
-      0 5px 0 #3a2d78,
-      0 8px 16px rgba(58, 45, 120, 0.18),
-      inset 0 -3px 0 #f4ecff;
+      0 5px 0 #95caf0,
+      0 10px 18px rgba(24, 92, 160, 0.14),
+      inset 0 2px 0 #ffffff;
     animation: bubble-pop 280ms cubic-bezier(0.28, 1.55, 0.5, 1) both;
   }
   .speech-wrap:active .comic-bubble {
     transform: translateY(2px) scale(0.985);
-    box-shadow: 0 3px 0 #3a2d78;
+    box-shadow: 0 3px 0 #95caf0;
   }
   /* Comic pointer tail pointing left toward the Avatar's face */
   .tail-outer {
     position: absolute;
-    left: -15px;
+    left: -14px;
     top: 34px;
     width: 0;
     height: 0;
-    border-top: 10px solid transparent;
-    border-bottom: 11px solid transparent;
-    border-right: 15px solid #3a2d78;
+    border-top: 9px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 14px solid #95caf0;
   }
   .tail-inner {
     position: absolute;
     left: -10px;
-    top: 36px;
+    top: 35px;
     width: 0;
     height: 0;
     border-top: 8px solid transparent;
     border-bottom: 8px solid transparent;
-    border-right: 12px solid #ffffff;
+    border-right: 12px solid #fffdf7;
   }
   .speaker-tag {
     display: inline-flex;
@@ -202,24 +202,24 @@
     gap: 5px;
     margin-bottom: 4px;
     padding: 2px 8px 2px 6px;
-    border: 1.5px solid #e5d8ff;
+    border: 1.5px solid #fde68a;
     border-radius: 99px;
-    background: linear-gradient(90deg, #fff0f5, #f2edff);
+    background: linear-gradient(90deg, #fffbeb, #e0f2fe);
     font-size: 10px;
     font-weight: 900;
-    color: #462aa8;
+    color: #0369a1;
   }
   .speaker-tag small {
     font-size: 9px;
-    font-weight: 700;
-    color: #7c72ad;
+    font-weight: 800;
+    color: #92400e;
   }
   .dialogue {
     margin: 0;
     font-size: 13px;
     font-weight: 800;
     line-height: 1.4;
-    color: #2b2468;
+    color: #1f305e;
   }
   .tap-hint {
     display: inline-flex;
@@ -228,7 +228,7 @@
     margin-top: 5px;
     font-size: 9px;
     font-weight: 800;
-    color: #9687c9;
+    color: #0284c7;
   }
   @keyframes bubble-pop {
     from {

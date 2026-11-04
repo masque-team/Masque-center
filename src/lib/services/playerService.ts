@@ -97,6 +97,14 @@ export function loadPlayer(queryName: string | null, aisPointSeed: number | null
   result.demo.campaignScores ??= {};
   result.demo.campaignTickets ??= 2;
   result.demo.settledCampaigns ??= [];
+  result.demo.campaignJoinCount ??= result.demo.sessions.filter((session) => session.mode === 'campaign').length;
+  if (result.demo.campaignCompletedCount === undefined) {
+    const participatedCampaigns = new Set([
+      ...result.demo.sessions.flatMap((session) => session.mode === 'campaign' && session.campaignId ? [session.campaignId] : []),
+      ...Object.keys(result.demo.campaignScores ?? {}),
+    ]);
+    result.demo.campaignCompletedCount = result.demo.settledCampaigns.filter((campaignId) => participatedCampaigns.has(campaignId)).length;
+  }
   result.demo.closedCampaigns ??= [];
   result.demo.notifications ??= [];
   result.demo.history ??= [];

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Mail, Plus } from '@lucide/svelte';
+  import { Mail, Plus, Crown } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
   import CurrencyIcon from './CurrencyIcon.svelte';
   import EnergyBadge from './EnergyBadge.svelte';
@@ -21,53 +21,154 @@
       {#if pet}<span class="pet"><AssetPortrait src={pet.imagePath} alt={pet.name} placeholder={pet.placeholder} kind="pet" /></span>{/if}
     </span>
     <span class="who">
-      <strong>{player.displayName}</strong>
-      <small>LV.{player.level}</small>
+      <strong class="flex items-center gap-1">
+        <span class="truncate">{player.displayName}</span>
+        {#if vipActive}<Crown size={12} class="shrink-0 text-amber-500" fill="currentColor" />{/if}
+      </strong>
+      <small>LV.{player.level}{vipActive ? ' · VIP' : ''}</small>
     </span>
   </button>
 
   <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {countdown} {onRefill} />
 
-  <button class="history" onclick={onHistory} aria-label="History and notifications" title="History and notifications">
+  <button class="history" class:has-unread={hasUnread} onclick={onHistory} aria-label="History and notifications" title="History and notifications">
     <Mail size={18} />
     {#if hasUnread}<span class="unread" aria-label="รายการใหม่"></span>{/if}
   </button>
 
   <button class="wallet" onclick={onShop} aria-label={`AIS Point · ยอด ${player.aisPoints}`}>
-    <span class="coin" aria-hidden="true"><CurrencyIcon kind="aisPoints" size={32} /></span>
+    <span class="coin" aria-hidden="true"><CurrencyIcon kind="aisPoints" size={30} /></span>
     <strong>{player.aisPoints.toLocaleString('en-US')}</strong>
-    <span class="plus" aria-hidden="true"><Plus size={16} strokeWidth={3.5} /></span>
+    <span class="plus" aria-hidden="true"><Plus size={15} strokeWidth={3.5} /></span>
   </button>
 </header>
 
 <style>
-  .bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 8px; min-height: 58px; }
-  .pet { position: absolute; bottom: -3px; left: -5px; width: 24px; height: 27px; filter: drop-shadow(0 2px 2px #8b75bb); }
+  .bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 7px; min-height: 58px; }
+  .pet { position: absolute; bottom: -3px; left: -5px; width: 24px; height: 27px; filter: drop-shadow(0 2px 3px rgba(30, 60, 110, 0.35)); }
   button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-  button:focus-visible { outline: 3px solid #7a5ce0; outline-offset: 2px; }
+  button:focus-visible { outline: 3px solid #2b8fd6; outline-offset: 2px; }
 
-  .player { display: flex; align-items: center; gap: 7px; justify-self: start; min-width: 0; max-width: 100%; padding: 0 9px 0 0; border: 0; border-radius: 99px; background: transparent; text-align: left; }
-  .thumb { position: relative; flex: 0 0 auto; width: 44px; height: 44px; }
-  .thumb :global(.thumb-img) { width: 44px; height: 44px; border: 2.5px solid #fff; border-radius: 50%; background: var(--avatar-color); box-shadow: 0 0 0 2px #f6c453, 0 4px 8px rgb(70 50 150 / 28%); }
-  .player.vip .thumb :global(.thumb-img) { border-color: #fff6b8; box-shadow: 0 0 0 2.5px #ffbe30, 0 0 16px rgb(255 200 50 / 85%), 0 4px 8px rgb(70 50 150 / 28%); }
+  .player {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: start;
+    min-width: 0;
+    max-width: 100%;
+    padding: 3px 10px 3px 3px;
+    border: 2px solid #fff;
+    border-radius: 99px;
+    background: linear-gradient(180deg, #ffffff 0%, #f2f9ff 100%);
+    box-shadow: 0 3px 0 #bed6eb, 0 5px 10px rgb(35 75 130 / 12%);
+    text-align: left;
+    transition: transform 0.1s ease;
+  }
+  .player:active { transform: translateY(2px); }
+  .player.vip {
+    background: linear-gradient(180deg, #fffef7 0%, #fff3cc 100%);
+    box-shadow: 0 3px 0 #dfb456, 0 5px 12px rgb(180 125 20 / 18%);
+  }
+  .thumb { position: relative; flex: 0 0 auto; width: 42px; height: 42px; }
+  .thumb :global(.thumb-img) {
+    width: 42px;
+    height: 42px;
+    border: 2.5px solid #fff;
+    border-radius: 50%;
+    background: var(--avatar-color);
+    box-shadow: 0 0 0 2px #5ac2fa, 0 3px 6px rgb(35 75 130 / 22%);
+  }
+  .player.vip .thumb :global(.thumb-img) {
+    border-color: #fff8d6;
+    box-shadow: 0 0 0 2.5px #ffbe30, 0 0 12px rgb(255 200 50 / 75%);
+  }
   .thumb :global(.thumb-img img) { object-fit: cover; object-position: 50% 6%; }
-  .lv { position: absolute; right: -4px; bottom: -3px; display: grid; place-items: center; min-width: 19px; height: 19px; padding: 0 3px; border: 1.5px solid #fff; border-radius: 99px; color: #fff; background: linear-gradient(160deg, #a78bfa, #6a4fd6); font-size: 10px; font-weight: 900; line-height: 1; }
+  .lv {
+    position: absolute;
+    right: -4px;
+    bottom: -3px;
+    display: grid;
+    place-items: center;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 4px;
+    border: 1.5px solid #fff;
+    border-radius: 99px;
+    color: #fff;
+    background: linear-gradient(160deg, #38bdf8, #0284c7);
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 2px 0 #0369a1;
+  }
   .who { display: grid; min-width: 0; gap: 1px; }
-  .who strong { overflow: hidden; color: #2b2468; font-size: 14px; font-weight: 900; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
-  .who small { color: #8a7fc4; font-size: 11px; font-weight: 800; }
+  .who strong { overflow: hidden; color: #1f305e; font-size: 13.5px; font-weight: 900; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+  .who small { color: #52739c; font-size: 10.5px; font-weight: 800; }
 
-  .wallet { display: inline-flex; align-items: center; gap: 6px; justify-self: end; min-height: 44px; padding: 3px 5px 3px 4px; border: 2px solid #fff; border-radius: 99px; background: linear-gradient(180deg, #fffdf7, #f1ecff); box-shadow: 0 3px 0 #cfc3f2, 0 6px 10px rgb(70 50 150 / 16%); }
-  .history { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border: 1.5px solid #fff; border-radius: 50%; color: #375b78; background: #e7f5fb; }
-  .unread { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: #e84f66; }
-  .wallet:active { transform: translateY(2px); box-shadow: 0 1px 0 #cfc3f2; }
-  .coin { display: grid; place-items: center; width: 32px; height: 32px; }
-  .wallet strong { color: #2b2468; font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
-  .plus { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: linear-gradient(160deg, #a78bfa, #6a4fd6); box-shadow: 0 2px 0 #4b32a8; }
+  .history {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 2px solid #fff;
+    border-radius: 15px;
+    color: #1e5f99;
+    background: linear-gradient(180deg, #ffffff 0%, #e3f4ff 100%);
+    box-shadow: 0 3px 0 #a8cbe8, 0 5px 10px rgb(35 75 130 / 12%);
+    transition: transform 0.1s ease;
+  }
+  .history:active { transform: translateY(2px); }
+  .history.has-unread {
+    background: linear-gradient(180deg, #fffdf4 0%, #ffefc2 100%);
+    color: #8a5200;
+    box-shadow: 0 3px 0 #dfb456;
+  }
+  .unread {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 11px;
+    height: 11px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #f43f5e;
+    box-shadow: 0 0 8px #f43f5e;
+  }
+
+  .wallet {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    justify-self: end;
+    min-height: 44px;
+    padding: 3px 5px 3px 4px;
+    border: 2px solid #fff;
+    border-radius: 99px;
+    background: linear-gradient(180deg, #fffef8 0%, #fff3cf 100%);
+    box-shadow: 0 3px 0 #dfb456, 0 6px 12px rgb(160 110 20 / 16%);
+    transition: transform 0.1s ease;
+  }
+  .wallet:active { transform: translateY(2px); box-shadow: 0 1px 0 #dfb456; }
+  .coin { display: grid; place-items: center; width: 30px; height: 30px; }
+  .wallet strong { color: #5c3600; font-size: 13.5px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .plus {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid #fff;
+    border-radius: 50%;
+    color: #5c3600;
+    background: linear-gradient(160deg, #fff099, #ffb92e);
+    box-shadow: 0 2px 0 #c7810c;
+  }
 
   @media (max-width: 350px) {
-    .bar { gap: 5px; }
-    .wallet { gap: 4px; padding-right: 4px; }
-    .wallet strong, .who strong { font-size: 13px; }
-    .history { width: 36px; height: 36px; }
+    .bar { gap: 4px; }
+    .player { padding-right: 7px; gap: 5px; }
+    .wallet { gap: 3px; padding-right: 4px; }
+    .wallet strong, .who strong { font-size: 12.5px; }
+    .history { width: 38px; height: 38px; }
   }
 </style>

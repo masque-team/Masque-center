@@ -26,7 +26,8 @@
 | Profile / Avatar room | M1–M2 | Player identity, appearance selectors, equipped frame/banner/badge/pet, VIP and Energy, history shortcut; 2D art on a plane in a simple 3D room (or lightweight CSS perspective placeholder until art pass). |
 | VIP promotion / package | M2 | Configurable demo 6-hour/1-day/3-day packages in AIS Points; immediate activation and renewal extends expiry; Energy MAX 30 while active; normal game entry waived, no Premium unlock. |
 | Battle Pass / Reward track | M3 | Shared season XP + level; Free and Premium track; current eligibility and claim state; premium purchase retroactive; manual claim; end-season automatic fallback. |
-| Mission center | M3 | Daily, Weekly, Season tabs; Free/VIP/Premium categories; visible locked missions + upsell; completion and animated progress after result. |
+| Battle Pass Missions | M3 | Nested inside Battle Pass or its mission subpage; Daily/Weekly/Season and Free/VIP/Premium; locked entitlements; automatic once-only Pass XP and post-game progress overlay. Not a bottom tab. |
+| Achievement Center | Cross-cutting | Fifth bottom tab labeled Achievement; Daily Check-in/streak, permanent game/activity goals, progress, rewards and locked/unlocked Badge Gallery. Home Check-in shortcut uses the same once-per-day state. |
 | Gacha / item inventory | M2–M3 | Configurable mock boxes/rates, draw → result → inventory, cosmetic equip/ownership; not a real paid random system. |
 | Campaign (list/detail/game choice) | M1 | Mock free and ticket campaigns with start/end times; AIS Point ticket packs, game-specific leaderboard, prize preview, automatic one-time expiry settlement and next-open popup. External campaigns without a real URL show a non-launchable placeholder. |
 | Ranking | M1 | Per-game **all-time** normal scores, separate campaign per-game rankings, tie-earlier rule, current-player highlight and gift prize preview. |
@@ -54,6 +55,7 @@ Prefer extending the existing `PlayerState` / `DemoState` with **additive fields
 - `season`: ID + explicit start/end boundaries, level cap, XP threshold, Free/Premium rewards, mission catalogs. A **calendar month** rather than fixed epoch 30-day cycles.
 - `passProgress`: `seasonId`, XP, premiumOwned, claimedRewardKeys; separate XP-grant event IDs to prevent repeat.
 - `missions`: ID, entitlement free/vip/premium, period daily/weekly/season, trigger, target, current count, XP award, completedAt.
+- `achievements`: stable lifetime achievement ID, event criteria, derived/persisted progress, unlocked Badge/reward receipt; separate from Pass mission claims and Pass XP. Profile pins reference the same earned Badge IDs.
 - `inventory`: owned cosmetic items, consumable balances and equipped IDs, reward receipt IDs.
 - `history`: timestamped game-play, purchase and reward events; show player-facing friendly source, amounts and context.
 - `notifications`: one-time popup queue for rank/season auto-grants; status viewed and link to History.
@@ -98,6 +100,15 @@ Keep explicit **demo-only** constants/config instead of pretending guessed price
 - Pass tables must use supported demo rewards: Energy, AIS Point, Gacha Boxes and owned cosmetics. Migrate legacy Gacha/Ranked ticket reward rows to Pet Gacha Boxes deterministically without changing claim indexes or player inventory. No bonus levels beyond MAX.
 - Mission XP is automatic at completion and the post-game overlay shows matching mission progress before/after, bars and +XP. The Battle Pass mission tab is a progress summary/link only; no manual Mission XP claim controls remain.
 - Dev tools can simulate date/XP and force settlement but are inaccessible from customer navigation.
+
+### Achievement and Check-in
+
+- Bottom navigation label **Achievement** opens the Achievement Center. Historical “Mission” wording from the Backlog means Battle Pass EXP missions, not this tab.
+- Keep Check-in on Home as a shortcut and expose the same reward/status/streak in Achievement. Both call one shared `checkinDates` claim guard, so reward grants once per local demo day.
+- Achievement events include `game_completed`, `game_score_updated`, `daily_checkin`, `campaign_joined` and `campaign_completed`. Update lifetime progress and unlock a Profile Badge/reward once; write History and an unread notification.
+- Lifetime examples: 10/50/100 completed games, 7-day check-in streak, all catalog genres, normal High Score threshold and Campaign participation/completion. Keep permanent metrics independent from monthly season progress; only explicitly seasonal Achievements may reset.
+- Pass Missions may consume the same game/check-in event, but their `missionClaims`/Pass XP ledger stays separate. An Achievement reward must not grant Pass XP implicitly.
+- `demo.achievements` is the canonical earned-Badge collection. Achievement Gallery, Profile Badge pinning and existing season/ranking Badge displays must reference that collection, not duplicate it.
 
 ### History
 

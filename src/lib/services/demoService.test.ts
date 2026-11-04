@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './playerService';
 import { energyCapacity, nextRefillIn, refreshEnergy, refillEnergy, spendContinueEnergy, spendGameEnergy } from './energyService';
-import { awardPassXp, beginGame, buyDecor, buyPremium, claimMission, claimPass, claimPassBonus, claimRankingReward, claimWeeklyMission, currentPass, currentSeason, dayKey, finishGame, gameMission, getMissions, hasPassAccess, ledger, nextPassBonus, recordPlayTime, seedDemoScenario, settleExpiredPasses, startBattle, validateConfig, weeklyPassMission } from './demoService';
+import { awardPassXp, beginGame, buyDecor, buyPremium, claimMission, claimPass, claimPassBonus, claimRankingReward, claimWeeklyMission, currentPass, currentSeason, dayKey, finishGame, gameMission, getMissions, hasPassAccess, ledger, nextPassBonus, progressMissions, recordPlayTime, seedDemoScenario, settleExpiredPasses, startBattle, validateConfig, weeklyPassMission } from './demoService';
 import { drawPet } from './petService';
 import { buyGachaBox, buyGachaCoupons, drawGachaBatch, drawGachaBox, getGachaOdds } from './gachaService';
 import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './walletService';
@@ -12,6 +12,8 @@ import { claimBattlePassReward } from './rewardService';
 import { passProgress, passTrack, passWindow } from './battlePassService';
 import { claimAvailablePass, grantReward } from './demoService';
 import { beginCampaignGame, buyCampaignTicketPack, campaignRankingGame, finalizeCampaign, getCampaignRanking, getCampaignStatus, settleExpiredCampaigns } from './campaignService';
+import { claimDailyCheckin, currentCheckinStreak, evaluateAchievementEvent, getAchievementProgress } from './achievementService';
+import { processAchievementEvent } from './demoService';
 import type { PlayerState } from '../types';
 
 beforeEach(() => {
@@ -198,7 +200,14 @@ describe('shared demo economy', () => {
     expect(settled.energy).toBe(finished.energy + 5);
     expect(finalizeCampaign(settled, 'lantern-festival')).toBeNull();
     expect(settled.demo.notifications?.[0].viewed).toBe(false);
-    expect(settled.demo.history?.[0].title).toContain('Lantern Festival');
+    expect(settled.demo.history?.some((item) => item.id === 'settlement:lantern-festival' && item.title.includes('Lantern Festival'))).toBe(true);
+    expect(settled.demo.campaignCompletedCount).toBe(1);
+    expect(settled.demo.achievements.filter((badge) => badge.id === 'campaign-completed-1')).toHaveLength(1);
+  });
+  it('does not award Campaign completion Achievement to a player who never joined', () => {
+    const settled = finalizeCampaign(sample(), 'lantern-festival', true)!;
+    expect(settled.demo.campaignCompletedCount).toBe(0);
+    expect(settled.demo.achievements.some((badge) => badge.id === 'campaign-completed-1')).toBe(false);
   });
   it('orders equal all-time high scores by earliest achievement and preserves the personal best', () => {
     const player = sample();
@@ -218,6 +227,17 @@ describe('shared demo economy', () => {
     expect(next.demo.campaignTickets).toBe(1);
     expect(next.energy).toBe(player.energy);
     expect(beginCampaignGame({ ...next, demo: { ...next.demo, campaignTickets: 0 } }, 'starlight-sprint', 'run')).toBeNull();
+  });
+  it('unlocks the permanent Campaign participation Achievement without adding Pass XP', () => {
+    let player = sample();
+    for (let count = 0; count < 3; count += 1) player = beginCampaignGame(player, 'lantern-festival', 'bird')!;
+    expect(player.demo.campaignJoinCount).toBe(3);
+    expect(player.demo.achievements.filter((badge) => badge.id === 'campaign-joins-3')).toHaveLength(1);
+    expect(currentPass(player).xp).toBe(0);
+    expect(player.aisPoints).toBe(1050);
+    const repeated = beginCampaignGame(player, 'lantern-festival', 'bird')!;
+    expect(repeated.aisPoints).toBe(player.aisPoints);
+    expect(repeated.demo.achievements.filter((badge) => badge.id === 'campaign-joins-3')).toHaveLength(1);
   });
   it('does not add late Campaign scores after expiry or settlement', () => {
     const player = sample();
@@ -273,6 +293,9 @@ describe('shared demo economy', () => {
     expect(daily).toMatchObject({ count: 3, complete: true, locked: false });
     expect(currentPass(player).xp).toBe(80);
     expect(player.demo.recentMissionEvents).toContainEqual({ title: 'เล่นเกมประจำวัน', before: 2, after: 3, target: 3, xp: 80 });
+    expect(player.demo.achievements.some((badge) => badge.id === 'first-finish')).toBe(true);
+    expect(player.demo.missionClaims.some((id) => id.startsWith('m2:free-daily:'))).toBe(true);
+    expect(player.demo.achievements.find((badge) => badge.id === 'first-finish')?.seasonId).toBeUndefined();
     const fourth = beginGame(player, 'bird')!;
     player = finishGame(fourth, fourth.demo.sessions.at(-1)!.id, 105)!;
     expect(currentPass(player).xp).toBe(80);
@@ -284,10 +307,58 @@ describe('shared demo economy', () => {
       player = finishGame(started, started.demo.sessions.at(-1)!.id, count + 1)!;
     }
     expect(player.demo.achievements.filter((badge) => badge.id === 'frequent-player')).toHaveLength(1);
-    expect(player.demo.history?.some((item) => item.title === 'นักเล่นเกมตัวยง' && item.detail === 'ปลดล็อก Profile badge')).toBe(true);
+    expect(player.demo.history?.some((item) => item.title.includes('นักเล่นเกมตัวยง') && item.detail.includes('ปลดล็อก Achievement'))).toBe(true);
     const started = beginGame(player, 'bird')!;
     const next = finishGame(started, started.demo.sessions.at(-1)!.id, 11)!;
     expect(next.demo.achievements.filter((badge) => badge.id === 'frequent-player')).toHaveLength(1);
+    expect(next.energy).toBe(player.energy - 1);
+  });
+  it('keeps lifetime achievement progress across seasons and awards 50/100-game rewards once', () => {
+    let player: PlayerState = { ...sample(), vipExpiresAt: Date.now() + 400 * 86_400_000 };
+    const games = player.demo.config.games;
+    for (let count = 0; count < 100; count += 1) {
+      const game = games[count % games.length];
+      const started = beginGame(player, game.id)!;
+      player = finishGame(started, started.demo.sessions.at(-1)!.id, count === 0 ? 10_000 : count + 1)!;
+    }
+    const earnedIds = player.demo.achievements.map((badge) => badge.id);
+    expect(earnedIds).toEqual(expect.arrayContaining(['games-played-50', 'games-played-100', 'all-game-genres', 'high-score-10000']));
+    expect(player.demo.gachaBoxes?.pet).toBe(1);
+    expect(player.aisPoints).toBe(sample().aisPoints + 50);
+    const energyAfterUnlocks = player.energy;
+    player = { ...player, demo: { ...player.demo, clockOffset: Date.UTC(2026, 10, 2) - Date.now() } };
+    const rolled = settleExpiredPasses(player);
+    expect(rolled.demo.achievements.map((badge) => badge.id)).toEqual(expect.arrayContaining(earnedIds));
+    expect(rolled.demo.gachaBoxes?.pet).toBeGreaterThanOrEqual(1);
+    expect(rolled.demo.achievements.filter((badge) => earnedIds.includes(badge.id))).toHaveLength(earnedIds.length);
+  });
+  it('reports all-game-genre progress against the live published catalog target', () => {
+    let player = sample();
+    for (const id of ['bird', 'mole', 'run'] as const) {
+      const started = beginGame(player, id)!;
+      player = finishGame(started, started.demo.sessions.at(-1)!.id, 100)!;
+    }
+    const progress = getAchievementProgress(player).find((item) => item.definition.id === 'all-game-genres')!;
+    expect(progress.progress).toBe(3);
+    expect(progress.definition.target).toBe(new Set(player.demo.config.games.filter((game) => game.published !== false).map((game) => game.genre)).size);
+  });
+  it('shares check-in state across surfaces and grants streak achievement/reward once', () => {
+    let player = sample();
+    const start = Date.UTC(2026, 9, 1, 12);
+    for (let day = 0; day < 7; day += 1) {
+      const at = start + day * 86_400_000;
+      const checkedIn = claimDailyCheckin(player, at)!;
+      const achievementUpdated = processAchievementEvent(checkedIn, { type: 'daily_checkin' }, at);
+      player = progressMissions(achievementUpdated, 'checkin', at);
+      expect(currentCheckinStreak(player, at)).toBe(day + 1);
+      expect(claimDailyCheckin(player, at)).toBeNull();
+    }
+    expect(player.demo.achievements.filter((badge) => badge.id === 'checkin-streak-7')).toHaveLength(1);
+    expect(currentPass(player).xp).toBe(210);
+    expect(player.energy).toBe(20);
+    const repeated = processAchievementEvent(player, { type: 'daily_checkin' }, start + 6 * 86_400_000);
+    expect(repeated.energy).toBe(player.energy);
+    expect(repeated.demo.achievements.filter((badge) => badge.id === 'checkin-streak-7')).toHaveLength(1);
   });
   it('seeds the acceptance scenarios without leaking campaign scores into all-time', () => {
     const player = sample();
@@ -650,7 +721,7 @@ describe('progression and duplicate protection', () => {
     player = claimMission(player, 'bird')!;
     expect(gameMission(player, 'bird').target).toBe(10);
     expect(currentPass(player).xp).toBe(50);
-    expect(player.aisPoints).toBe(1025);
+    expect(player.aisPoints).toBe(1075);
     player.demo.playCounts.bird = 100;
     for (let index = 0; index < 4; index += 1) player = claimMission(player, 'bird')!;
     expect(gameMission(player, 'bird').target).toBe(150);
@@ -693,9 +764,9 @@ describe('progression and duplicate protection', () => {
     expect(startBattle(entered, 'bird')).toBeNull();
     const session = entered.demo.sessions.at(-1)!;
     const finished = finishGame(entered, session.id, 20000)!;
-    expect(finished.aisPoints).toBe(1040);
+    expect(finished.aisPoints).toBe(1090);
     expect(finished.demo.profileXp).toBe(80);
-    expect(finished.demo.achievements.map((badge) => badge.id)).toEqual(['first-finish', 'ranked-debut']);
+    expect(finished.demo.achievements.map((badge) => badge.id)).toEqual(['first-finish', 'ranked-debut', 'high-score-10000']);
     expect(finishGame(finished, session.id, 20000)).toBeNull();
   });
   it('keeps casual Energy pricing and records play-time only for an unfinished session', () => {
@@ -709,7 +780,7 @@ describe('progression and duplicate protection', () => {
     const finished = finishGame(timed, session.id, 20000)!;
     expect(recordPlayTime(finished, session.id, 1000)).toBe(finished);
     expect(finished.demo.playCounts.bird).toBe(1);
-    expect(finished.aisPoints).toBe(1000);
+    expect(finished.aisPoints).toBe(1050);
     expect(finished.demo.profileXp).toBe(40);
   });
   it('saves unlocked profile backgrounds and only owned frames and earned badges', () => {

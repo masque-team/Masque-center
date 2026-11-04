@@ -25,12 +25,14 @@
   "dependencies": {
     "@lucide/svelte": "^1.57.0",
     "@masque/vease-protocol": "file:packages/vease-protocol",
-    "svelte": "^5.0.0"
+    "svelte": "^5.0.0",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tailwindcss/vite": "^4.0.0",
     "@tsconfig/svelte": "^5.0.8",
+    "@types/three": "^0.186.0",
     "sharp": "^0.35.5",
     "svelte-check": "^4.0.0",
     "tailwindcss": "^4.0.0",
