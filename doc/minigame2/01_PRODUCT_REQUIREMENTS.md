@@ -10,7 +10,7 @@
 - **[BACKLOG]** Game Zone provides player identity (UserID, name, profile picture) and enables display of AIS Point where the integration allows it. Specific WebView handoff, API, token and transaction contracts are **[OPEN]**.
 - **[CONFIRMED]** The pre-existing extras (Vease/World, Private Room, Battle Arena and other out-of-scope experiments) must not appear in the MiniGame2 customer journey for now. Keep code and assets, if possible.
 - **[OPEN]** How many games launch in production and how M1–M3 will be exposed in the demo. The backlog lists four M1 games and additional M2 games; the existing demo already has seven. Showing seven is a **demo default**, not a decision to ship seven at M1.
-- **[OPEN]** Whether Masque Points (MP) will continue in MiniGame2. Do not mistake legacy MP balances, MP exchange or MP reward values for approved future policy. The new backlog explicitly lists **AIS Point purchasing**, but MP removal/replacement is not yet decided.
+- **[OPEN production]** Whether Masque Points (MP) will continue in the eventual production product. **[CONFIRMED frontend demo]** AIS Point is the only customer-facing currency; legacy MP values remain in existing saves only and are not displayed, spent, awarded or converted in MiniGame2 demo flows.
 
 ## 2. Home / Discover / Banner / Navigation
 
@@ -38,27 +38,28 @@
 - **[CONFIRMED]** Normal game admission costs **1 Energy per new play**, unless an active VIP covers the admission. VIP covers **normal games only**; do not apply it to campaign ticket admission.
 - **[CONFIRMED]** Base natural-regeneration cap **15 Energy**, recharge **+1 every 30 minutes**, no natural regen while balance is at/above 15.
 - **[CONFIRMED]** Shop purchases and rewards **may exceed the natural cap**: e.g. 20/15 or 30/15. Do not clamp to 15. Regen resumes once balance is below cap. Distinguish the regen cap from inventory balance.
+- **[CONFIRMED latest]** Normal Energy MAX is 15; active VIP Energy MAX is 30. Both regenerate +1 every 30 minutes below their active cap. Purchases/rewards may exceed either cap; no regen occurs while at/above the active cap.
 - **[BACKLOG]** Energy is purchasable, awarded through systems and usable for game entry and additional in-game actions. Provide an intuitive refill shortcut when balance is insufficient.
 - **[CONFIRMED]** A retry/continue after losing may cost another **1 Energy**, **even if VIP**, and game-specific pre-game power-ups may consume Energy. The exact real external-game resume API is **[OPEN]**.
 - **[BACKLOG]** Product system must prevent double charges and persist balances/transactions.
-- **[OPEN/REVIEW]** The original Backlog contains VIP Energy slot expansion and cooldown reduction, while later clarification emphasized free normal-game entry. Treat any bonus cap/cooldown as **not approved for this demo** until resolved.
+- **[CONFIRMED latest]** Active VIP waives normal-game entry and raises Energy MAX from 15 to 30. Continue/revive still costs 1 Energy and Campaign Ticket entry is not waived. Energy cooldown reduction is not approved.
 
 ## 5. VIP / time-based package
 
 - **[CONFIRMED]** VIP is a separate time-based benefit from the Battle Pass. Its core agreed value is free **normal-game entry**, not free continue/revive, not campaign admission and not automatic Premium Battle Pass rewards.
 - **[CONFIRMED]** Purchase activates VIP immediately: no hidden 'use item from wallet' step. Show active status and time remaining.
 - **[CONFIRMED]** If purchasing while VIP is already active, **add purchased duration to the existing expiry**. E.g., 2 days remaining + a 3-day package = 5 days remaining.
-- **[PROPOSED]** Marketing may define offers such as 6 hours, 1 day, 3 days or 7 days. The exact durations, SKU names and AIS Point prices are **[OPEN]** and should be configurable by Admin.
+- **[DEMO DEFAULT]** Demo Studio exposes 6-hour, 1-day and 3-day VIP packages with editable demo durations/prices. Production SKU names and AIS Point prices remain **[OPEN]**.
 - **[BACKLOG]** VIP may have a dedicated set of missions (Daily/Weekly/Season). These missions contribute XP, but **VIP itself does not grant Premium Battle Pass rewards**.
-- **[OPEN/REVIEW]** Other older listed VIP perks: energy capacity expansion, reduced cooldown. These need explicit product sign-off before exposure.
+- **[CONFIRMED latest]** Energy capacity expansion to 30 is included during VIP. Cooldown reduction remains unapproved and is not exposed.
 
 ## 6. Shop / currency / inventory / gacha
 
 - **[BACKLOG]** New MiniGame2 Shop offers AIS Point purchasing, Energy (M1), VIP and cosmetics/pet/battle pass (M2–M3 by original milestone), with contextual links to items/benefits.
-- **[OPEN]** Role of MP as a currency. Legacy prototype has AIS→MP exchange; do **not** silently declare it required or prohibited in production. See demo fallback in 02.
+- **[OPEN production]** Role of MP as a currency. **[CONFIRMED frontend demo]** Customer purchases use mock AIS Point only; MP exchange and MP-priced items are hidden. Existing MP save fields are preserved for compatibility.
 - **[BACKLOG]** Item types: Energy, VIP entitlement, effects, Battle Pass entitlement, character/skin, pet, revives, frames and badges. Distinguish consumable stacks from persistent ownership and time-based entitlements.
 - **[CONFIRMED]** Buying VIP activates immediately and buying Premium Battle Pass unlocks that season's rewards immediately; do not force a confusing claim-from-wallet activation.
-- **[BACKLOG]** Gacha (M3) requires admin-configurable prize pool, odds and draw action. The current prototype's coupon mechanics/rates are **not product-approved**; these are configurable/open.
+- **[BACKLOG]** Gacha (M3) requires admin-configurable prize pool, odds and draw action. **[DEMO DEFAULT]** Pet/Avatar Gacha Boxes are purchased with mock AIS Points and opened in Shop. Legacy coupon mechanics are hidden; demo prices/odds are not production-approved.
 - **[PROPOSED]** Awarding consumables and cosmetics should create entries in History and ownership/selection states. No double grant for one claim.
 
 ## 7. Game entrance, end-game and ranking
@@ -74,8 +75,7 @@
 ## 8. Campaigns, entry, leaderboard prizes
 
 - **[BACKLOG]** Campaign has a name/image/details, selection of games and configured prizes. Marketing/Admin owns configuration in the actual system.
-- **[PROPOSED / REVIEW]** Some campaigns may have a **free-entry** route or external game URL. Others may use a shared campaign ticket across eligible games; FigJam contains this example, but **ticket price, exact ticket scope and consumption contract are not confirmed by the primary sheet**.
-- **[PROPOSED / REVIEW]** Example ticket rule used for demo scenarios: 1 ticket for 1 game round within an eligible campaign; VIP does not replace it. Do not hard-code as production policy without confirmation.
+- **[OPEN production]** Campaign entry scope, ticket SKU/price and external game contracts are not settled by the primary sheet. **[CONFIRMED frontend demo]** A separate Campaign Ticket wallet can be topped up in configurable AIS Point packs; eligible ticket campaigns debit their configured quantity once per confirmed new session. VIP does not replace a ticket. These are mock values, not production pricing/contracts.
 - **[CONFIRMED]** Campaign rank rewards are configured by placement, potentially rank 1–5, 1–10, or top 20. The number of rewarded places is not yet fixed.
 - **[CONFIRMED]** Examples of prizes: Energy (e.g. 5), ranking banner, profile frame, skin, badge or other existing inventory items. Actual tier tables and quantities are **[OPEN]**, not approved.
 - **[CONFIRMED]** Ranking screen includes an obvious **gift icon** to preview rank-by-rank reward tiers.
@@ -127,12 +127,12 @@
 
 | Existing repo implementation (not current policy) | MiniGame2 product requirement / disposition |
 | --- | --- |
-| Natural Energy 12, VIP +6 capacity | **15** natural cap, **+1/30 min**, overflow allowed; VIP cap/cooldown **OPEN** |
+| Natural Energy 12, VIP +6 capacity | Normal cap **15**, VIP cap **30**, +1/30 min, overflow allowed; VIP waives normal entry only |
 | VIP 30-day LV1/LV20/LV30 boosts tied to Pass | VIP is **time entitlement for normal entry**; paid Premium Pass **separate** |
 | `hasPassAccess` allows `isVip` | Must **not** grant Premium track based only on VIP |
 | Current Pass 30-day fixed-epoch window | **Calendar-month season**; premium is season-limited |
-| Current Pass bonus XP beyond Level 50 / bonus MP | **Stop at configured MAX**; no auto bonus economy without separate approval |
-| MP exchange & MP pricing across Shop | **Currency policy OPEN**; new Backlog states AIS Point purchasing |
+| Current Pass bonus XP beyond Level 50 / bonus MP | **Stop at configured MAX**; no bonus levels. Legacy ticket rewards migrate to usable Pet Gacha Boxes without resetting claims/inventory |
+| MP exchange & MP pricing across Shop | Demo uses AIS Point only; legacy MP is save compatibility only. Production MP policy remains **OPEN** |
 | Lifetime + weekly/season rankings and MP prizes | Normal all-time high-score + separate campaign high-score; tie earlier wins |
 | Ranked Battle Arena / World / rooms visible | **HIDDEN LEGACY** until explicitly requested |
 | History primarily existing transactions/metadata | **Dedicated player History** tabs Game/Purchase/Reward |

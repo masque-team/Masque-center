@@ -1,24 +1,25 @@
 <script lang="ts">
-  import { ArrowLeft, Play, Trophy, Info } from '@lucide/svelte';
+  import { ArrowLeft, Play, Trophy, Info, Sparkles, Check, ShoppingBag } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
   import GameButton from '../components/GameButton.svelte';
   import Leaderboard from '../components/Leaderboard.svelte';
   import EnergyBadge from '../components/EnergyBadge.svelte';
-  import { AVATARS, PETS } from '../data/config';
+  import { AVATARS, PETS, WINGS } from '../data/config';
   import { energyCapacity } from '../services/energyService';
   import type { Game, GameId, PlayerState, RankingPeriod } from '../types';
 
-  let { game, player, vipActive, score, countdown, onPlay, onBack, onRefill, onAvatar }: {
+  let { game, player, vipActive, score, countdown, onPlay, onBack, onRefill, onAvatar, onPet, onWing, onBuyItem }: {
     game: Game; player: PlayerState; vipActive: boolean; score: number; countdown: string;
-    onPlay: () => void; onBack: () => void; onRefill: () => void; onAvatar: () => void;
+    onPlay: () => void; onBack: () => void; onRefill: () => void; onAvatar: (id: string) => void;
+    onPet: (id: string | null) => void; onWing: (id: string | null) => void; onBuyItem: (id: string) => void;
   } = $props();
   let tab = $state<'info' | 'ranking'>('info');
   let freeEntry = $derived(vipActive && player.demo.config.vipFreeEntry);
   let period = $state<RankingPeriod>('allTime');
   let avatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
   let pet = $derived(PETS.find((item) => item.id === player.petId));
-  let rankingGame = $state<GameId>('bird');
-  $effect(() => { rankingGame = game.id; });
+  let loadoutItems = $derived(player.demo.config.shop.filter((item) => item.kind === 'avatar' || item.kind === 'pet' || item.kind === 'wing'));
+  let rankingGame = $derived(game.id);
 </script>
 
 <div class="page-stack">
@@ -37,6 +38,23 @@
       <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {countdown} {onRefill} />
     </div>
     <div class="stats"><span><Trophy size={19} />คะแนนสูงสุด <b>{score.toLocaleString('en-US')}</b><small>SIMULATED SCORE</small></span><span><Info size={19} />ค่าเข้าเล่น<b>{freeEntry ? '0' : player.demo.config.energyCost} Energy</b><small>{freeEntry ? 'สิทธิ์ VIP · เฉพาะค่าเข้าเกม' : `ฟื้น 1 ทุก ${player.demo.config.regenMinutes} นาที`}</small></span></div>
+    <section class="space-y-3 border-y border-white/80 py-3" aria-label="Pre-game loadout">
+      <div class="flex items-center gap-2"><Sparkles size={18} class="text-sky-700" /><h2 class="font-black text-[#332973]">Pre-game loadout · DEMO</h2></div>
+      <p class="text-[11px] text-slate-600">เลือก Avatar, Pet หรือ Wing ที่เป็นเจ้าของ หรือซื้อด้วย AIS Point ก่อนเริ่มเกม · เป็น Preview ใน MasqueGame เท่านั้น ไม่ได้ส่ง Effect เข้าเกมภายนอก</p>
+      <div class="max-h-64 space-y-1 overflow-y-auto" aria-label="Cosmetic loadout items">
+        {#each loadoutItems as item (item.id)}
+          {@const owned = item.kind === 'avatar' ? player.ownedAvatarIds.includes(item.itemId) : item.kind === 'pet' ? player.ownedPetIds.includes(item.itemId) : player.demo.wings.includes(item.itemId)}
+          {@const equipped = item.kind === 'avatar' ? player.avatarId === item.itemId : item.kind === 'pet' ? player.petId === item.itemId : player.demo.wingId === item.itemId}
+          {@const name = item.kind === 'avatar' ? AVATARS.find((entry) => entry.id === item.itemId)?.name : item.kind === 'pet' ? PETS.find((entry) => entry.id === item.itemId)?.name : WINGS.find((entry) => entry.id === item.itemId)?.name}
+          <div class="flex min-h-11 items-center gap-2 border-b border-white/80 py-1.5">
+            <span class="min-w-0 flex-1"><strong class="block truncate text-xs">{name ?? item.itemId}</strong><small class="text-[10px] text-slate-500">{item.kind === 'wing' ? 'Cosmetic preview' : item.kind}{owned ? ' · เป็นเจ้าของ' : ` · ${item.cost} AIS Point`}</small></span>
+            {#if owned}<button class="min-h-9 rounded-md bg-sky-100 px-2 text-[10px] font-bold text-sky-900 disabled:opacity-50" disabled={equipped} aria-pressed={equipped} onclick={() => item.kind === 'avatar' ? onAvatar(item.itemId) : item.kind === 'pet' ? onPet(item.itemId) : onWing(item.itemId)}>{equipped ? 'เลือกแล้ว' : 'เลือกใช้'}</button>
+            {:else}<button class="min-h-9 rounded-md bg-amber-100 px-2 text-[10px] font-bold text-amber-900" aria-label={`ซื้อ ${name ?? item.itemId} · ${item.cost} AIS Point`} onclick={() => onBuyItem(item.id)}><ShoppingBag size={13} class="inline" /> ซื้อ</button>{/if}
+          </div>
+        {/each}
+      </div>
+      <button class="min-h-9 text-xs font-bold text-sky-800 underline" onclick={() => onPet(null)}><Check size={14} class="inline" /> เล่นโดยไม่ใส่ Pet</button>
+    </section>
   {:else}
     <Leaderboard gameId={rankingGame} bind:period {player} currentScore={score} fixedGame />
   {/if}

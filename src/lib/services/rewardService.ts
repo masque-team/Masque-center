@@ -13,6 +13,10 @@ export function claimBattlePassReward(player: PlayerState, track: RewardTrack, i
   if (reward.type === 'points') next.aisPoints += reward.amount ?? 0;
   if (reward.type === 'energy') next.energy += reward.amount ?? 0;
   if (reward.type === 'ticket') next.gachaTickets += reward.amount ?? 1;
+  if (reward.type === 'gacha-box') {
+    const kind = reward.boxKind === 'avatar' ? 'avatar' : 'pet';
+    next.demo = { ...next.demo, gachaBoxes: { ...next.demo.gachaBoxes, [kind]: (next.demo.gachaBoxes?.[kind] ?? 0) + (reward.amount ?? 1) } };
+  }
   if (reward.type === 'avatar' && reward.itemId && !next.ownedAvatarIds.includes(reward.itemId)) {
     next.ownedAvatarIds = [...next.ownedAvatarIds, reward.itemId];
   }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowRight, Check, Clock3, Coins, Crown, Gift, Sparkles, TriangleAlert, X, Zap } from '@lucide/svelte';
+  import { ArrowRight, Check, Clock3, Coins, Crown, Gift, Sparkles, Target, TriangleAlert, X, Zap } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
   import CurrencyIcon from './CurrencyIcon.svelte';
   import GameButton from './GameButton.svelte';
@@ -158,6 +158,25 @@
         </div>
         <div class="actions one"><GameButton variant="gold" size="lg" onclick={onClose}><Sparkles size={18} />ตกลง</GameButton></div>
 
+      {:else if modal.kind === 'mission-progress'}
+        <div class="medal green"><Target size={34} /></div>
+        <p class="eyebrow">SIMULATED · GAME RESULT</p>
+        <h2>เล่นจบแล้ว · {modal.score.toLocaleString()} คะแนน</h2>
+        <p class="summary">+{modal.rewardXp} EXP{modal.rewardPoints ? ` · +${modal.rewardPoints} AIS Point` : ''}</p>
+        {#if modal.events.length}
+          <section class="mission-events" aria-label="Mission progress after game">
+            {#each modal.events as event, index (`${event.title}-${index}`)}
+              {@const percent = Math.min(100, Math.round(event.after / Math.max(1, event.target) * 100))}
+              <article class="mission-event">
+                <div class="event-heading"><strong>{event.title}</strong><span class="tabular-nums">{event.before}/{event.target} → {event.after}/{event.target}</span></div>
+                <div class="event-track" role="progressbar" aria-label={`${event.title} progress`} aria-valuemin="0" aria-valuemax={event.target} aria-valuenow={event.after}><span class="event-fill" style:width={`${percent}%`}></span></div>
+                {#if event.xp > 0}<span class="event-xp">+{event.xp} XP · รับอัตโนมัติแล้ว</span>{/if}
+              </article>
+            {/each}
+          </section>
+        {:else}<p class="summary">ไม่มี Mission ที่ตรงเงื่อนไขในรอบนี้</p>{/if}
+        <div class="actions one"><GameButton variant="mint" size="lg" onclick={onClose}><Check size={18} strokeWidth={3.5} />ดูผลแล้ว</GameButton></div>
+
       {:else if modal.kind === 'checkin-success'}
         <div class="medal green"><Gift size={34} /></div>
         <p class="eyebrow">DAILY CHECK-IN</p>
@@ -246,6 +265,12 @@
   .actions > :global(.gbtn) { flex: 1; }
   .actions.one { justify-content: center; }
   .stack { display: grid; gap: 9px; }
+  .mission-events { display: grid; gap: 10px; max-height: 36vh; overflow-y: auto; margin: 0 0 8px; text-align: left; }
+  .mission-event { display: grid; gap: 6px; padding: 10px; border: 1px solid #d6e8f4; border-radius: 12px; background: #f5fbff; }
+  .event-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: #2b4160; font-size: 11px; }
+  .event-track { height: 9px; overflow: hidden; border-radius: 99px; background: #dce9f2; }
+  .event-fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #39a7d6, #54c6b1); transition: width 650ms cubic-bezier(0.2, 0.75, 0.25, 1); }
+  .event-xp { color: #147253; font-size: 11px; font-weight: 900; }
 
   .spotlight { position: relative; display: grid; place-items: center; width: 190px; height: 190px; margin: -8px auto 2px; }
   .rays { position: absolute; inset: -30px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, var(--glow) 0 10deg, transparent 10deg 24deg); mask-image: radial-gradient(circle, #000 28%, transparent 70%); animation: spin 14s linear infinite; }

@@ -46,7 +46,7 @@ export const BATTLE_PASS = {
   freeRewards: [
     { title: 'Energy +2', type: 'energy', amount: 2 },
     { title: 'AIS Point +25', type: 'points', amount: 25 },
-    { title: 'Gacha Ticket', type: 'ticket', amount: 1 },
+    { title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' },
     { title: 'Avatar: Nami', type: 'avatar', itemId: 'nami' },
     { title: 'AIS Point +60', type: 'points', amount: 60 },
   ],
@@ -55,7 +55,7 @@ export const BATTLE_PASS = {
     { title: 'Pet: Pudding', type: 'pet', itemId: 'pudding' },
     { title: 'Energy +5', type: 'energy', amount: 5 },
     { title: 'Avatar: Mali VIP', type: 'avatar', itemId: 'mali-vip' },
-    { title: 'Pet Gacha Ticket', type: 'ticket', amount: 1 },
+    { title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' },
   ],
 };
 

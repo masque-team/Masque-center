@@ -42,4 +42,4 @@ Existing stack (verified in GitHub): **Svelte 5 + Vite + TypeScript + Tailwind C
 3. **Copilot coding agent** reviews Gemini changes, fixes regressions, and runs checks. Commit checkpoints locally; pushing is optional unless requested.
 4. Work in the *same local project*. Preserve existing 7 game integrations and all working mock actions. Do not delete legacy features just to hide them.
 
-**IMPORTANT:** This documentation update does **not** authorize implementation changes yet. The coding agent should follow 03 when explicitly asked to start coding.
+**IMPORTANT:** This document alone does not authorize implementation changes. The user's explicit November 4, 2026 functional-audit request authorizes the scoped frontend fixes and documentation updates; do not expand beyond that request.

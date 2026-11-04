@@ -20,15 +20,15 @@
 |---|---:|---|
 | Entry / Home | M1 | Accept `?name=...` and optional `?aispoint=...`; show compact identity/status, featured game/banner(s), daily check-in, shortcuts. |
 | Game Hub / All games | M1–M2 | All 7 existing playable games, category filters, admin-ordered mock display, unobtrusive New/Hot/Hit tags, mocked online count/total plays. |
-| Game Detail / Pre-game | M1–M2 | Game explanation, high score, leaderboard, skin/Power-up previews, play cost and confirmation. Start existing game iframe. |
+| Game Detail / Pre-game | M1–M2 | Game explanation, high score, leaderboard, owned/purchasable Avatar/Pet/Wing loadout preview, AIS cost and confirmation. Cosmetic choices update local Profile/Inventory only and are **not sent to the hosted game iframe**. Start existing game iframe. |
 | Game Player / Results | M1–M3 | Loading/back/retry, fake finish option when iframe integration unavailable; score/high-score record, mission progress overlay, result summary, optional continue/revive preview. |
 | Shop | M1–M3 | Mock AIS Point display/purchase confirmations for Energy/VIP/Premium/cosmetics/pack/ticket/gacha as appropriate; entitlement or inventory updates reflected throughout. |
 | Profile / Avatar room | M1–M2 | Player identity, appearance selectors, equipped frame/banner/badge/pet, VIP and Energy, history shortcut; 2D art on a plane in a simple 3D room (or lightweight CSS perspective placeholder until art pass). |
-| VIP promotion / package | M2 | Multiple mock durations, active/expires state, purchase and renewal extends time; normal game entry waived, no Premium unlock. |
+| VIP promotion / package | M2 | Configurable demo 6-hour/1-day/3-day packages in AIS Points; immediate activation and renewal extends expiry; Energy MAX 30 while active; normal game entry waived, no Premium unlock. |
 | Battle Pass / Reward track | M3 | Shared season XP + level; Free and Premium track; current eligibility and claim state; premium purchase retroactive; manual claim; end-season automatic fallback. |
 | Mission center | M3 | Daily, Weekly, Season tabs; Free/VIP/Premium categories; visible locked missions + upsell; completion and animated progress after result. |
 | Gacha / item inventory | M2–M3 | Configurable mock boxes/rates, draw → result → inventory, cosmetic equip/ownership; not a real paid random system. |
-| Campaign (list/detail/game choice) | M1 | Mock free campaign + optional ticket-competition scenario; game-specific leaderboard, prize preview gift button, closure/result/popup. |
+| Campaign (list/detail/game choice) | M1 | Mock free and ticket campaigns with start/end times; AIS Point ticket packs, game-specific leaderboard, prize preview, automatic one-time expiry settlement and next-open popup. External campaigns without a real URL show a non-launchable placeholder. |
 | Ranking | M1 | Per-game **all-time** normal scores, separate campaign per-game rankings, tie-earlier rule, current-player highlight and gift prize preview. |
 | History / Notifications | Cross-cutting addition | Filter tabs: games, purchases/point mock logs, rewards. Envelope/badge or Profile shortcut. End-of-campaign prize/expired-season popup links to history. |
 
@@ -36,8 +36,8 @@
 
 ## 2. What must be hidden (keep implementations intact)
 
-- Vease/3D World entry, World map, Private Room, Battle Arena and special ranked-ticket flow, separate friends/multiplayer features, unapproved MP exchange/MP-specific paid promotions.
-- Do not remove code/assets or break direct legacy internal routes if they already exist; hide from MiniGame2 navigation/marketing and label as legacy.
+- Vease/3D World entry, World map, Private Room, Battle Arena and Ranked Ticket sale, legacy Gacha Coupon flow, MP exchange/MP-priced promotion, separate friends/multiplayer features.
+- Do not remove legacy services/assets; normalize unsupported customer deep links back to Home or Shop while keeping the legacy source available for later work.
 - Legacy Shop and VIP text claiming **VIP unlocks Premium rewards**, VIP adds +6 natural energy cap, VIP shortens recharge, or current Pass is a personal 30-day subscription must be removed/corrected in MiniGame2 UI, not silently preserved.
 - Existing developer/admin mock controls can remain as **dev-only** test tools (inaccessible to normal customer navigation). Do not build real admin APIs. Source settings fixtures can live in `src/lib/data`.
 
@@ -49,7 +49,7 @@ Prefer extending the existing `PlayerState` / `DemoState` with **additive fields
 - `gameCatalog`: preserved game IDs, URLs, category and display order; editorial tag, onlineCount/plays mock; optional published flag.
 - `playSession`: unique ID, game ID, normal/campaign context, startedAt, finishedAt/result, score, optional consumed Energy/ticket receipt. Prevent duplicate charges on reload or finish.
 - `leaderboardKey`: `normal:<gameId>` or `campaign:<campaignId>:<gameId>`. Per-user best `{score, achievedAt}`. Sort score descending, achievedAt ascending.
-- `campaign`: ID, image, title, start/end, included games, entrance policy, reward tier definitions, settlement status; demo-only clock or finalize action.
+- `campaign`: ID, image, title, `startAt`/`endAt`, internal games or `external` launch mode, optional real URL (never invent one), entrance policy, reward tiers and settlement status. Campaign Ticket packs are separate from legacy Ranked Tickets.
 - `vip`: `expiresAt`; mock product options, activated immediately. VIP does **not** imply premium pass.
 - `season`: ID + explicit start/end boundaries, level cap, XP threshold, Free/Premium rewards, mission catalogs. A **calendar month** rather than fixed epoch 30-day cycles.
 - `passProgress`: `seasonId`, XP, premiumOwned, claimedRewardKeys; separate XP-grant event IDs to prevent repeat.
@@ -64,18 +64,19 @@ Keep explicit **demo-only** constants/config instead of pretending guessed price
 
 ### Energy
 
-- Base cap 15, regen +1 per 30 minutes **only when below 15**. Recharge timing should not jump forward after previously holding overflow.
-- Buying/claiming Energy adds the entire awarded quantity, even when greater than 15 (e.g., 20/15). Timer pauses while at or over 15.
+- Normal-player cap 15; active VIP cap 30. Regen +1 per 30 minutes **only when below the active cap**. Recharge timing should not jump forward after previously holding overflow.
+- Buying/claiming Energy adds the entire awarded quantity, even when greater than the active cap (e.g., 34/30). Timer pauses while at or over the active cap.
 - Start normal game: cost 1 unless VIP currently active. Continue/revive (when simulated): 1 additional Energy regardless of VIP.
 - Cost is charged once per **confirmed new session**, not again on iframe refresh/back navigation; record a mock transaction/history event.
 
 ### VIP and mock Store
 
-- Show 6-hour/1-day/3-day or other **demo-only** options (prices marked examples; configurable). Purchase immediately activates/re-extends `expiresAt = max(now, oldExpiresAt) + duration`.
+- Show configurable **demo-only** 6-hour/1-day/3-day options with AIS Point prices marked as examples. Purchase immediately activates/re-extends `expiresAt = max(now, oldExpiresAt) + duration`.
 - In the normal game launcher, VIP makes **entry cost 0**; VIP does not set Energy to infinity and does not cover Campaign Ticket or revive.
+- VIP raises Energy MAX from 15 to 30. Normal entry waiver, cap and 30-minute regen are fixed demo rules, not editable Admin values.
 - A VIP player can run VIP missions and gain XP but never gains Premium rewards without purchasing the season's Premium pass.
 - For AIS Point: simulate purchase entirely in memory/localStorage, decrement a **mock** balance, write mock purchase history; never call a billing API or claim real charge.
-- **Currency policy is OPEN.** Prefer a user-facing mock AIS Point path in the new MiniGame2 UI, since the Backlog lists AIS Point Shop, while retaining legacy MP state/code privately. Do not delete MP support or decide real conversion ratios.
+- **Demo currency is confirmed:** AIS Point is the only customer-facing purchase/reward currency. Campaign Tickets, cosmetics, Energy, VIP, Premium Pass and Gacha Boxes debit mock AIS Points consistently. Preserve legacy MP data/services only for old saves; do not show, award, spend or convert MP in MiniGame2 routes. Production currency and billing contracts remain open.
 
 ### Ranking
 
@@ -83,7 +84,9 @@ Keep explicit **demo-only** constants/config instead of pretending guessed price
 - On equal score across players, earlier `achievedAt` wins. Provide fixtures proving order.
 - Campaign key separates both campaign and game. Do not combine game scores and do not import all-time bests into a newly created campaign.
 - Gift button shows mock reward tier breakdown (rank 1, 2–3, 4–5 or a configurable 10/20); labels are examples, not locked.
-- On campaign finalize/expiry, credit prizes once (including Energy overflow/cosmetics), add reward history, then queue one-time popup for the next open. Claiming popup does not grant again.
+- Campaign sessions are accepted only from `startAt` through `endAt`. A ticket pack purchase writes Purchases History and increments the separate Campaign Ticket wallet; a confirmed ticket session debits once and VIP does not waive it.
+- At `endAt`, automatically close and settle high-score tiers once (including Energy overflow/cosmetics), add Rewards History, then queue a one-time popup for next app open. Player routes cannot finalize; Developer Studio may force settlement for testing. Advance the mock clock to test expiry.
+- External activities may use `launchMode: 'external'`; without a configured real URL, show an explicit placeholder and do not charge Energy or any ticket.
 
 ### Battle Pass and Missions
 
@@ -92,12 +95,14 @@ Keep explicit **demo-only** constants/config instead of pretending guessed price
 - Show three mission entitlement groups Free / VIP / Premium, each with Daily / Weekly / Season. Locked benefits stay visible with clear status and appropriate CTA.
 - After a mock game result, animate mission bar changes for matched missions (e.g., `2/5 → 3/5`); when completed, award XP **automatically and once**.
 - Reward-track items are **manually claimed** during active season; eligible unclaimed items auto-credited on season expiry once and shown in notification popup on next open. Do not auto-credit unowned Premium track.
-- At the configured pass level cap, stop XP/level growth at MAX; do not reuse old bonus level MP logic unless explicitly approved. Dev tool can simulate date/XP but must be hidden from normal navigation.
+- Pass tables must use supported demo rewards: Energy, AIS Point, Gacha Boxes and owned cosmetics. Migrate legacy Gacha/Ranked ticket reward rows to Pet Gacha Boxes deterministically without changing claim indexes or player inventory. No bonus levels beyond MAX.
+- Mission XP is automatic at completion and the post-game overlay shows matching mission progress before/after, bars and +XP. The Battle Pass mission tab is a progress summary/link only; no manual Mission XP claim controls remain.
+- Dev tools can simulate date/XP and force settlement but are inaccessible from customer navigation.
 
 ### History
 
 - A unified history experience; tabs/filters **Games / Purchases / Rewards** and optional All.
-- Games: show per-game play counts and recent sessions with scores, mode/context.
+- Games: show per-game play counts and recent sessions with scores, mode/context even when game-history event rows exist.
 - Purchases: purchase/point debit/energy top-up records; Rewards: rank/battle pass/check-in/gacha/achievement; show source/timestamp and item.
 - Show an envelope/notification dot if unread rank/season popups exist; clicking should lead to popup/history, never a new unimplemented mailbox.
 
@@ -123,6 +128,9 @@ Provide **at least** these reproducible states (via reset + developer-only scena
 10. Battle Pass season changes → new progress starts at base, previous eligible unclaimed rewards auto-delivered and notification once.
 11. Gacha box opened with mock purchase → prize visible in Inventory/History and equipped if cosmetic.
 12. Existing hidden Vease/Battle/Room pages no longer appear in MiniGame2 standard navigation but their source remains.
+13. Buy a configurable Campaign Ticket pack with AIS Points, see the debit in Purchases History, consume one configured ticket on confirmation and get a shortage shortcut to Shop.
+14. Campaign is unavailable before `startAt`, auto-settles once at `endAt`, and external placeholder activity has no fabricated URL or admission charge.
+15. A campaign containing only Memory selects Memory for its initial ranking; campaign scores remain isolated by campaign and game.
 
 ## 6. Implementation phases INSIDE THE DEMO (not business milestones)
 
@@ -139,7 +147,7 @@ Provide **at least** these reproducible states (via reset + developer-only scena
 ## 7. Testing and completion
 
 - `npm run check`, `npm test`, `npm run build` at repository root; also check the untouched MV workspace only if shared changes affect it.
-- Add/extend service tests for Energy cap/overflow/regeneration, VIP renewal, premium independence/retroactive claims, monthly reset/auto-claim, ranking tie-break, campaign separation/grant-once and History.
+- Add/extend service tests for Energy 15→30/overflow/expiry/regeneration, VIP renewal, premium independence/retroactive claims, monthly reset/auto-claim, reward migration, automatic Mission XP, campaign ticket debit, timed entry/settlement, external placeholders, non-Bird ranking selection and History.
 - Manually exercise 320 px, 375 px and 430 px portrait widths and the existing deployed WebView/iframe base-path assumptions.
 - **Do not claim a full demo if any primary customer CTA is a dead button, hides a required screen, or gives mock rewards inconsistent with current shared state.**
-- Do not push, create PRs, rewrite `README.md` or remove legacy code without the user's/agent's explicit follow-up instruction. The current task is **documentation**.
+- Do not push or create PRs. The current task is the explicitly requested functional audit/fix and documentation update. Preserve legacy source where it can remain hidden from MiniGame2 customer routes.

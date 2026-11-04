@@ -11,7 +11,7 @@ import { equipOutfit } from './avatarService';
 import { claimBattlePassReward } from './rewardService';
 import { passProgress, passTrack, passWindow } from './battlePassService';
 import { claimAvailablePass, grantReward } from './demoService';
-import { beginCampaignGame, finalizeCampaign, getCampaignRanking } from './campaignService';
+import { beginCampaignGame, buyCampaignTicketPack, campaignRankingGame, finalizeCampaign, getCampaignRanking, getCampaignStatus, settleExpiredCampaigns } from './campaignService';
 import type { PlayerState } from '../types';
 
 beforeEach(() => {
@@ -193,7 +193,8 @@ describe('shared demo economy', () => {
     expect(finished.demo.campaignScores?.['lantern-festival']?.memory).toBeUndefined();
     const ranking = getCampaignRanking('lantern-festival', 'bird', finished);
     expect(ranking[0]).toMatchObject({ isCurrentPlayer: true, score: 20_000 });
-    const settled = finalizeCampaign(finished, 'lantern-festival')!;
+    expect(finalizeCampaign(finished, 'lantern-festival')).toBeNull();
+    const settled = finalizeCampaign(finished, 'lantern-festival', true)!;
     expect(settled.energy).toBe(finished.energy + 5);
     expect(finalizeCampaign(settled, 'lantern-festival')).toBeNull();
     expect(settled.demo.notifications?.[0].viewed).toBe(false);
@@ -217,6 +218,49 @@ describe('shared demo economy', () => {
     expect(next.demo.campaignTickets).toBe(1);
     expect(next.energy).toBe(player.energy);
     expect(beginCampaignGame({ ...next, demo: { ...next.demo, campaignTickets: 0 } }, 'starlight-sprint', 'run')).toBeNull();
+  });
+  it('does not add late Campaign scores after expiry or settlement', () => {
+    const player = sample();
+    player.demo.config.campaigns = player.demo.config.campaigns.map((campaign) => campaign.id === 'lantern-festival' ? { ...campaign, endAt: Date.now() + 1000 } : campaign);
+    const started = beginCampaignGame(player, 'lantern-festival', 'bird')!;
+    const settled = { ...started, demo: { ...started.demo, clockOffset: 2000, closedCampaigns: ['lantern-festival'], settledCampaigns: ['lantern-festival'], campaignScores: { 'lantern-festival': { bird: { score: 100, achievedAt: Date.now() } } } } };
+    const finished = finishGame(settled, started.demo.sessions.at(-1)!.id, 5000)!;
+    expect(finished.demo.campaignScores?.['lantern-festival']?.bird?.score).toBe(100);
+    expect(finished.demo.scores.bird).toBeUndefined();
+    expect(finished.demo.sessions.at(-1)?.finished).toBe(true);
+  });
+  it('purchases Campaign Ticket packs with AIS Points and rejects insufficient or invalid packs', () => {
+    const player = sample(); player.aisPoints = 150; player.demo.campaignTickets = 0;
+    const bought = buyCampaignTicketPack(player, 'campaign-ticket-5')!;
+    expect(bought.aisPoints).toBe(50);
+    expect(bought.demo.campaignTickets).toBe(5);
+    expect(ledger(player, bought, 'ซื้อ Campaign Ticket x5').demo.history?.[0]).toMatchObject({ kind: 'purchase', detail: '-100 AIS Point' });
+    expect(buyCampaignTicketPack({ ...player, aisPoints: 99 }, 'campaign-ticket-5')).toBeNull();
+    expect(buyCampaignTicketPack(player, 'unknown')).toBeNull();
+  });
+  it('rejects Campaign entry outside configured dates and auto-settles expiry once', () => {
+    const player = sample();
+    const campaign = player.demo.config.campaigns.find((item) => item.id === 'lantern-festival')!;
+    player.demo.config.campaigns = player.demo.config.campaigns.map((item) => item.id === campaign.id ? { ...item, startAt: Date.now() + 1000, endAt: Date.now() + 5000 } : item);
+    expect(getCampaignStatus(player.demo.config.campaigns.find((item) => item.id === campaign.id)!, Date.now())).toBe('upcoming');
+    expect(beginCampaignGame(player, campaign.id, 'bird')).toBeNull();
+    expect(beginCampaignGame({ ...player, demo: { ...player.demo, clockOffset: 6000 } }, campaign.id, 'bird')).toBeNull();
+    const expired = { ...player, demo: { ...player.demo, clockOffset: 6000, campaignScores: { [campaign.id]: { bird: { score: 20000, achievedAt: Date.now() } } } } };
+    const settled = settleExpiredCampaigns(expired);
+    expect(settled.demo.closedCampaigns).toContain(campaign.id);
+    expect(settled.demo.settledCampaigns).toContain(campaign.id);
+    expect(settled.demo.notifications?.filter((item) => item.id === `campaign:${campaign.id}`)).toHaveLength(1);
+    expect(settleExpiredCampaigns(settled)).toBe(settled);
+  });
+  it('selects and ranks the first configured Campaign game without requiring Bird', () => {
+    const player = sample();
+    const campaign = { ...player.demo.config.campaigns[0], id: 'memory-only', gameIds: ['memory'] };
+    player.demo.config.campaigns = [...player.demo.config.campaigns, campaign];
+    player.demo.campaignScores = { 'memory-only': { memory: { score: 44, achievedAt: Date.now() } } };
+    expect(getCampaignRanking(campaign.id, campaign.gameIds[0], player)).toMatchObject([{ isCurrentPlayer: true, score: 44 }]);
+    expect(getCampaignRanking(campaign.id, 'bird', player)).toEqual([]);
+    expect(campaignRankingGame(campaign, null)).toBe('memory');
+    expect(campaignRankingGame(campaign, 'bird')).toBe('memory');
   });
   it('shows locked entitlement missions and grants Free mission XP once after game completion', () => {
     let player = sample();
@@ -255,6 +299,9 @@ describe('shared demo economy', () => {
     const campaign = seedDemoScenario(player, 'campaign-ranking');
     expect(campaign.demo.campaignScores?.['lantern-festival']?.bird?.score).toBe(20_000);
     expect(campaign.demo.scores.bird).toBeUndefined();
+    const campaignSettlement = seedDemoScenario(player, 'campaign-settlement');
+    expect(campaignSettlement.demo.config.campaigns.find((item) => item.id === 'lantern-festival')?.endAt).toBeLessThan(Date.now() + campaignSettlement.demo.clockOffset);
+    expect(settleExpiredCampaigns(campaignSettlement).demo.settledCampaigns).toContain('lantern-festival');
     expect(seedDemoScenario(player, 'energy-overflow').energy).toBe(34);
   });
   it('seeds a month-rollover scenario with one pending settlement notification', () => {
@@ -488,16 +535,22 @@ describe('progression and duplicate protection', () => {
     expect(claimPassBonus(player)).toBeNull();
     expect(player.masquePoints).toBe(initialMp);
     expect(player.gachaTickets).toBe(0);
-    expect(nextPassBonus(player)).toMatchObject({ level: 51, ready: false });
+    expect(nextPassBonus(player)).toBeNull();
     expect(claimPassBonus(player)).toBeNull();
     expect(currentPass(player).claims).toEqual([]);
   });
   it('migrates short legacy passes once without resetting VIP, inventory or claimed rewards', () => {
     const player = sample();
     player.vipExpiresAt = Date.now() + 2 * 86_400_000;
+    player.demo.config.energyMax = 12;
+    player.demo.config.regenMinutes = 15;
+    player.demo.config.energyCost = 2;
+    player.demo.config.continueEnergyCost = 3;
+    player.demo.config.vipFreeEntry = false;
+    player.demo.config.vipEnergyBonus = 6;
     delete player.demo.passRevision;
     player.demo.config.vipPlans = [{ id: 'five-day', label: 'Old', durationDays: 5, cost: 180, reward: '' }];
-    player.demo.config.seasons = player.demo.config.seasons.map((season) => ({ ...season, free: season.free.slice(0, 5), premium: season.premium.slice(0, 5) }));
+    player.demo.config.seasons = player.demo.config.seasons.map((season) => ({ ...season, free: [{ title: 'Legacy Gacha Ticket', type: 'ticket', amount: 2 }, { title: 'Legacy Ranked Ticket', type: 'arena-ticket', amount: 1 }, ...season.free.slice(2, 5)], premium: season.premium.slice(0, 5) }));
     player.demo.passes.songkran = { xp: 230, premium: true, claims: ['free-0', 'premium-1'] };
     player.demo.passes['loy-krathong'] = { xp: 400, premium: true, claims: ['premium-0'] };
     savePlayer(player);
@@ -505,6 +558,9 @@ describe('progression and duplicate protection', () => {
     expect(restored.vipExpiresAt).toBe(player.vipExpiresAt);
     expect(restored.masquePoints).toBe(player.masquePoints);
     expect(restored.ownedPetIds).toEqual(player.ownedPetIds);
+    expect(restored.demo.config).toMatchObject({ energyMax: 15, regenMinutes: 30, energyCost: 1, continueEnergyCost: 1, vipFreeEntry: true, vipEnergyBonus: 15 });
+    expect(restored.demo.config.seasons.find((season) => season.id === 'songkran')?.free.slice(0, 2).map((reward) => reward.type)).toEqual(['gacha-box', 'gacha-box']);
+    expect(restored.demo.gachaBoxes?.pet).toBe(player.demo.gachaBoxes?.pet);
     expect(currentSeason(restored).free).toHaveLength(50);
     expect(currentPass(restored)).toMatchObject({ xp: 230, premium: true, claims: ['free-0', 'premium-1'] });
     expect(restored.demo.config.vipPlans.map((plan) => plan.id)).toEqual(expect.arrayContaining(['vip-6h', 'vip-1d', 'vip-3d']));
@@ -524,8 +580,10 @@ describe('progression and duplicate protection', () => {
     expect(player.demo.wings).toEqual([]);
     expect(grantReward(player, free[14]).demo.frames).toContain('ocean');
     expect(grantReward(player, free[29]).demo.backgrounds).toContain('cloud-club');
-    expect(grantReward(player, free[44]).demo.arenaTickets).toBe(3);
+    expect(grantReward(player, free[44]).demo.gachaBoxes?.pet).toBe(3);
     expect(grantReward(player, free[49]).demo.achievements.at(-1)?.id).toContain('pass:');
+    expect([...free, ...vip].some((reward) => reward.type === 'ticket' || reward.type === 'arena-ticket')).toBe(false);
+    expect(grantReward(player, { title: 'Legacy Ranked Tickets x3', type: 'arena-ticket', amount: 3 }).demo.gachaBoxes?.pet).toBe(3);
   });
   it('uses calendar-month UTC windows with a clean boundary and a capped MAX level', () => {
     const now = Date.UTC(2026, 9, 28);

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Plus } from '@lucide/svelte';
+  import { Mail, Plus } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
   import CurrencyIcon from './CurrencyIcon.svelte';
   import EnergyBadge from './EnergyBadge.svelte';
@@ -7,7 +7,7 @@
   import { energyCapacity } from '../services/energyService';
   import type { PlayerState } from '../types';
 
-  let { player, vipActive = false, countdown = '', onRefill, onShop, onProfile }: { player: PlayerState; vipActive?: boolean; countdown?: string; onRefill: () => void; onShop: () => void; onProfile: () => void } = $props();
+  let { player, vipActive = false, hasUnread = false, countdown = '', onRefill, onShop, onProfile, onHistory }: { player: PlayerState; vipActive?: boolean; hasUnread?: boolean; countdown?: string; onRefill: () => void; onShop: () => void; onProfile: () => void; onHistory: () => void } = $props();
   let avatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
   let pet = $derived(PETS.find((item) => item.id === player.petId));
   let isVipLook = $derived(vipActive || avatar.rarity === 'VIP');
@@ -28,6 +28,11 @@
 
   <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {countdown} {onRefill} />
 
+  <button class="history" onclick={onHistory} aria-label="History and notifications" title="History and notifications">
+    <Mail size={18} />
+    {#if hasUnread}<span class="unread" aria-label="รายการใหม่"></span>{/if}
+  </button>
+
   <button class="wallet" onclick={onShop} aria-label={`AIS Point · ยอด ${player.aisPoints}`}>
     <span class="coin" aria-hidden="true"><CurrencyIcon kind="aisPoints" size={32} /></span>
     <strong>{player.aisPoints.toLocaleString('en-US')}</strong>
@@ -36,7 +41,7 @@
 </header>
 
 <style>
-  .bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; min-height: 58px; }
+  .bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 8px; min-height: 58px; }
   .pet { position: absolute; bottom: -3px; left: -5px; width: 24px; height: 27px; filter: drop-shadow(0 2px 2px #8b75bb); }
   button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   button:focus-visible { outline: 3px solid #7a5ce0; outline-offset: 2px; }
@@ -52,14 +57,17 @@
   .who small { color: #8a7fc4; font-size: 11px; font-weight: 800; }
 
   .wallet { display: inline-flex; align-items: center; gap: 6px; justify-self: end; min-height: 44px; padding: 3px 5px 3px 4px; border: 2px solid #fff; border-radius: 99px; background: linear-gradient(180deg, #fffdf7, #f1ecff); box-shadow: 0 3px 0 #cfc3f2, 0 6px 10px rgb(70 50 150 / 16%); }
+  .history { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border: 1.5px solid #fff; border-radius: 50%; color: #375b78; background: #e7f5fb; }
+  .unread { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: #e84f66; }
   .wallet:active { transform: translateY(2px); box-shadow: 0 1px 0 #cfc3f2; }
   .coin { display: grid; place-items: center; width: 32px; height: 32px; }
   .wallet strong { color: #2b2468; font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
   .plus { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: linear-gradient(160deg, #a78bfa, #6a4fd6); box-shadow: 0 2px 0 #4b32a8; }
 
   @media (max-width: 350px) {
-    .bar { gap: 6px; }
+    .bar { gap: 5px; }
     .wallet { gap: 4px; padding-right: 4px; }
     .wallet strong, .who strong { font-size: 13px; }
+    .history { width: 36px; height: 36px; }
   }
 </style>

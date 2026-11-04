@@ -33,12 +33,12 @@
   import { equipOutfit, selectAvatar } from './lib/services/avatarService';
   import { isVip, nextRefillIn, refreshEnergy, refillEnergy } from './lib/services/energyService';
   import { purchaseVip, vipOffer } from './lib/services/passService';
-  import { beginCampaignGame, finalizeCampaign, markNotificationViewed } from './lib/services/campaignService';
+  import { beginCampaignGame, buyCampaignTicketPack, finalizeCampaign, markNotificationViewed, settleExpiredCampaigns } from './lib/services/campaignService';
   import { equipPet } from './lib/services/petService';
   import { buyGachaBox, buyGachaCoupons, drawGachaBatch, drawGachaBox } from './lib/services/gachaService';
   import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './lib/services/playerService';
-  import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
-  import { beginGame, buyPremium, claimAvailablePass, claimPass, claimPassBonus, claimMission as completeMission, claimWeeklyMission, currentSeason, demoNow, finishGame, ledger, progressMissions, recordPlayTime, seedDemoScenario, settleExpiredPasses, validateConfig, claimRankingReward } from './lib/services/demoService';
+  import { buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './lib/services/walletService';
+  import { beginGame, buyPremium, claimAvailablePass, claimPass, currentSeason, demoNow, finishGame, ledger, progressMissions, recordPlayTime, seedDemoScenario, settleExpiredPasses, validateConfig, claimRankingReward } from './lib/services/demoService';
   import type { DemoConfig, DemoScenario, GameId, GameMode, GachaKind, ModalState, Page, PlayerState, RankingPeriod, ShopTab, VipPackage } from './lib/types';
   import './app.css';
 
@@ -97,6 +97,7 @@
   let activePassSeason = $derived(currentSeason(player, now));
   let refillCountdown = $derived(nextRefillIn(player, now));
   let checkedInToday = $derived(player.checkinDates.includes(todayKey(new Date(now))));
+  let hasUnreadNotifications = $derived(player.demo.notifications?.some((notification) => !notification.viewed) ?? false);
   let checkinDays = $derived(WEEKDAY_LABELS.map((label, index) => ({
     label,
     done: player.checkinDates.includes(checkinKeyForDay(index)),
@@ -136,7 +137,18 @@
     };
   }
 
-  function chooseWings(id: string | null) { applyAction(equipWings(player, id), id ? 'ใส่ปีกแล้ว' : 'ถอดปีกแล้ว'); }
+  function recordLoadoutHistory(next: PlayerState, title: string, detail: string): PlayerState {
+    const at = demoNow(player);
+    return { ...next, demo: { ...next.demo, history: [{ id: crypto.randomUUID(), kind: 'reward' as const, title, detail, at }, ...(next.demo.history ?? [])].slice(0, 250) } };
+  }
+
+  function chooseWings(id: string | null) {
+    if (player.demo.wingId === id) return;
+    const next = equipWings(player, id);
+    if (!next) return;
+    persist(recordLoadoutHistory(next, id ? 'ใส่ Wing' : 'ถอด Wing', 'เปลี่ยน loadout ใน Profile / pre-game preview'));
+    showToast(id ? 'ใส่ปีกแล้ว' : 'ถอดปีกแล้ว');
+  }
 
   function requestAction(title: string, message: string, label: string, action: () => void): void {
     confirmAction = action;
@@ -150,9 +162,10 @@
   }
 
   function saveConfig(config: DemoConfig): void {
-    const error = validateConfig(config);
+    const confirmedRules: DemoConfig = { ...config, energyMax: 15, regenMinutes: 30, energyCost: 1, continueEnergyCost: 1, vipFreeEntry: true, vipEnergyBonus: 15 };
+    const error = validateConfig(confirmedRules);
     if (error) { showToast(error); return; }
-    persist({ ...player, demo: { ...player.demo, config } });
+    persist({ ...player, demo: { ...player.demo, config: confirmedRules } });
     showToast('บันทึกแล้ว · หน้าผู้เล่นอัปเดตตามการตั้งค่า');
   }
 
@@ -194,7 +207,7 @@
     persist(next, 'จบเกมจำลอง');
     navigate(session?.mode === 'campaign' && session.campaignId ? `campaign/${session.campaignId}` : `detail/${gameId}`);
     const missionSummary = next.demo.recentMissionEvents?.map((event) => `${event.title} ${event.before}/${event.target} → ${event.after}/${event.target}${event.xp ? ` (+${event.xp} XP)` : ''}`).join(' · ');
-    modal = { kind: 'notice', tone: 'success', title: 'SIMULATED · เล่นจบแล้ว', message: `${score} คะแนน · +${reward.xp} EXP${reward.points ? ` · +${reward.points} AIS Point` : ''} · ${missionSummary || 'อัปเดต Mission progress แล้ว'}` };
+    modal = { kind: 'mission-progress', score, rewardXp: reward.xp, rewardPoints: reward.points, events: next.demo.recentMissionEvents ?? [] };
   }
 
   function todayKey(date = new Date(now)): string {
@@ -221,13 +234,20 @@
     const [routePath, hashQuery = ''] = window.location.hash.replace(/^#/, '').split('?');
     const [route, requestedGame] = routePath.split('/');
     if (route !== 'points') { vipTopUpIntent = null; pointsReturnRoute = null; }
-    if (route === 'points' || route === 'wallet' || route === 'gacha') {
-      shopTab = route === 'points' || route === 'wallet' ? 'exchange' : 'items';
-      page = 'shop';
+    if (['battle', 'room', 'world', 'avatar'].includes(route) || (route === 'admin' && !import.meta.env.DEV)) {
+      page = 'home';
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#home`);
       window.scrollTo({ top: 0 });
       return;
     }
-    const routes: Page[] = ['home', 'hub', 'world', 'shop', 'rewards', 'ranking', 'avatar', 'profile', 'room', 'battle', 'admin', 'wallet', 'points', 'gacha', 'campaigns', 'campaign', 'missions', 'inventory', 'history', 'vip'];
+    if (route === 'points' || route === 'wallet' || route === 'gacha') {
+      shopTab = 'items';
+      page = 'shop';
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#shop`);
+      window.scrollTo({ top: 0 });
+      return;
+    }
+    const routes: Page[] = ['home', 'hub', 'shop', 'rewards', 'ranking', 'profile', 'admin', 'campaigns', 'campaign', 'missions', 'inventory', 'history', 'vip'];
     if (route === 'campaign' && requestedGame) {
       campaignId = requestedGame;
       page = 'campaign';
@@ -327,6 +347,7 @@
       pendingNotificationId = null;
     }
     modal = null;
+    showPendingNotification();
   }
 
   function returnFromPoints(): void {
@@ -390,9 +411,21 @@
   }
 
   function closeCampaign(id: string): void {
-    const next = finalizeCampaign(player, id);
+    const next = finalizeCampaign(player, id, true);
     if (!next) { showToast('Campaign นี้ปิดหรือจ่ายรางวัลแล้ว'); return; }
-    applyAction(next, 'ปิด Campaign · จำลอง settlement');
+    applyAction(next, 'Demo Studio · จำลอง Campaign settlement');
+  }
+
+  function requestCampaignPlay(id: GameId, selectedCampaignId?: string): void {
+    if (!selectedCampaignId) { navigate(`detail/${id}`); return; }
+    const campaign = player.demo.config.campaigns.find((item) => item.id === selectedCampaignId);
+    if (!campaign || campaign.launchMode === 'external') return;
+    if (campaign.entry === 'ticket') {
+      const ticketBalance = player.demo.campaignTickets ?? 0;
+      requestAction('ยืนยันเข้า Campaign', `ใช้ Campaign Ticket ${campaign.ticketCost} ใบ · คงเหลือ ${ticketBalance} → ${ticketBalance - campaign.ticketCost} ใบ · ไม่ใช้ Energy · ราคา Ticket เป็น Demo`, 'ยืนยันเข้าเล่น', () => enterGame(id, 'campaign', selectedCampaignId));
+      return;
+    }
+    enterGame(id, 'campaign', selectedCampaignId);
   }
 
   function confirmVip(): void {
@@ -463,16 +496,18 @@
   }
 
   function chooseAvatar(avatarId: string): void {
+    if (player.avatarId === avatarId) return;
     const next = selectAvatar(player, avatarId);
     if (!next) return;
-    persist(next);
+    persist(recordLoadoutHistory(next, 'เปลี่ยน Avatar', 'เลือกใช้ใน Profile / pre-game preview'));
     showToast('เปลี่ยนตัวละครแล้ว');
   }
 
   function chooseEquipPet(petId: string | null): void {
+    if (player.petId === petId) return;
     const next = equipPet(player, petId);
     if (!next) return;
-    persist(next);
+    persist(recordLoadoutHistory(next, petId ? 'ใส่ Pet' : 'ถอด Pet', 'เปลี่ยน loadout ใน Profile / pre-game preview'));
     showToast(petId ? 'ใช้สัตว์เลี้ยงแล้ว' : 'ถอดสัตว์เลี้ยงแล้ว');
   }
 
@@ -541,9 +576,9 @@
     const timer = window.setInterval(() => {
       flushPlayTime();
       now = demoNow(player);
-      const settled = settleExpiredPasses(player, now);
+      const settled = settleExpiredCampaigns(settleExpiredPasses(player, now), now);
       const refreshed = refreshEnergy(settled, now);
-      if (refreshed !== player) { player = refreshed; savePlayer(player); }
+      if (refreshed !== player) { player = refreshed; savePlayer(player); showPendingNotification(); }
     }, 1000);
     window.addEventListener('hashchange', routeChanged);
     document.addEventListener('visibilitychange', flushPlayTime);
@@ -574,7 +609,7 @@
       <VeaseFrame {sceneState} route={page} mode={page === 'world' ? 'town' : page === 'avatar' ? 'wardrobe' : 'backdrop'} onSize={(height) => { wardrobeHeight = height; }} onNavigate={navigate} onOutfit={(outfit) => { const next = equipOutfit(player, outfit); if (!next) return null; persist(next, 'เปลี่ยนชุดจาก MV'); return veaseState(player); }} />
     </div>
   {/if}
-  {#if page !== 'world' && page !== 'game'}<div class="fixed top-0 left-1/2 z-30 w-full max-w-[460px] -translate-x-1/2 border-b border-white/80 bg-white/80 px-3.5 pt-2 pb-1 backdrop-blur-md"><AppHeader {player} {vipActive} countdown={formatCountdown(refillCountdown)} onRefill={() => openRefill()} onShop={() => navigate('shop')} onProfile={() => navigate('profile')} /></div>{/if}
+  {#if page !== 'world' && page !== 'game'}<div class="fixed top-0 left-1/2 z-30 w-full max-w-[460px] -translate-x-1/2 border-b border-white/80 bg-white/80 px-3.5 pt-2 pb-1 backdrop-blur-md"><AppHeader {player} {vipActive} hasUnread={hasUnreadNotifications} countdown={formatCountdown(refillCountdown)} onRefill={() => openRefill()} onShop={() => navigate('shop')} onProfile={() => navigate('profile')} onHistory={() => navigate('history')} /></div>{/if}
   {#if page === 'avatar'}<div class="h-24" aria-hidden="true"></div>{/if}
   {#if page === 'game'}
     <GameScreen
@@ -625,14 +660,12 @@
             {#if hubGames.length}<div class="game-list">{#each hubGames as game, index (game.id)}<div class="min-w-0"><GameCard {game} {index} vipActive={vipActive && player.demo.config.vipFreeEntry} energyCost={player.demo.config.energyCost} onclick={() => navigate(`detail/${game.id}`)} /><p class="mt-2 grid gap-1 px-1 text-[10px] text-[var(--g-muted)]"><span>Personal Best · {(player.demo.scores[game.id] ?? 0).toLocaleString()}</span><span>{12 + index * 7} online · {(2400 + index * 731).toLocaleString()} plays · MOCK</span></p></div>{/each}</div>{:else}<p class="py-8 text-center text-xs text-[var(--g-muted)]">ไม่มีเกมในหมวดนี้</p>{/if}
           </div>
         {:else if page === 'detail'}
-          {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId] ?? 0} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('home')} onRefill={() => openRefill()} onAvatar={() => navigate('avatar')} />{/key}
+          {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId] ?? 0} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('home')} onRefill={() => openRefill()} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onBuyItem={(itemId) => (modal = { kind: 'item-confirm', itemId })} />{/key}
         {:else if page === 'shop'}
           <ShopPage
             {player} {vipActive} countdown={formatCountdown(refillCountdown)} bind:tab={shopTab}
             onBuy={(itemId) => (modal = { kind: 'item-confirm', itemId })}
             onRefill={openRefill}
-            onBuyTickets={(quantity) => requestAction('ซื้อ Demo Ranked Ticket', `${quantity} ใบ · ${quantity * player.demo.config.arenaTicketPrice} AIS Point`, 'ยืนยันซื้อ', () => applyAction(buyArenaTickets(player, quantity), 'ซื้อ Demo Ranked Ticket แล้ว'))}
-            onBuyGachaCoupons={(quantity) => openGachaCouponPurchase(quantity, 'shop')}
             onBuyGachaBox={purchaseBox}
             onOpenGachaBox={openGachaBox}
             onVip={openVipConfirm}
@@ -642,8 +675,12 @@
           <MiniGamePages
             {page} {player} {now} {campaignId}
             onNavigate={navigate}
-            onPlay={(id, selectedCampaignId) => selectedCampaignId ? enterGame(id, 'campaign', selectedCampaignId) : navigate(`detail/${id}`)}
-            onFinalize={closeCampaign}
+            onPlay={requestCampaignPlay}
+            onBuyCampaignTickets={(packId) => {
+              const pack = player.demo.config.campaignTicketPacks.find((item) => item.id === packId);
+              if (!pack) return;
+              requestAction('ซื้อ Campaign Tickets', `${pack.quantity} ใบ · ${pack.cost} AIS Point · ยอดปัจจุบัน ${player.aisPoints} AIS Point · หลังซื้อ ${(player.demo.campaignTickets ?? 0) + pack.quantity} ใบ · Demo`, 'ยืนยันซื้อ', () => applyAction(buyCampaignTicketPack(player, packId), `ซื้อ Campaign Ticket x${pack.quantity}`));
+            }}
             onVip={openVipConfirm}
             onPremium={purchasePremiumPass}
             onAisTopUp={mockAisTopUp}
@@ -660,11 +697,7 @@
             {vipActive}
             onClaim={(index, track) => applyAction(claimPass(player, track, index), 'รับรางวัล Battle Pass แล้ว')}
             onClaimAll={() => applyAction(claimAvailablePass(player), 'รับรางวัลที่ปลดล็อกแล้ว')}
-            onBonus={() => applyAction(claimPassBonus(player), 'รับโบนัส Pass แล้ว')}
             onVip={openVipConfirm}
-            onMission={(id) => applyAction(completeMission(player, id), 'รับรางวัลภารกิจแล้ว')}
-            onWeekly={() => applyAction(claimWeeklyMission(player), 'รับ XP ประจำสัปดาห์แล้ว')}
-            onPlay={(id) => navigate(id ? `detail/${id}` : 'home')}
             onPremium={purchasePremiumPass}
             onMissions={() => navigate('missions')}
           />
@@ -673,7 +706,7 @@
         {:else if page === 'wallet'}
           <WalletPage {player} onShop={openExchange} />
         {:else if page === 'admin'}
-          <AdminPage {player} onSave={saveConfig} onReset={resetDemo} onRankingReset={resetRanking}
+          <AdminPage {player} onSave={saveConfig} onReset={resetDemo} onRankingReset={resetRanking} onFinalizeCampaign={closeCampaign}
             onClock={(hours) => { const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + hours * 3_600_000 } }; now = demoNow(next); persist(refreshEnergy(next, now), 'เวลาจำลอง · ฟื้น Energy'); showToast('ปรับเวลาจำลองแล้ว'); }}
             onSeed={() => applyAction({ ...player, aisPoints: player.aisPoints + 500 }, 'DEMO · เติม AIS Point')}
             onSeedScenario={loadScenario} />

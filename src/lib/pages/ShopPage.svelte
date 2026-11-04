@@ -15,8 +15,6 @@
     tab = $bindable(),
     onBuy,
     onRefill,
-    onBuyTickets,
-    onBuyGachaCoupons,
     onBuyGachaBox,
     onOpenGachaBox,
     onVip,
@@ -28,8 +26,6 @@
     onBuy: (id: string) => void;
     onRefill: (id: string) => void;
     countdown: string;
-    onBuyTickets: (quantity: number) => void;
-    onBuyGachaCoupons: (quantity: 1 | 10) => void;
     onBuyGachaBox: (kind: 'avatar' | 'pet') => void;
     onOpenGachaBox: (kind: 'avatar' | 'pet') => void;
     onVip: (id: string) => void;
@@ -38,7 +34,6 @@
 
   let category = $state<'all' | 'avatar' | 'pet' | 'wing' | 'frame'>('all');
   let maxEnergy = $derived(energyCapacity(player, vipActive));
-  let ticketPrice = $derived(player.demo.config.arenaTicketPrice);
   let gachaCost = $derived(player.demo.config.gachaCost);
 
   const tabs = [
@@ -196,80 +191,6 @@
       </div>
     {:else}
       <div class="space-y-4">
-        <!-- Game-Style Ticket & Gacha Coupon Showcase Cards (No Web Form Number Input!) -->
-        <div class="grid grid-cols-2 gap-3" aria-label="ตั๋วเข้าเล่นและคูปองสุ่ม">
-          <!-- Arena Ranked Ticket Card -->
-          {#if false}<article class="relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-white bg-gradient-to-b from-[#fff5f6] via-white to-[#ffecef] p-3 pt-5 text-center shadow-[0_5px_0_#e5c2cb]">
-            <span class="absolute -top-2.5 rounded-full border border-white bg-gradient-to-r from-rose-500 to-amber-500 px-2.5 py-0.5 text-[9px] font-extrabold text-white shadow-xs">
-              ⚔️ BATTLE ARENA
-            </span>
-            <div class="relative my-1 grid h-20 w-full place-items-center">
-              <CurrencyIcon kind="arenaTicket" size={76} />
-            </div>
-            <h2 class="text-sm font-black text-[#3b235a]">บัตรเข้า Ranked</h2>
-            <p class="mt-0.5 text-[10px] font-bold text-rose-700">
-              ในกระเป๋า: <strong class="tabular-nums">{player.demo.arenaTickets}</strong> ใบ · ใบละ {ticketPrice} MP
-            </p>
-            <div class="mt-2.5 grid w-full gap-1.5">
-              <GameButton
-                block
-                size="sm"
-                variant="gold"
-                disabled={player.masquePoints < ticketPrice}
-                onclick={() => onBuyTickets(1)}
-              >
-                <CurrencyIcon kind="points" size={15} />ซื้อ 1 ใบ · {ticketPrice} MP
-              </GameButton>
-              <GameButton
-                block
-                size="sm"
-                variant="purple"
-                disabled={player.masquePoints < ticketPrice * 5}
-                onclick={() => onBuyTickets(5)}
-              >
-                <CurrencyIcon kind="points" size={15} />แพ็ก 5 ใบ · {ticketPrice * 5} MP
-              </GameButton>
-            </div>
-          </article>{/if}
-
-          <!-- Legacy coupon offer retained but not shown in MiniGame2. -->
-          {#if false}<article class="relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-white bg-gradient-to-b from-[#f0f9ff] via-white to-[#fff5df] p-3 pt-5 text-center shadow-[0_5px_0_#c4d9eb]">
-            <span class="absolute -top-2.5 rounded-full border border-white bg-gradient-to-r from-sky-500 to-violet-600 px-2.5 py-0.5 text-[9px] font-extrabold text-white shadow-xs">
-              🎰 CAPSULE GACHA
-            </span>
-            <span class="absolute top-3 right-1.5 rotate-6 rounded-md border border-white bg-rose-500 px-1.5 py-0.5 text-[8px] font-black text-white shadow-xs">
-              10 แถม 1!
-            </span>
-            <div class="relative my-1 grid h-20 w-full place-items-center">
-              <CurrencyIcon kind="petGachaTicket" size={76} />
-            </div>
-            <h2 class="text-sm font-black text-[#29436b]">คูปองสุ่มกาชา</h2>
-            <p class="mt-0.5 text-[10px] font-bold text-sky-700">
-              ในกระเป๋า: <strong class="tabular-nums">{player.gachaTickets}</strong> ใบ · ใบละ {gachaCost} MP
-            </p>
-            <div class="mt-2.5 grid w-full gap-1.5">
-              <GameButton
-                block
-                size="sm"
-                variant="gold"
-                disabled={player.masquePoints < gachaCost}
-                onclick={() => onBuyGachaCoupons(1)}
-              >
-                <CurrencyIcon kind="points" size={15} />ซื้อ 1 ใบ · {gachaCost} MP
-              </GameButton>
-              <GameButton
-                block
-                size="sm"
-                variant="purple"
-                disabled={player.masquePoints < gachaCost * 10}
-                onclick={() => onBuyGachaCoupons(10)}
-              >
-                <CurrencyIcon kind="points" size={15} />ซื้อ 10 แถม 1 · {(gachaCost * 10).toLocaleString()} MP
-              </GameButton>
-            </div>
-          </article>{/if}
-        </div>
-
         <section class="space-y-2" aria-label="กล่องสุ่ม Gacha">
           <h2 class="text-sm font-black text-[#2b2468]">Gacha Boxes · ซื้อแล้วสุ่มจากกล่อง</h2>
           <div class="grid grid-cols-2 gap-3">

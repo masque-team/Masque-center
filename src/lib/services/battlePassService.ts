@@ -37,11 +37,11 @@ export function passTrack(legacy: DemoReward[], track: 'free' | 'premium', theme
     10: { title: 'Pet: Cloud', type: 'pet', itemId: 'cloud' },
     15: { title: 'Ocean Profile Frame', type: 'frame', itemId: 'ocean' },
     20: { title: 'Pet: Sprout', type: 'pet', itemId: 'sprout' },
-    25: { title: 'Pet Gacha Tickets x3', type: 'ticket', amount: 3 },
+    25: { title: 'Pet Gacha Boxes x3', type: 'gacha-box', amount: 3, boxKind: 'pet' },
     30: { title: 'Profile Background', type: 'background', itemId: theme === 'water' ? 'cloud-club' : 'atelier-dusk' },
     35: { title: 'Avatar: Aqua', type: 'avatar', itemId: 'aqua' },
     40: { title: 'Sky Feather Wings', type: 'wing', itemId: 'sky-feather' },
-    45: { title: 'Ranked Tickets x3', type: 'arena-ticket', amount: 3 },
+    45: { title: 'Pet Gacha Boxes x3', type: 'gacha-box', amount: 3, boxKind: 'pet' },
     50: { title: 'Season Explorer Badge', type: 'badge', itemId: 'season-explorer' },
   } : {
     10: { title: 'Pet: Mochi', type: 'pet', itemId: 'mochi' },
@@ -54,12 +54,19 @@ export function passTrack(legacy: DemoReward[], track: 'free' | 'premium', theme
     45: { title: 'Sunrise Seraph Wings', type: 'wing', itemId: 'sunrise-seraph' },
     50: { title: 'Avatar: Nyx', type: 'avatar', itemId: 'nyx' },
   };
+  const activeReward = (reward: DemoReward): DemoReward => {
+    if (reward.type === 'ticket' || reward.type === 'arena-ticket') {
+      const amount = Math.max(1, reward.amount ?? 1);
+      return { title: `Pet Gacha Box x${amount}`, type: 'gacha-box', amount, boxKind: 'pet' };
+    }
+    return { ...reward };
+  };
   return Array.from({ length: PASS_RULES.levels }, (_, index) => {
-    if (legacy[index]) return { ...legacy[index] };
+    if (legacy[index]) return activeReward(legacy[index]);
     const level = index + 1;
     if (milestones[level]) return { ...milestones[level] };
-    if (level % 5 === 0) return { title: 'Pet Gacha Ticket', type: 'ticket', amount: 1 };
-    if (level % 4 === 0) return { title: 'Ranked Ticket', type: 'arena-ticket', amount: 1 };
+    if (level % 5 === 0) return { title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' };
+    if (level % 4 === 0) return { title: 'AIS Point +50', type: 'points', amount: 50 };
     if (level % 3 === 0) return { title: `Energy +${track === 'free' ? 2 : 3}`, type: 'energy', amount: track === 'free' ? 2 : 3 };
     return { title: `AIS Point +${track === 'free' ? 25 : 40}`, type: 'points', amount: track === 'free' ? 25 : 40 };
   });

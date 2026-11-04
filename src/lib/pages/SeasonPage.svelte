@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Check, Clock3, Crown, Gift, Infinity, Sparkles, Target, Trophy, Zap } from '@lucide/svelte';
+  import { Check, Clock3, Crown, Gift, Sparkles, Target, Zap } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
   import CurrencyIcon from '../components/CurrencyIcon.svelte';
   import GameButton from '../components/GameButton.svelte';
@@ -8,15 +8,14 @@
   import PassArtwork from '../components/PassArtwork.svelte';
   import { AVATARS, PASS_ARTWORK, WINGS } from '../data/config';
   import { PASS_RULES, passProgress } from '../services/battlePassService';
-  import { currentPass, currentSeason, dailyPassMission, gameMission, hasPassAccess, nextPassBonus, weeklyPassMission } from '../services/demoService';
+  import { currentPass, currentSeason, dailyPassMission, hasPassAccess, weeklyPassMission } from '../services/demoService';
   import { vipOffer } from '../services/passService';
-  import type { GameId, PlayerState } from '../types';
+  import type { PlayerState } from '../types';
 
-  let { player, now, vipActive = false, onClaim, onClaimAll, onBonus, onVip, onMission, onWeekly, onPlay, onPremium, onMissions }: {
+  let { player, now, vipActive = false, onClaim, onClaimAll, onVip, onPremium, onMissions }: {
     player: PlayerState; now: number; vipActive?: boolean;
-    onClaim: (index: number, track: 'free' | 'premium') => void; onClaimAll: () => void; onBonus: () => void;
-    onVip: (id: string) => void; onMission: (id?: GameId) => void; onWeekly: () => void;
-    onPlay: (id?: GameId) => void;
+    onClaim: (index: number, track: 'free' | 'premium') => void; onClaimAll: () => void;
+    onVip: (id: string) => void;
     onPremium: () => void; onMissions: () => void;
   } = $props();
   let tab = $state<'rewards' | 'missions'>('rewards');
@@ -27,7 +26,6 @@
   let remaining = $derived(Math.max(0, Date.parse(`${season.ends}T00:00:00Z`) - now));
   let daily = $derived(dailyPassMission(player, now));
   let weekly = $derived(weeklyPassMission(player, now));
-  let bonus = $derived(nextPassBonus(player, now));
   let hero = $derived(AVATARS.find((avatar) => avatar.id === (season.theme === 'water' ? 'aqua' : 'luna')) ?? AVATARS[0]);
   let finalReward = $derived(season.premium[season.premium.length - 1]);
   let finalAvatar = $derived(finalReward?.type === 'avatar' ? AVATARS.find((avatar) => avatar.id === finalReward.itemId) : undefined);
@@ -281,16 +279,6 @@
   </div>
 
   {#if tab === 'rewards'}
-    {#if false && progress.complete}
-      <section class="flex items-center gap-3 rounded-2xl border-2 border-sky-200 bg-white/90 p-3 shadow-[0_4px_0_#cbe0f2]" aria-label="โบนัสหลังเลเวล 50">
-        <RewardIcon type={bonus.reward.type} size={46} />
-        <div class="min-w-0 flex-1">
-          <h2 class="flex items-center gap-1 text-xs font-black text-[#342e73]"><Infinity size={14} />โบนัส LV.{bonus.level}</h2>
-          <p class="mt-0.5 text-[10px] font-bold text-[#6e829a]">{bonus.reward.title} · {bonus.level * 100} XP</p>
-        </div>
-        <GameButton size="sm" variant="gold" disabled={!bonus.ready} onclick={onBonus}>รับโบนัส</GameButton>
-      </section>
-    {/if}
     {#if milestone && !progress.complete}
       <div class="flex items-center gap-3 rounded-2xl border-2 border-white bg-gradient-to-r from-[#fffdf5] via-[#fff5d1] to-[#ffecb3] px-3 py-2.5 shadow-[0_4px_0_#e5c470]">
         <div class="grid size-13 shrink-0 place-items-center rounded-xl border border-amber-200 bg-white/90 p-1 shadow-xs">
@@ -306,63 +294,15 @@
     {/if}
     {#key season.id}<PassRewardTrack {player} {season} xp={pass.xp} claims={pass.claims} {premium} level={progress.level} {available} {onClaim} {onClaimAll} />{/key}
   {:else}
-    <section class="grid gap-3" aria-label="ภารกิจ Pass">
-      {#each [{ id: daily.id, title: 'ประจำวัน', description: `เล่นจบ ${daily.target} รอบ`, count: daily.count, target: daily.target, xp: daily.xp, action: () => onMission(), icon: Target }, { id: weekly.id, title: 'ประจำสัปดาห์', description: `เล่นต่างกัน ${weekly.target} เกม`, count: weekly.games.length, target: weekly.target, xp: weekly.xp, action: onWeekly, icon: Trophy }] as mission (mission.id)}
-        {@const claimed = player.demo.missionClaims.includes(mission.id)}
+    <section class="space-y-3 border-y border-white/80 bg-white/45 py-4" aria-label="Mission XP status">
+      <div class="flex items-start gap-3"><Target size={20} class="mt-0.5 shrink-0 text-sky-700" /><div><h2 class="font-black text-[#332973]">Mission XP รับอัตโนมัติ</h2><p class="text-xs text-slate-600">เมื่อทำเป้าหมายสำเร็จ XP จะเข้าระดับ Pass ตอนจบเกม ไม่ต้องกดรับซ้ำ</p></div></div>
+      {#each [{ id: daily.id, title: 'ประจำวัน', count: daily.count, target: daily.target }, { id: weekly.id, title: 'ประจำสัปดาห์', count: weekly.games.length, target: weekly.target }] as mission (mission.id)}
         {@const pct = Math.min(100, Math.round((mission.count / Math.max(1, mission.target)) * 100))}
-        <article class="space-y-2.5 rounded-2xl border-2 border-white bg-white/90 p-3.5 shadow-[0_4px_0_#d5e2f0]">
-          <div class="flex items-center gap-2.5">
-            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-600"><mission.icon size={22} /></span>
-            <div class="min-w-0 flex-1">
-              <h2 class="text-sm font-black text-[#2e3d59]">{mission.title} · {mission.description}</h2>
-              <p class="text-[10px] font-extrabold text-amber-700">+{mission.xp} Pass XP</p>
-            </div>
-          </div>
-          <div class="h-2.5 w-full overflow-hidden rounded-full bg-[#e3edf7] p-0.5">
-            <span class="block h-full rounded-full bg-gradient-to-r from-[#4facfe] to-[#00c6ff]" style:width={`${pct}%`}></span>
-          </div>
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-extrabold tabular-nums text-[#5b708b]">{Math.min(mission.count, mission.target)} / {mission.target} รอบ</span>
-            {#if claimed}
-              <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700"><Check size={14} />รับแล้ว</span>
-            {:else}
-              <GameButton size="sm" variant={mission.count >= mission.target ? 'gold' : 'ghost'} onclick={() => mission.count >= mission.target ? mission.action() : onPlay()}>
-                {mission.count >= mission.target ? 'รับ XP' : 'ไปเล่น'}
-              </GameButton>
-            {/if}
-          </div>
-        </article>
+        <div class="space-y-1"><div class="flex justify-between gap-2 text-xs"><strong>{mission.title}</strong><span class="tabular-nums">{Math.min(mission.count, mission.target)}/{mission.target}</span></div><div class="h-2 overflow-hidden rounded-full bg-[#e3edf7]"><span class="block h-full rounded-full bg-sky-500 transition-[width] duration-500" style:width={`${pct}%`}></span></div></div>
       {/each}
+      <p class="text-[11px] text-slate-500">Mission Center แสดงกลุ่ม Free / VIP / Premium และช่วง Daily / Weekly / Season</p>
+      <GameButton variant="ghost" size="sm" onclick={onMissions}>เปิด Mission Center</GameButton>
     </section>
-    <h2 class="flex items-center gap-1.5 pt-1 text-sm font-black text-[#332c6e]"><Sparkles size={16} class="text-amber-500" />ภารกิจรายเกม</h2>
-    <div class="space-y-3" aria-label="ภารกิจรายเกม">
-      {#each player.demo.config.games.filter((game) => game.published !== false) as game (game.id)}
-        {@const mission = gameMission(player, game.id)}
-        {@const pct = Math.min(100, Math.round((mission.count / Math.max(1, mission.target)) * 100))}
-        <article class="grid grid-cols-[52px_minmax(0,1fr)] items-start gap-3 rounded-2xl border-2 border-white bg-white/90 p-3 shadow-[0_4px_0_#d5e2f0]">
-          <img class="h-13 w-13 rounded-xl border border-sky-100 bg-white object-contain p-0.5" src={`images/${game.cover}`} alt="" />
-          <div class="min-w-0">
-            <h3 class="text-xs font-black leading-snug text-[#2e3d59]">{game.name}</h3>
-            <p class="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold text-[#6c7f96]">
-              <span>จบ {mission.target} รอบ</span>
-              <span>·</span>
-              <span class="text-sky-700">+{mission.xp} XP</span>
-              <span>·</span>
-              <span class="inline-flex items-center gap-0.5 text-amber-700"><CurrencyIcon kind="points" size={12} />+{mission.points} MP</span>
-            </p>
-            <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#e3edf7]">
-              <span class="block h-full rounded-full bg-gradient-to-r from-[#4facfe] to-[#7b68ee]" style:width={`${pct}%`}></span>
-            </div>
-            <div class="mt-2 flex items-center justify-between gap-2">
-              <span class="text-xs font-extrabold tabular-nums text-[#5b708b]">{Math.min(mission.count, mission.target)} / {mission.target}</span>
-              <GameButton size="sm" variant={mission.count >= mission.target ? 'gold' : 'ghost'} onclick={() => mission.count >= mission.target ? onMission(game.id) : onPlay(game.id)}>
-                {mission.count >= mission.target ? 'รับรางวัล' : 'ไปเล่น'}
-              </GameButton>
-            </div>
-          </div>
-        </article>
-      {/each}
-    </div>
   {/if}
 </div>
 

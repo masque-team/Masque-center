@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Award, Coins, Frame, Image as ImageIcon, Swords, Ticket, Zap } from '@lucide/svelte';
+  import { Award, Coins, Frame, Gift, Image as ImageIcon, Swords, Ticket, Zap } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
   import CurrencyIcon from './CurrencyIcon.svelte';
   import { AVATARS, BADGE_ARTWORK, PETS, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
@@ -38,6 +38,7 @@
   {:else if background}<img class="h-full w-full object-cover" src={background.imagePath} alt={background.name} />
   {:else if badgeArtwork}<img class="h-full w-full object-contain" src={badgeArtwork} alt="" />
   {:else if currencyKind}<CurrencyIcon kind={currencyKind} size={size * 0.8} />
+  {:else if type === 'gacha-box'}<Gift size={size * 0.5} />
   {:else if type === 'frame'}<Frame size={size * 0.5} />
   {:else if type === 'badge'}<Award size={size * 0.5} />
   {:else if type === 'arena-ticket'}<Swords size={size * 0.5} />
@@ -53,7 +54,7 @@
   .points { color: #7a4a00; background: linear-gradient(160deg, #fff8dc, #ffd875); }
   .ticket { background: linear-gradient(160deg, #e7f6ff, #a9d9ff); }
   .avatar, .pet { background: linear-gradient(160deg, #efe8ff, #cdbdf7); }
-  .wing, .frame, .background, .badge, .arena-ticket { color: #947123; background: #fff1c7; }
+  .wing, .frame, .background, .badge, .arena-ticket, .gacha-box { color: #947123; background: #fff1c7; }
   .icon :global(.icon-art) { width: 100%; height: 100%; background: transparent; }
   .icon :global(.avatar-art img) { object-fit: cover; object-position: 50% 8%; }
 </style>

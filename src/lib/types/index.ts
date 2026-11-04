@@ -83,6 +83,7 @@ export type ModalState =
   | { kind: 'item-confirm'; itemId: string }
   | { kind: 'gacha-result'; gachaKind: GachaKind; results: GachaDrawResult[]; paidCoupons: number; bonusDraws: number; source?: 'box' | 'legacy-ticket' }
   | { kind: 'gacha-coupon-confirm'; quantity: 1 | 10 }
+  | { kind: 'mission-progress'; score: number; rewardXp: number; rewardPoints: number; events: { title: string; before: number; after: number; target: number; xp: number }[] }
   | { kind: 'checkin-success' }
   | { kind: 'energy-empty' }
   | { kind: 'action-confirm'; title: string; message: string; label: string }
@@ -90,9 +91,10 @@ export type ModalState =
 
 export interface DemoReward {
   title: string;
-  type: 'points' | 'energy' | 'ticket' | 'avatar' | 'pet' | 'arena-ticket' | 'wing' | 'frame' | 'background' | 'badge';
+  type: 'points' | 'energy' | 'ticket' | 'gacha-box' | 'avatar' | 'pet' | 'arena-ticket' | 'wing' | 'frame' | 'background' | 'badge';
   amount?: number;
   itemId?: string;
+  boxKind?: GachaKind;
 }
 
 export interface DemoSeason {
@@ -117,7 +119,11 @@ export interface Campaign {
   title: string;
   description: string;
   gameIds: GameId[];
-  entry: 'free' | 'ticket';
+  startAt: number;
+  endAt: number;
+  launchMode?: 'hub' | 'external';
+  externalUrl?: string | null;
+  entry: 'free' | 'ticket' | 'external';
   ticketCost: number;
   rewards: CampaignRewardTier[];
 }
@@ -140,6 +146,8 @@ export interface DemoConfig {
   vipFreeEntry: boolean;
   vipEnergyBonus: number;
   continueEnergyCost: number;
+  campaigns: Campaign[];
+  campaignTicketPacks: { id: string; label: string; quantity: number; cost: number }[];
   energyPacks: { id: string; energy: number; cost: number }[];
   shop: { id: string; kind: 'avatar' | 'pet' | 'frame' | 'wing'; itemId: string; cost: number }[];
   seasons: DemoSeason[];

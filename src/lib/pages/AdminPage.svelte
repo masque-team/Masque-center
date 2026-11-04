@@ -1,14 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Clock3, Coins, FlaskConical, RotateCcw, Save, Settings2, Sparkles, Trophy } from '@lucide/svelte';
+  import { Clock3, Coins, FlaskConical, RotateCcw, Save, Settings2, Sparkles, Trophy, CalendarClock } from '@lucide/svelte';
   import GameButton from '../components/GameButton.svelte';
   import PageTitle from '../components/PageTitle.svelte';
   import { createDemo } from '../services/demoService';
   import { AVATARS, PETS, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
+  import { getCampaignStatus } from '../services/campaignService';
   import type { DemoConfig, DemoReward, DemoScenario, PlayerState } from '../types';
-  let { player, onSave, onReset, onClock, onRankingReset, onSeed, onSeedScenario }: {
+  let { player, onSave, onReset, onClock, onRankingReset, onFinalizeCampaign, onSeed, onSeedScenario }: {
     player: PlayerState; onSave: (config: DemoConfig) => void; onReset: () => void;
-    onClock: (hours: number) => void; onRankingReset: () => void; onSeed: () => void;
+    onClock: (hours: number) => void; onRankingReset: () => void; onFinalizeCampaign: (campaignId: string) => void; onSeed: () => void;
     onSeedScenario: (scenario: DemoScenario) => void;
   } = $props();
   let draft = $state<DemoConfig>(createDemo().config);
@@ -20,7 +21,6 @@
   let scenario = $state<DemoScenario>('premium-retro');
   onMount(() => { draft = structuredClone($state.snapshot(player.demo.config)); });
   const numericFields = [
-    ['energyMax', 'เพดาน Energy ฟรี', 1], ['vipEnergyBonus', 'VIP เพิ่มเพดาน Energy', 0], ['regenMinutes', 'ฟื้น 1 Energy ทุก (นาที)', 1], ['energyCost', 'Energy ค่าเข้าเกม', 1], ['continueEnergyCost', 'Energy เล่นต่อ (เตรียมไว้)', 1],
     ['checkinReward', 'Check-in reward (AIS Point)', 0], ['missionTarget', 'ภารกิจเล่นจบ (ครั้ง)', 1],
     ['missionXp', 'ภารกิจให้ Pass XP', 1], ['gachaCost', 'Gacha Box 1 ใบ (AIS Point)', 0],
     ['duplicatePoints', 'ของซ้ำคืน (AIS Point)', 0], ['rankingPrize', 'Ranking prize (AIS Point)', 0], ['arenaTicketPrice', 'Legacy ticket price (AIS Point)', 1], ['battlePrize', 'Legacy result prize (AIS Point)', 0],
@@ -40,6 +40,14 @@
     if (draft.shop.some((item) => item.kind === kind && item.itemId === itemId)) { catalogMessage = 'สินค้านี้อยู่ใน Catalog แล้ว'; return; }
     draft.shop = [...draft.shop, { id: `${kind}-${itemId}`, kind, itemId, cost: newCatalogPrice }];
     catalogMessage = 'เพิ่มสินค้าแล้ว กดบันทึกเพื่อนำไปใช้';
+  }
+  function dateInput(value: number): string {
+    return new Date(value - new Date(value).getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  }
+  function setCampaignDate(id: string, field: 'startAt' | 'endAt', value: string): void {
+    const timestamp = Date.parse(value);
+    if (!Number.isFinite(timestamp)) return;
+    draft.campaigns = draft.campaigns.map((campaign) => campaign.id === id ? { ...campaign, [field]: timestamp } : campaign);
   }
 </script>
 
@@ -69,11 +77,24 @@
     <GameButton block variant="mint" onclick={() => onSeedScenario(scenario)}><Sparkles size={16} />Load scenario</GameButton>
     <p class="text-[10px] text-slate-600">DEV ONLY · Replaces the relevant mock values locally; no server or payment calls.</p>
   </section>
+  <section class="space-y-3 border-y border-amber-200 bg-amber-50/50 py-3" aria-label="Developer campaign controls">
+    <h2 class="flex items-center gap-2 font-bold"><CalendarClock size={17} />Campaign schedule · DEV ONLY</h2>
+    <p class="text-[10px] text-slate-600">Save date changes, then advance the mock clock or force settlement to test. Customer pages cannot force-close campaigns.</p>
+    {#each draft.campaigns as campaign (campaign.id)}
+      {@const status = getCampaignStatus(campaign, Date.now() + player.demo.clockOffset)}
+      <fieldset class="space-y-2 border-t border-amber-200 pt-2"><legend class="text-xs font-bold">{campaign.title} · {status}</legend>
+        <div class="grid grid-cols-2 gap-2"><label class="grid gap-1 text-[10px]">เริ่ม (เวลาท้องถิ่น)<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2 text-xs" type="datetime-local" value={dateInput(campaign.startAt)} onchange={(event) => setCampaignDate(campaign.id, 'startAt', event.currentTarget.value)} /></label><label class="grid gap-1 text-[10px]">สิ้นสุด (เวลาท้องถิ่น)<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2 text-xs" type="datetime-local" value={dateInput(campaign.endAt)} onchange={(event) => setCampaignDate(campaign.id, 'endAt', event.currentTarget.value)} /></label></div>
+        <button type="button" class="min-h-9 rounded-md border border-amber-300 bg-white/70 px-3 text-xs font-bold disabled:opacity-50" disabled={player.demo.settledCampaigns?.includes(campaign.id)} onclick={() => onFinalizeCampaign(campaign.id)}>Force settlement · dev test only</button>
+      </fieldset>
+    {/each}
+    <h3 class="border-t border-amber-200 pt-2 text-xs font-bold">Campaign Ticket packs · AIS Point demo</h3>
+    {#each draft.campaignTicketPacks as pack (pack.id)}<div class="grid grid-cols-3 gap-2"><label class="grid gap-1 text-[10px]">ชื่อแพ็ก<input class="min-h-9 min-w-0 rounded-md bg-white/80 px-2" bind:value={pack.label} /></label><label class="grid gap-1 text-[10px]">จำนวน<input class="min-h-9 min-w-0 rounded-md bg-white/80 px-2" type="number" min="1" bind:value={pack.quantity} /></label><label class="grid gap-1 text-[10px]">AIS Point<input class="min-h-9 min-w-0 rounded-md bg-white/80 px-2" type="number" min="0" bind:value={pack.cost} /></label></div>{/each}
+  </section>
   <div class="grid grid-cols-4 gap-1 border-b border-white pb-2" aria-label="หมวดตั้งค่า">{#each [{ id: 'economy', label: 'Economy' }, { id: 'season', label: 'Seasons' }, { id: 'catalog', label: 'Catalog' }, { id: 'social', label: 'Social' }] as item (item.id)}<button class="min-h-11 min-w-0 rounded-md px-1 text-xs font-bold" class:bg-white={section === item.id} aria-pressed={section === item.id} onclick={() => section = item.id}>{item.label}</button>{/each}</div>
   <form class="space-y-5" onsubmit={(event) => { event.preventDefault(); onSave(structuredClone($state.snapshot(draft))); }}>
     {#if section === 'economy'}
+      <p class="col-span-2 border-y border-sky-200 py-2 text-xs text-slate-600">กติกายืนยัน: Energy MAX 15, VIP MAX 30, ฟื้น +1 ทุก 30 นาที, VIP เข้าเกมปกติฟรี, Continue ใช้ 1 Energy</p>
       <section class="grid grid-cols-2 gap-3">{#each numericFields as [key, label, min] (key)}<label class="grid content-start gap-1 text-xs font-semibold">{label}<input class="min-h-11 min-w-0 rounded-md border border-white bg-white/70 px-3 text-sm" type="number" {min} max="100000" required bind:value={draft[key]} /></label>{/each}</section>
-      <label class="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" bind:checked={draft.vipFreeEntry} />VIP ไม่หัก Energy ตอนเข้าเกม</label>
       <h2 class="font-bold">Energy Packs</h2>
       {#each draft.energyPacks as pack (pack)}<div class="grid grid-cols-2 gap-3"><label class="grid gap-1 text-xs">{pack.id} · Energy<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" type="number" min="1" required bind:value={pack.energy} /></label><label class="grid gap-1 text-xs">ราคา AIS Point<input class="min-h-11 min-w-0 rounded-md bg-white/70 px-3" type="number" min="0" required bind:value={pack.cost} /></label></div>{/each}
       <h2 class="font-bold">VIP Plans</h2>
@@ -96,7 +117,7 @@
       {#each ['free', 'premium'] as lane (lane)}
         {@const track = lane as 'free' | 'premium'}
         <h2 class="border-t border-white pt-3 text-sm font-bold uppercase">{track} rewards</h2>
-        {#each draft.seasons[passIndex][track] as reward, index (index)}<fieldset class="grid grid-cols-2 gap-2 rounded-lg border border-white bg-white/30 p-3"><legend class="px-1 text-xs">Tier {index + 1}</legend><label class="col-span-2 grid gap-1 text-xs">ชื่อรางวัล<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.title} /></label><label class="grid gap-1 text-xs">ประเภท<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" bind:value={reward.type}><option value="points">AIS Point</option><option value="energy">Energy</option><option value="ticket">Gacha Box</option><option value="arena-ticket">Legacy Ranked Ticket</option><option value="avatar">Avatar</option><option value="pet">Pet</option><option value="wing">Wings</option><option value="frame">Frame</option><option value="background">Background</option><option value="badge">Badge</option></select></label>{#if ['avatar', 'pet', 'wing', 'frame', 'background', 'badge'].includes(reward.type)}<label class="grid gap-1 text-xs">Item<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.itemId}><option value="">เลือก Item</option>{#each rewardItems(reward.type) as item (item.id)}<option value={item.id}>{item.name}</option>{/each}</select></label>{:else}<label class="grid gap-1 text-xs">จำนวน<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" type="number" min="1" required bind:value={reward.amount} /></label>{/if}</fieldset>{/each}
+        {#each draft.seasons[passIndex][track] as reward, index (index)}<fieldset class="grid grid-cols-2 gap-2 rounded-lg border border-white bg-white/30 p-3"><legend class="px-1 text-xs">Tier {index + 1}</legend><label class="col-span-2 grid gap-1 text-xs">ชื่อรางวัล<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.title} /></label><label class="grid gap-1 text-xs">ประเภท<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" bind:value={reward.type}><option value="points">AIS Point</option><option value="energy">Energy</option><option value="gacha-box">Gacha Box</option><option value="avatar">Avatar</option><option value="pet">Pet</option><option value="wing">Wings</option><option value="frame">Frame</option><option value="background">Background</option><option value="badge">Badge</option></select></label>{#if ['avatar', 'pet', 'wing', 'frame', 'background', 'badge'].includes(reward.type)}<label class="grid gap-1 text-xs">Item<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.itemId}><option value="">เลือก Item</option>{#each rewardItems(reward.type) as item (item.id)}<option value={item.id}>{item.name}</option>{/each}</select></label>{:else if reward.type === 'gacha-box'}<label class="grid gap-1 text-xs">ชนิดกล่อง<select class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" required bind:value={reward.boxKind}><option value="pet">Pet Box</option><option value="avatar">Avatar Box</option></select></label><label class="grid gap-1 text-xs">จำนวนกล่อง<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" type="number" min="1" required bind:value={reward.amount} /></label>{:else}<label class="grid gap-1 text-xs">จำนวน<input class="min-h-10 min-w-0 rounded-md bg-white/80 px-2" type="number" min="1" required bind:value={reward.amount} /></label>{/if}</fieldset>{/each}
       {/each}
     {:else if section === 'catalog'}
       <h2 class="font-bold">Game Registry</h2>
