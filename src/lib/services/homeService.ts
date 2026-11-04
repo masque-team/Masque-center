@@ -25,19 +25,22 @@ export function dashboardCampaigns(player: PlayerState, now: number) {
     const topReward: DemoReward = camp.rewards[0]?.rewards[0] ?? { title: 'ยังไม่มีรางวัลที่ประกาศ', type: 'badge' };
     const isExternal = camp.launchMode === 'external';
     const isTicket = camp.entry === 'ticket';
+    const isCompetitive = isTicket || camp.id === 'starlight-sprint';
     return {
       id: camp.id,
       title: camp.title,
-      themeTag: camp.id === 'starlight-sprint' ? 'GAME CHAMPIONSHIP' : isExternal ? 'LOY KRATHONG FESTIVAL' : 'SEASONAL FESTIVAL',
+      category: (isCompetitive ? 'competitive' : 'festival') as 'festival' | 'competitive',
+      categoryLabel: isCompetitive ? 'ทัวร์นาเมนต์ชิงแชมป์' : 'เทศกาลตามฤดูกาล',
+      themeTag: isCompetitive ? 'COMPETITIVE CAMPAIGN' : isExternal ? 'LOY KRATHONG EVENT' : 'SEASONAL FESTIVAL',
       subtitle: camp.description,
       artwork: CAMPAIGN_ARTWORK[camp.id] ?? 'assets/campaigns/lantern-festival.webp',
-      statusLabel: state === 'live' ? (isTicket ? 'LIVE TOURNAMENT' : isExternal ? 'PARTNER EVENT' : 'LIVE EVENT') : state === 'upcoming' ? 'UPCOMING' : 'ENDED',
+      statusLabel: state === 'live' ? (isTicket ? 'ทัวร์นาเมนต์' : isExternal ? 'กิจกรรมเทศกาล' : 'เปิดให้เล่น') : state === 'upcoming' ? 'เร็ว ๆ นี้' : 'ENDED',
       statusTone: isTicket ? 'tournament' : isExternal ? 'external' : 'live',
       countdownLabel: state === 'live' ? formatRemainingTime(camp.endAt, now) : state === 'upcoming' ? `เริ่มใน ${formatRemainingTime(camp.startAt, now)}` : 'สิ้นสุดแล้ว',
-      entryLabel: isTicket ? `ใช้ Ticket ${camp.ticketCost} ใบ` : isExternal ? 'กิจกรรมพาร์ตเนอร์' : 'เข้าเล่นฟรี (0 Energy)',
+      entryLabel: isTicket ? `ใช้ ${camp.ticketCost} Ticket` : isExternal ? 'กิจกรรมพิเศษ' : 'เล่นฟรี',
       rewardTitle: camp.rewards[0]?.rewards.map((reward) => reward.title).join(' + ') ?? topReward.title,
       rewardPreview: topReward,
-      ctaLabel: state !== 'live' ? 'ดูรายละเอียด' : isExternal ? 'ดูกิจกรรม' : isTicket ? 'ลงแข่งชิงแชมป์' : 'เข้าร่วมกิจกรรม',
+      ctaLabel: state !== 'live' ? 'ดูรายละเอียด' : isExternal ? 'ดูรายละเอียด' : isTicket ? 'เข้าร่วมแข่งขัน' : 'เข้าร่วมกิจกรรม',
       route: `campaign/${camp.id}`,
     };
   });
@@ -45,13 +48,15 @@ export function dashboardCampaigns(player: PlayerState, now: number) {
   return [...configured, {
     id: 'new-year-festival',
     title: 'New Year Sky Festival',
-    themeTag: 'SEASON MISSIONS PREVIEW',
-    subtitle: 'ติดตามภารกิจและรางวัลของซีซันปัจจุบัน พร้อมเช็กอินสะสม Pet Gacha Box',
+    category: 'festival' as const,
+    categoryLabel: 'เทศกาลตามฤดูกาล',
+    themeTag: 'SEASONAL EVENT',
+    subtitle: 'ทำภารกิจประจำซีซันและเช็กอินสะสมรางวัลพิเศษต้อนรับเทศกาล',
     artwork: CAMPAIGN_ARTWORK['new-year-festival'],
-    statusLabel: 'SEASON PREVIEW',
+    statusLabel: 'ภารกิจซีซัน',
     statusTone: 'limited',
     countdownLabel: formatRemainingTime(Date.parse(`${season.ends}T00:00:00Z`), now),
-    entryLabel: 'สะสม XP & เช็กอิน 7 วัน',
+    entryLabel: 'สะสม XP ซีซัน',
     rewardTitle: 'รางวัลตาม Battle Pass และ Check-in',
     rewardPreview: { title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' } as DemoReward,
     ctaLabel: 'ดูภารกิจซีซัน',

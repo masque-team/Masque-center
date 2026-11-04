@@ -1,10 +1,18 @@
 <script lang="ts">
-  import { Play, Users, Zap } from '@lucide/svelte';
+  import { Play, Trophy, Users, Zap } from '@lucide/svelte';
   import GameTag from './GameTag.svelte';
   import { ENERGY_CONFIG } from '../data/config';
   import type { Game } from '../types';
 
-  let { game, vipActive, energyCost = ENERGY_CONFIG.costPerGame, index, onclick }: { game: Game; vipActive: boolean; energyCost?: number; index: number; onclick: () => void } = $props();
+  let { game, vipActive, energyCost = ENERGY_CONFIG.costPerGame, bestScore = 0, playCount = 0, index, onclick }: {
+    game: Game;
+    vipActive: boolean;
+    energyCost?: number;
+    bestScore?: number;
+    playCount?: number;
+    index: number;
+    onclick: () => void;
+  } = $props();
   let fallbackTried = $state(false);
 
   function useFallback(event: Event): void {
@@ -38,6 +46,10 @@
       <span class="genre">{game.genre}</span>
       <span class="cost"><Zap size={11} fill="currentColor" />{vipActive ? 'ฟรี' : energyCost}</span>
     </span>
+    <span class="stats-row">
+      <span class="best"><Trophy size={10} /> {bestScore.toLocaleString()}</span>
+      <span class="plays">{playCount.toLocaleString()} รอบ</span>
+    </span>
   </span>
 </button>
 
@@ -46,6 +58,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    width: 100%;
     padding: 0 0 4px;
     overflow: hidden;
     border: 0;
@@ -92,13 +105,33 @@
   .pc.a { transform: rotate(-6deg); }
   .pc.d { transform: rotate(5deg); }
 
-  .info { display: grid; gap: 4px; padding: 8px 10px 9px; border: 2.5px solid #fff; border-top: 0; border-radius: 0 0 19px 19px; background: linear-gradient(180deg, #fffdf7, #f0f9ff); }
+  .info { display: grid; gap: 3px; padding: 8px 10px 9px; border: 2.5px solid #fff; border-top: 0; border-radius: 0 0 19px 19px; background: linear-gradient(180deg, #fffdf7, #f0f9ff); }
   strong { overflow: hidden; color: #1f305e; font-size: 13.5px; font-weight: 900; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
   .meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
   .genre { color: #0284c7; font-size: 11px; font-weight: 800; }
-  .cost { display: inline-flex; align-items: center; gap: 2px; padding: 2px 7px; border-radius: 99px; border: 1px solid #fde68a; color: #8a5a06; background: #fff4c2; font-size: 10.5px; font-weight: 900; }
+  .cost { display: inline-flex; align-items: center; gap: 2px; padding: 1.5px 7px; border-radius: 99px; border: 1px solid #fde68a; color: #8a5a06; background: #fff4c2; font-size: 10px; font-weight: 900; }
+  .stats-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    margin-top: 2px;
+    padding-top: 4px;
+    border-top: 1px solid #e0f2fe;
+    color: #52739c;
+    font-size: 9.5px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .best {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #8a5200;
+    font-weight: 900;
+  }
 
   @keyframes card-in { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
-  @media (max-width: 340px) { strong { font-size: 13px; } .pairs { padding: 10px 14px; } }
+  @media (max-width: 340px) { strong { font-size: 12.5px; } .pairs { padding: 10px 14px; } }
 </style>

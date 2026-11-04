@@ -1,19 +1,23 @@
 <script lang="ts">
-  import { Coins, Swords, Ticket, Zap } from '@lucide/svelte';
+  import { Coins, Crown, Swords, Ticket, Zap } from '@lucide/svelte';
   import { CURRENCY_ARTWORK } from '../data/config';
 
   let { kind, size = 22, className = '', showBrandBadge = false }: {
-    kind: 'points' | 'aisPoints' | 'arenaTicket' | 'petGachaTicket' | 'energyPotion' | 'campaignTicket';
+    kind: 'points' | 'aisPoints' | 'arenaTicket' | 'petGachaTicket' | 'energyPotion' | 'campaignTicket' | 'vipCrest';
     size?: number;
     className?: string;
     showBrandBadge?: boolean;
   } = $props();
   let failed = $state(false);
-  let src = $derived(CURRENCY_ARTWORK[kind]);
+  let src = $derived(kind === 'vipCrest' ? undefined : CURRENCY_ARTWORK[kind]);
 </script>
 
-{#if showBrandBadge && kind === 'aisPoints'}
-  <span class="ais-brand-pill {className}" title="AIS Points สะสมจาก myAIS">
+{#if kind === 'vipCrest'}
+  <span class="vip-crest-icon {className}" style={`--s:${size}px`} aria-hidden="true">
+    <Crown size={Math.round(size * 0.62)} fill="currentColor" strokeWidth={2.4} />
+  </span>
+{:else if showBrandBadge && kind === 'aisPoints'}
+  <span class="ais-brand-pill {className}">
     {#if failed}
       <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
         <circle cx="32" cy="32" r="29" fill="#ffffff" stroke="#73c214" stroke-width="4" />
@@ -24,7 +28,7 @@
     {:else}
       <img class="inline-block shrink-0 object-contain" {src} width={size} height={size} alt="AIS Point" onerror={() => { failed = true; }} />
     {/if}
-    <span class="ais-brand-label">myAIS Points</span>
+    <span class="ais-brand-label">AIS Point</span>
   </span>
 {:else if failed}
   {#if kind === 'aisPoints'}
@@ -48,6 +52,18 @@
 {/if}
 
 <style>
+  .vip-crest-icon {
+    display: inline-grid;
+    place-items: center;
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    background: linear-gradient(155deg, #fff09a 0%, #ffb42b 58%, #d97706 100%);
+    color: #6b3400;
+    box-shadow: 0 2px 0 #b45309, 0 3px 6px rgba(180, 100, 10, 0.28);
+    flex-shrink: 0;
+  }
   .ais-brand-pill {
     display: inline-flex;
     align-items: center;

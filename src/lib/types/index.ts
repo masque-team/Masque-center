@@ -82,6 +82,10 @@ export type ModalState =
   | { kind: 'refill-confirm'; refillId: string }
   | { kind: 'exchange-confirm' }
   | { kind: 'item-confirm'; itemId: string }
+  | { kind: 'gacha-box-detail'; gachaKind: GachaKind }
+  | { kind: 'ticket-pack-confirm'; packId: string }
+  | { kind: 'campaign-entry-confirm'; gameId: GameId; campaignId: string }
+  | { kind: 'premium-pass-confirm' }
   | { kind: 'gacha-result'; gachaKind: GachaKind; results: GachaDrawResult[]; paidCoupons: number; bonusDraws: number; source?: 'box' | 'legacy-ticket' }
   | { kind: 'gacha-coupon-confirm'; quantity: 1 | 10 }
   | { kind: 'mission-progress'; score: number; rewardXp: number; events: { title: string; before: number; after: number; target: number; xp: number }[] }

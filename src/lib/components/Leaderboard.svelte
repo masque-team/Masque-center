@@ -115,7 +115,7 @@
     {/each}
   </ol>
 
-  <p class="disclaimer"><Info size={14} />กรอบรูปโปรไฟล์ของคุณซิงก์จากหน้า Profile · คะแนนเป็นข้อมูลตัวอย่างแยกตามเกม</p>
+  <p class="disclaimer"><Info size={14} />กรอบรูปโปรไฟล์ของคุณแสดงผลตามที่เลือกไว้ในหน้า Profile</p>
 </div>
 
 <style>

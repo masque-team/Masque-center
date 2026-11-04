@@ -23,10 +23,10 @@
       </span>
       <div class="min-w-0 flex-1">
         <div class="flex items-center justify-between gap-2">
-          <h3 class="!text-xs font-black !text-[#1f305e]">Daily Check-in</h3>
-          <span class="rounded-full bg-[#fff0c2] px-2 py-0.5 text-[10px] font-black tabular-nums text-[#925b00]">{doneCount}/7 วัน · ครบ 7 วันรับรางวัลพิเศษ</span>
+          <h3 class="!text-xs font-black !text-[#1f305e]">เช็กอินรายวัน</h3>
+          <span class="rounded-full bg-[#fff0c2] px-2 py-0.5 text-[10px] font-black tabular-nums text-[#925b00]">{doneCount}/7 วัน</span>
         </div>
-        <p class="mt-0.5 !text-[10.5px] !text-[#526c9c]">วันนี้รับ <b><CurrencyIcon kind="energyPotion" size={13} />+{reward} Energy</b> · ไม่แจก AIS Point</p>
+        <p class="mt-0.5 !text-[10.5px] !text-[#526c9c]">รับ <b><CurrencyIcon kind="energyPotion" size={13} />+{reward} Energy</b> · ครบ 7 วันรับกล่องสุ่มคู่หู</p>
       </div>
       <GameButton variant={claimed ? 'ghost' : 'gold'} size="sm" disabled={claimed} onclick={onClaim}>
         {#if claimed}<Check size={13} />รับแล้ว{:else}เช็กอิน{/if}
@@ -79,7 +79,7 @@
         <h3>เช็กอินรายวัน</h3>
         <span class="streak"><Sparkles size={11} />{doneCount}/7 วัน</span>
       </div>
-      <p>รับฟรี <b><CurrencyIcon kind="energyPotion" size={14} />+{reward} Energy</b> ทุกวัน · วันครบ 7 รับโบนัสพิเศษ</p>
+      <p>รับฟรี <b><CurrencyIcon kind="energyPotion" size={14} />+{reward} Energy</b> ทุกวัน · ครบ 7 วันรับกล่องสุ่มคู่หู</p>
     </div>
     <GameButton variant={claimed ? 'ghost' : 'gold'} size="sm" disabled={claimed} onclick={onClaim}>
       {#if claimed}<Check size={15} strokeWidth={3.5} />รับแล้ว{:else}เช็กอิน{/if}
@@ -90,7 +90,7 @@
     {#each days as day, index (day.label)}
       {@const isDay7 = index === 6}
       <li class:done={day.done} class:today={day.today} class:ready={day.today && !day.done} class:day7={isDay7} style={`--day-delay:${index * 55}ms`}>
-        <small class="lbl">{isDay7 ? 'DAY 7' : day.label}</small>
+        <small class="lbl">{isDay7 ? 'วันที่ 7' : day.label}</small>
         <span class="stamp">
           {#if day.done}
             <Check size={14} strokeWidth={3.6} />
@@ -100,7 +100,7 @@
             <CurrencyIcon kind="energyPotion" size={16} />
           {/if}
         </span>
-        <span class="amt">{isDay7 ? 'Special' : `+${reward}`}</span>
+        <span class="amt">{isDay7 ? 'โบนัส' : `+${reward}`}</span>
       </li>
     {/each}
   </ol>

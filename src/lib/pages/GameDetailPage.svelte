@@ -84,7 +84,7 @@
           <span class="grid size-8 place-items-center rounded-xl border border-white bg-[#ffe999] text-[#8a5200] shadow-xs"><Sparkles size={16} /></span>
           <div>
             <h2 class="text-sm font-black text-[#1f305e]">Pre-game Loadout Stage</h2>
-            <p class="text-[10px] font-bold text-[#526c9c]">แต่งตัวก่อนเข้าเกม · Preview เฉพาะในแพลตฟอร์ม</p>
+            <p class="text-[10px] font-bold text-[#526c9c]">เลือกตัวละครและคู่หูประจำตัวก่อนเข้าเล่น</p>
           </div>
         </div>
         {#if vipActive}

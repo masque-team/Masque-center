@@ -34,9 +34,9 @@ export const POINT_PACKS = [
 ] as const;
 
 export const VIP_PACKAGES: VipPackage[] = [
-  { id: 'vip-6h', label: 'VIP 6 ชั่วโมง · ราคาเดโม', durationDays: 0.25, cost: 20, reward: 'เข้าเกมปกติฟรี', startLevel: 1 },
-  { id: 'vip-1d', label: 'VIP 1 วัน · ราคาเดโม', durationDays: 1, cost: 50, reward: 'เข้าเกมปกติฟรี', startLevel: 1 },
-  { id: 'vip-3d', label: 'VIP 3 วัน · ราคาเดโม', durationDays: 3, cost: 120, reward: 'เข้าเกมปกติฟรี', startLevel: 1 },
+  { id: 'vip-6h', label: 'VIP 6 ชั่วโมง', durationDays: 0.25, cost: 20, reward: 'เข้าเกมปกติฟรี', startLevel: 1 },
+  { id: 'vip-1d', label: 'VIP 1 วัน', durationDays: 1, cost: 50, reward: 'เข้าเกมปกติฟรี', startLevel: 1 },
+  { id: 'vip-3d', label: 'VIP 3 วัน', durationDays: 3, cost: 120, reward: 'เข้าเกมปกติฟรี', startLevel: 1 },
 ];
 export const BATTLE_PASS = {
   xpPerLevel: 100,

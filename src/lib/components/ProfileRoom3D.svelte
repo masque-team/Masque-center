@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Sparkles, Move3d } from '@lucide/svelte';
   import AssetPortrait from './AssetPortrait.svelte';
 
   let {
@@ -566,17 +565,6 @@
       aria-hidden="true"
     ></div>
   {/if}
-
-  <!-- 3D Interactive Camera Badge -->
-  <div class="pointer-events-none absolute top-3 right-3 z-20 flex items-center gap-1.5 rounded-full border border-white/80 bg-white/85 px-2.5 py-1 text-[10px] font-black text-[#264b73] shadow-sm backdrop-blur-md">
-    {#if webglReady && !webglFailed}
-      <Move3d size={13} class="text-sky-600" />
-      <span>3D ROOM · ลากเพื่อหมุนมุมกล้อง</span>
-    {:else}
-      <Sparkles size={13} class="text-amber-500" />
-      <span>2.5D SHOWCASE</span>
-    {/if}
-  </div>
 </div>
 
 <style>

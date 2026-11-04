@@ -96,7 +96,7 @@
               </span>
             {:else}
               <div class="w-full self-center">
-                <GameButton block size="sm" variant={cell.track === 'premium' ? 'gold' : 'purple'} label={`รับ LV.${tier} ${cell.track === 'free' ? 'Free' : 'VIP'}`} onclick={() => onClaim(index, cell.track)}>รับเลย</GameButton>
+                <GameButton block size="sm" variant={cell.track === 'premium' ? 'gold' : 'purple'} label={`รับ LV.${tier} ${cell.track === 'free' ? 'Free' : 'Premium'}`} onclick={() => onClaim(index, cell.track)}>รับเลย</GameButton>
               </div>
             {/if}
           </article>

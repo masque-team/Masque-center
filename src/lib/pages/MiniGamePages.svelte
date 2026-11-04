@@ -82,7 +82,7 @@
 
 {#if page === 'campaigns'}
   <div class="page-stack pb-8">
-    <PageTitle eyebrow="LIVE EVENTS · DEMO" title="Campaigns" subtitle="แข่งขันสะสมคะแนนแยกตามแคมเปญ ลุ้นรับรางวัลพิเศษเมื่อจบกิจกรรม">
+    <PageTitle eyebrow="LIVE EVENTS" title="Campaigns" subtitle="แข่งขันสะสมคะแนนแยกตามแคมเปญ ลุ้นรับรางวัลพิเศษเมื่อจบกิจกรรม">
       {#snippet icon()}<Trophy size={25} />{/snippet}
     </PageTitle>
 
@@ -119,10 +119,6 @@
           </button>
         {/each}
       </div>
-      <p class="flex items-center justify-between text-[10px] font-bold text-[#526c9c]">
-        <span>AIS Points สะสมจาก myAIS: <b>{player.aisPoints.toLocaleString()}</b></span>
-        <span>ราคาเดโมจำลอง</span>
-      </p>
     </section>
 
     <div class="space-y-3">
@@ -633,7 +629,7 @@
 
 {:else if page === 'vip'}
   <div class="page-stack pb-8">
-    <PageTitle eyebrow="TIME ENTITLEMENT · DEMO PRICES" title="VIP Royal Pass" subtitle="เล่นเกมปกติฟรี (0 Energy) และเพิ่มเพดาน Energy MAX 15 → 30">{#snippet icon()}<Crown size={25} />{/snippet}</PageTitle>
+    <PageTitle eyebrow="VIP MEMBERSHIP" title="VIP Royal Pass" subtitle="เล่นเกมปกติฟรี (0 Energy) และเพิ่มเพดาน Energy สูงสุดเป็น 30">{#snippet icon()}<Crown size={25} />{/snippet}</PageTitle>
 
     <div class="card-gold-25d space-y-2 p-4">
       <div class="flex items-center justify-between">
@@ -644,7 +640,7 @@
             <Clock3 size={14} /> ยังไม่ได้เปิดใช้งาน VIP
           {/if}
         </span>
-        <CurrencyIcon kind="aisPoints" size={18} showBrandBadge />
+        <CurrencyIcon kind="vipCrest" size={20} />
       </div>
       {#if vipActive}
         <p class="text-xs font-black text-[#593100]">ใช้สิทธิ์ได้ถึง {new Date(player.vipExpiresAt!).toLocaleString('th-TH')}</p>
@@ -675,7 +671,6 @@
         </article>
       {/each}
     </div>
-    <p class="text-[11px] font-bold text-slate-500">AIS Point เป็นคะแนนสะสมจาก myAIS สำหรับแลกสิทธิ์ในเดโม · ไม่มีการตัดเงินจริง</p>
   </div>
 
 {:else if page === 'shop'}

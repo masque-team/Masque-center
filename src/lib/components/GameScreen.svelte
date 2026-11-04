@@ -38,7 +38,7 @@
     <EnergyBadge energy={player.energy} {vipActive} countdown={countdown} max={energyCapacity(player, vipActive)} {onRefill} />
   </header>
   <div class="info">
-    <span>{ranked ? 'RANKED · legacy demo' : campaign ? 'CAMPAIGN · ใช้ Campaign Ticket · ไม่ใช้ Energy' : vipActive && player.demo.config.vipFreeEntry ? 'VIP · เข้าเกมไม่เสีย Energy' : `ใช้ ${player.demo.config.energyCost} Energy ต่อการเข้าเล่น`}</span>
+    <span>{ranked ? 'RANKED MODE' : campaign ? 'CAMPAIGN · ใช้ 1 Ticket' : vipActive && player.demo.config.vipFreeEntry ? 'VIP · เข้าเล่นฟรี 0 Energy' : `ใช้ ${player.demo.config.energyCost} Energy ต่อรอบ`}</span>
     <a href={hostedUrl} target="_blank" rel="noopener noreferrer" aria-label="เปิดเกมในแท็บใหม่"><ExternalLink size={16} /></a>
   </div>
   <section class="stage" aria-label={`เกม ${game.name}`}>

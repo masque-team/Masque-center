@@ -19,7 +19,7 @@ export const CAMPAIGNS: Campaign[] = [
   {
     id: 'starlight-sprint',
     title: 'Starlight Sprint',
-    description: 'ตัวอย่างแคมเปญใช้ Ticket หนึ่งใบต่อหนึ่งรอบ ไม่ใช่เงื่อนไขการเงินจริง',
+    description: 'แข่งขันทำคะแนนสูงสุดในเกมที่กำหนด เพื่อชิงรางวัลพิเศษประจำทัวร์นาเมนต์',
     gameIds: ['run', 'mole'],
     startAt: Date.UTC(2026, 9, 1),
     endAt: Date.UTC(2026, 11, 1),
@@ -33,8 +33,8 @@ export const CAMPAIGNS: Campaign[] = [
   },
   {
     id: 'loy-krathong-external',
-    title: 'Loy Krathong · external activity (mock)',
-    description: 'ตัวอย่างกิจกรรมภายนอก ยังไม่มี URL จริง จึงไม่สามารถเปิดกิจกรรมได้',
+    title: 'Loy Krathong Festival',
+    description: 'กิจกรรมพิเศษเทศกาลลอยกระทง ร่วมสนุกและติดตามรายละเอียดกิจกรรมเร็ว ๆ นี้',
     gameIds: [],
     startAt: Date.UTC(2026, 9, 1),
     endAt: Date.UTC(2026, 11, 1),

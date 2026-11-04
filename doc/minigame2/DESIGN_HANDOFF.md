@@ -1,123 +1,133 @@
-# MiniGame2 — Visual Refinement Round 2 Design Handoff
+# MiniGame2 — Complete UX/UI Redesign & Interaction Refinement Handoff
 
-**Role:** Senior Game UI/UX Designer, Game Graphic Artist & Frontend Developer  
+**Role:** Senior Game UX/UI Designer, Game UI Engineer & Frontend Developer  
 **Repository:** `Masque-center`  
-**Status:** Visual Refinement Round 2 Complete — Ready for Final Copilot Review
+**Status:** Complete UX/UI Redesign & Interaction Refinement — Ready for Final Copilot Regression
 
 ---
 
-## 1. หน้าจอที่ปรับดีไซน์ใหม่ (Screens Redesigned)
+## 1. Summary of UX/UI Problems Found (สรุปปัญหา UX/UI ที่ตรวจพบจากมุมมองผู้เล่นจริง)
 
-### 1.1 Home — Campaign Dashboard (`#home`) & Default Entry (`#hub`)
-- **Default Entry (`#hub`):** เมื่อเปิดแอปโดยไม่มี Hash Route (`window.location.hash` ว่าง) ระบบจะเปิดแท็บ **Game (`#hub`)** เป็นหน้าเริ่มต้น เพื่อให้ผู้เล่นเข้าเล่นเกมได้ทันที และสามารถสลับมากดแท็บ **Home (`#home`)** เพื่อดู Campaign Dashboard ได้ทุกเมื่อ โดยยังคงรักษา Deep Links ที่ระบุ Route มาแล้ว (`#home`, `#shop`, `#rewards`, `#achievements`, `#missions`, `#profile`, `#ranking`, `#campaigns`, `#campaign/:id`, `#detail/:id`, `#game/:id`) ทุกประการ
-- **สิ่งที่นำออกจากหน้า `#home`:**
-  - นำ `FeaturedGameCard` (การ์ด HOT Game ขนาดใหญ่) ออก
-  - นำข้อความแบนเนอร์ `Game Center / Masque Kingdom Demo` ที่ซ้ำซ้อนออก
-  - นำกล่องบทสนทนาตัวละครกลางหน้า (`AvatarGreeting`) ที่ไม่เกี่ยวข้องกับกิจกรรมออก
-- **สิ่งที่เพิ่มใน `#home` (Campaign Dashboard):**
-  - **Featured Campaign Carousel (4 กิจกรรม):** แสดง Key Visual แตกต่างกันตามธีม (*Lantern Festival*, *Game Championship: Starlight Sprint*, *Loy Krathong Festival*, และ *New Year Sky Festival*) พร้อมป้ายสถานะ (`LIVE EVENT`, `LIVE TOURNAMENT`, `PARTNER EVENT`, `LIMITED EVENT`), Countdown เวลาคงเหลือ, Reward Preview พร้อมไอคอนรางวัล และปุ่ม CTA
-  - **Compact Daily Check-in:** แถบเช็กอินรายวันแบบกระชับ ใช้ State `checkinDates` ร่วมกับหน้า Achievement
-  - **Player Status Cards (2-Column Grid):**
-    - การ์ด **VIP Status** แสดงสถานะ Active/Inactive, สิทธิ์เข้าเกมปกติฟรี (0 Energy), Energy Cap `30` และเวลาคงเหลือ (`vipRemainingLabel`)
-    - การ์ด **Battle Pass Status** แสดงชื่อซีซัน, เลเวลปัจจุบัน (`LV.x`), แถบ XP Progress (`withinLevel/100 XP`) และสถานะ Free/Premium Track
-  - **Achievement Updates:** แสดงเหรียญตราที่ปลดล็อกล่าสุด (สูงสุด 3 เหรียญ กดเพื่อไปปักหมุดใน Profile) หรือแสดงความคืบหน้าของ Milestone ถัดไป
-  - **Collectible Cosmetics Event Banner:** แบนเนอร์โปรโมตกรอบโปรไฟล์สะสม 5 ระดับและการอวดโฉมบน Ranking พร้อมปุ่มลัดไปยัง `#profile`, `#ranking`, และ `#missions`
-
-### 1.2 Achievement & Daily Check-in (`#achievements`)
-- รักษาระบบ `achievementService.ts` ที่แยกออกจาก Battle Pass Missions อย่างสมบูรณ์ และไม่มีการแจก AIS Point จากกิจกรรมใด ๆ
-- อัปเกรด `DailyCheckinCard.svelte` และ `AchievementPage.svelte`:
-  - เพิ่ม **Day-7 Collectible Milestone Showcase** แสดงภาพกล่องสุ่ม `assets/gacha/pet-box.webp` คู่กับเหรียญตรา `assets/badges/checkin-streak-7.png` และแถบความคืบหน้า `streak/7 วัน`
-  - เพิ่มตัวกรองสถานะ (`ทั้งหมด`, `ปลดล็อกแล้ว`, `กำลังสะสม`)
-  - อัปเกรดการ์ด Achievement ให้แสดง Badge Artwork ครบทั้ง 11 รายการ พร้อม Progress Bar, Reward Preview Pill และ **Unlock Inspection Card** ที่มีเอฟเฟกต์แสงรัศมีหมุน (`animate-spin`) เมื่อคลิกดูรายละเอียดเหรียญตรา
-
-### 1.3 Battle Pass — Mission Filter Redesign (`#missions`)
-- ออกแบบตัวกรองภารกิจใหม่แทนปุ่ม 6 แท็บเดิม:
-  - **Primary Filter (Segmented Control):** สลับช่วงเวลา `Daily (รายวัน)` / `Weekly (รายสัปดาห์)` / `Season (ตลอดซีซัน)` พร้อมตัวเลขสรุปจำนวนภารกิจที่สำเร็จ (`done/total`)
-  - **Secondary Filter (Entitlement Tier Cards):** แถบการ์ด 3 ใบสำหรับ `Free` / `VIP` / `Premium` แสดงไอคอน 2.5D, ผลรวม XP (`+XP`), สถานะปลดล็อกหรือแม่กุญแจ (`Locked State`) ชัดเจน
-  - **Entitlement Status Banner:** แบนเนอร์แจ้งสิทธิ์ของกลุ่มที่เลือก พร้อมปุ่มลัดไปเปิด VIP (`#vip`) หรือปลดล็อก Premium Pass (`#rewards`) เมื่อดูภารกิจที่ยังล็อกอยู่
-  - การ์ดภารกิจแสดงไอคอนตามประเภท, ป้าย `+XP`, แถบ Progress Bar และสถานะ `COMPLETED` โดยไม่เปลี่ยน Logic การคำนวณ XP
-
-### 1.4 Profile — 3D Room & Collectible Frames (`#profile`)
-- รักษา `ProfileRoom3D.svelte` (ห้อง 3D Three.js พร้อม 2.5D Fallback), สถิติการเล่นเกม และระบบปักหมุดเหรียญตรา (Pinned Badges สูงสุด 3 ชิ้น) ไว้ครบถ้วน
-- เพิ่มมุมมอง **AvatarFrame Identity Overlay** บนมุมซ้ายล่างของห้อง 3D
-- ออกแบบ **Collectible Profile Frames 5 ระดับความหายาก** (`Common`, `Rare`, `Epic`, `Legendary`, `Seasonal`) พร้อม Preview กราฟิก, ป้าย Rarity, แหล่งที่มาของรางวัล (Battle Pass, Campaign, Achievement, Shop) และปุ่มเลือกสวมใส่ (`Equip`) หรือถอดกรอบรูป
-
-### 1.5 Ranking — Showcase Profile Frames (`#ranking` & Campaign Leaderboard)
-- ใช้คอมโพเนนต์ `AvatarFrame.svelte` ร่วมกันทั้งใน `#profile`, `#ranking` (`Leaderboard.svelte`) และตารางอันดับในหน้า `#campaign/:id` (`MiniGamePages.svelte`):
-  - **Top 1:** สวมกรอบระดับ **Legendary** (`celestial` — Celestial Sovereign)
-  - **Top 2:** สวมกรอบระดับ **Epic** (`sunrise` — Sunrise Royal Crest)
-  - **Top 3:** สวมกรอบระดับ **Seasonal** (`krathong` — Loy Krathong Lotus)
-  - **อันดับ 4 ขึ้นไป:** สวมกรอบระดับ **Rare / Common** (`ocean` / `meadow`)
-  - **ผู้เล่นปัจจุบัน (`isCurrentPlayer`):** อ่านค่ากรอบรูปจริงจาก `player.demo.frameId` และอ่านอวตารจริงจาก `player.avatarId`
-- จัดวางกรอบรูปให้พอดีกับ Podium และแถว Leaderboard โดยไม่บดบังชื่อผู้เล่นหรือคะแนน
-
-### 1.6 AIS Point — Authentic Branding
-- ออกแบบและแทนที่ `public/assets/currency/ais-point.png` ด้วยไอคอน **AIS Points** ที่อ้างอิงอัตลักษณ์ myAIS อย่างเป็นทางการ (เหรียญ 2.5D สีเขียว AIS `#73C212` พร้อมใบไม้บนตัวอักษร `P` สีขาว และแถบโค้งสีชมพูมาเจนต้า `#EC008C`)
-- อัปเดต `CurrencyIcon.svelte` ให้เป็น Reusable Component รองรับทั้งโหมดไอคอนและโหมดป้าย `myAIS` (`showBrandBadge`) สำหรับใช้ใน `AppHeader.svelte`, `ShopPage.svelte`, `VipPassOffer.svelte`, `ModalHost.svelte`, และ `MiniGamePages.svelte`
-- ปรับปุ่ม AIS Points บน Header ให้ใช้ไอคอนถุงช้อปปิ้ง (`ShoppingBag`) แทนเครื่องหมาย `+` และนำปุ่ม "เติม AIS Point" ออกจากหน้าต่างยืนยันการซื้อใน `ModalHost.svelte` เพื่อตอกย้ำว่า AIS Point เป็นคะแนนสะสมจาก myAIS สำหรับแลกสิทธิ์เท่านั้น
+จากการตรวจสอบทุกหน้าจอบนมือถือ (`320px`, `375px`, `430px`) ในมุมมองผู้เล่นที่เข้าใช้งานครั้งแรก พบประเด็นสำคัญดังนี้:
+- **ข้อความอธิบายล้นและมีภาษาฝั่งนักพัฒนาปะปน (Excessive & Developer-Facing Copy):** มีข้อความอย่าง `"ไม่แจก AIS Point"`, `"AIS Point สะสมจาก myAIS"`, `"3D ROOM · ลากเพื่อหมุนมุมกล้อง"`, `"DEMO MODE"`, `"ราคาเดโม"`, `"MOCK STORE"` และการคำนวณตัวเลขก่อน/หลังที่ซ้ำซ้อน (`คงเหลือ 7 → 6 ใบ`, `หลังเติม 13/15`) กระจายอยู่ในหน้าปกติของผู้เล่น
+- **ความสูงและสมดุลสายตาของ Global Header ไม่เท่ากัน (Inconsistent Header Optical Alignment):** ปุ่มแจ้งเตือนและป้ายคะแนน AIS Point ดูเล็กกว่าแถบโปรไฟล์และแถบ Energy รวมถึงมีป้ายคำอธิบาย `myAIS` และไอคอนถุงช้อปปิ้งซ้อนอยู่ทำให้รกบนจอ `320px`
+- **การจัดกลุ่มแคมเปญบนหน้า Home ยังมีตัวควบคุมซ้ำซ้อน:** มีแถบปุ่มภาพย่อ 4 ช่องซ้อนกับจุดบอกสไลด์ (`carousel-dot`) และยังไม่ได้แยกหมวดหมู่ระหว่าง **เทศกาลตามฤดูกาล (Festival / Seasonal Event)** กับ **ทัวร์นาเมนต์แข่งขัน (Competitive Campaign)** ให้สแกนง่าย
+- **การแต่งตัวละครและโปรไฟล์ในห้อง 3D ค้นหายาก:** ผู้เล่นต้องเลื่อนลงไปหาในส่วนล่างของหน้าจอและมีข้อความป้าย `"3D ROOM · ลากเพื่อหมุนมุมกล้อง"` บังมุมขวาบนของฉาก
+- **การขายแพ็กเกจสมาชิก VIP ปะปนอยู่ในหน้า Battle Pass และใช้ไอคอนเดียวกับ AIS Point:** ทำให้ผู้เล่นสับสนระหว่างสิทธิ์สมาชิกตามเวลา (VIP), สิทธิ์ปลดล็อกสายรางวัลซีซัน (Premium Pass) และสกุลเงินแลกซื้อ (AIS Point)
+- **ความคืบหน้าภารกิจ (Mission Progress) แสดงผลเป็นหน้าต่าง Modal ขนาดใหญ่ขวางหน้าจอ:** เมื่อเช็กอินรายวันหรือเล่นเกมจบ จะเด้ง Dialog ทับทั้งหน้าจอแทนที่จะเป็น HUD แจ้งเตือนแบบเกมมือถือที่ลื่นไหล
+- **หน้าต่างยืนยันการใช้ตั๋วแข่งขัน (Campaign Ticket) มีข้อความยาวเกินจำเป็น:** แสดงสมการลบเลขและคำเตือนราคาเดโมแทนที่จะแสดงสั้นกระชับพร้อมปุ่มเข้าร่วมทันที
 
 ---
 
-## 2. Assets ใหม่หรือที่แก้ไข (New & Updated Assets)
+## 2. Content and Text Removed or Simplified (ข้อความที่ตัดออกและปรับให้กระชับเป็นธรรมชาติ)
 
-| หมวดหมู่ | ไฟล์ Asset | รายละเอียด |
-| --- | --- | --- |
-| **Currency Branding** | `public/assets/currency/ais-point.png`<br>`art-source/currency/ais-point.png` | ไอคอนเหรียญ AIS Points 2.5D สีเขียว myAIS + ใบไม้บนตัว `P` + แถบโค้งสีชมพูมาเจนต้า |
-| **Campaign Key Visual** | `public/assets/campaigns/new-year-festival.webp` | ภาพ Key Visual 16:9 ธีมเทศกาลปีใหม่ลอยฟ้า (New Year Sky Festival) สไตล์ 2.5D Casual Fantasy |
-| **Collectible Frames (5 Tiers)** | `public/assets/frames/frame-meadow.webp` (Common)<br>`public/assets/frames/frame-ocean.webp` (Rare)<br>`public/assets/frames/frame-sunrise.webp` (Epic)<br>`public/assets/frames/frame-celestial.webp` (Legendary)<br>`public/assets/frames/frame-krathong.webp` (Seasonal) | กรอบรูปโปรไฟล์สะสม 5 ระดับความหายาก พร้อมลวดลายอัญมณี มงกุฎ ปีก และดอกบัวกระทง |
-| **Achievement Badges** | `public/assets/badges/games-played-50.png`<br>`public/assets/badges/games-played-100.png`<br>`public/assets/badges/checkin-streak-7.png`<br>`public/assets/badges/all-game-genres.png`<br>`public/assets/badges/high-score-10000.png`<br>`public/assets/badges/campaign-joins-3.png`<br>`public/assets/badges/campaign-completed-1.png` | เหรียญตรา Achievement สไตล์ 2.5D Medallion ครบทั้ง 11 รายการใน `ACHIEVEMENT_DEFINITIONS` |
-
----
-
-## 3. ไฟล์ที่แก้ไขและเพิ่มใหม่ (Modified & Added Files)
-
-- `src/lib/components/AvatarFrame.svelte` *(ใหม่)* — Reusable Avatar + Collectible Frame component สำหรับ Profile, Ranking, Header, Shop และ Modal
-- `src/lib/components/CurrencyIcon.svelte` — อัปเดตไอคอน AIS Point และเพิ่ม `showBrandBadge`
-- `src/lib/components/AppHeader.svelte` — แสดงกรอบรูปที่สวมใส่บน Avatar มุมซ้ายบน และเปลี่ยนปุ่ม AIS Points ให้เป็นปุ่มเปิด Shop
-- `src/lib/components/RewardIcon.svelte` — รองรับการแสดงภาพกรอบรูป (`type === 'frame'`) และเหรียญตรา (`type === 'badge'`)
-- `src/lib/components/DailyCheckinCard.svelte` — เพิ่มป้ายกำกับ Day-7 Bonus (`7D BONUS`) และปรับขนาดให้กระชับบน Dashboard
-- `src/lib/components/Leaderboard.svelte` — แสดง `AvatarFrame` บน Podium Top 1–3 และรายการอันดับทั้งหมด โดยอ่านกรอบรูปจริงของผู้เล่นจาก `player.demo.frameId`
-- `src/lib/components/VipPassOffer.svelte` — เพิ่มข้อความอธิบายการใช้คะแนนสะสมจาก myAIS
-- `src/lib/components/ModalHost.svelte` — แสดง `AvatarFrame` ในหน้าต่างยืนยันการซื้อ, แสดงแหล่งที่มาของคะแนน myAIS และนำปุ่มเติม AIS Point ออก
-- `src/App.svelte` — เปลี่ยน Default Entry เมื่อไม่มี Hash เป็น `#hub` และออกแบบหน้า `#home` ใหม่เป็น Campaign Dashboard
-- `src/lib/pages/AchievementPage.svelte` — เพิ่ม Day-7 Collectible Showcase, ตัวกรองสถานะ และ Unlock Inspection Animation
-- `src/lib/pages/MiniGamePages.svelte` — ออกแบบ `#missions` ใหม่ด้วย Segmented Control + Entitlement Tier Cards, อัปเกรด `#campaigns` / `#campaign/:id` ด้วย Key Visual และ `AvatarFrame` บน Leaderboard
-- `src/lib/pages/ProfileShowcase.svelte` — เพิ่ม Collectible Frame Gallery 5 ระดับความหายาก พร้อมป้ายแหล่งที่มาและปุ่ม Equip โดยรักษา `ProfileRoom3D.svelte`
-- `src/lib/pages/ShopPage.svelte` — แสดงกรอบโปรไฟล์ 5 ระดับในแท็บ Cosmetics และเพิ่มแบนเนอร์อธิบายการใช้คะแนนจากแอป myAIS
-- `src/lib/pages/AdminPage.svelte` — รองรับการตั้งค่าราคากรอบรูปทั้งหมดใน Demo Studio
-- `src/lib/data/config.ts` — เพิ่ม `PROFILE_FRAMES`, อัปเดต `BADGE_ARTWORK` ครบ 11 รายการ และเพิ่ม `new-year-festival` ใน `CAMPAIGN_ARTWORK`
-- `src/lib/services/demoService.ts` & `src/lib/services/playerService.ts` — รองรับ Frame ID ทั้ง 5 ระดับ (`meadow`, `ocean`, `sunrise`, `celestial`, `krathong`) ใน `shop`, `validateConfig` และ `grantReward`
-- `src/app.css` — เพิ่มสไตล์ `[data-frame=...]`, `.btn-gold-3d` และ Keyframes สำหรับเอฟเฟกต์การ์ด
-- `scripts/generate-round2-assets.mjs` *(ใหม่)* — สคริปต์สร้างและแปลงไฟล์กราฟิก 2.5D สำหรับ Round 2
+ปรับปรุงข้อความภาษาไทยสำหรับผู้เล่นให้สั้น ชัดเจน และตัดข้อความส่วนเกินออกทั้งหมด:
+- ตัด `"ไม่แจก AIS Point"` และ `"โดยไม่แจก AIS Point"` ออกจาก `DailyCheckinCard.svelte` และ `AchievementPage.svelte`
+- ตัด `"AIS Point สะสมจาก myAIS"`, `"REDEEM WITH myAIS POINTS · DEMO"`, `"ยอด myAIS ปัจจุบัน"` ออกจาก `AppHeader.svelte`, `ShopPage.svelte`, `VipPassOffer.svelte`, `ModalHost.svelte`, `MiniGamePages.svelte`, และ `CurrencyIcon.svelte`
+- ตัดป้าย `"3D ROOM · ลากเพื่อหมุนมุมกล้อง"` และ `"2.5D SHOWCASE"` ออกจากมุมขวาบนของ `ProfileRoom3D.svelte`
+- ตัดข้อความฝั่งเทคนิค/เดโม เช่น `"DEMO MODE · จำลองการใช้ AIS Points..."` (`EntryPage.svelte`), `"ราคาเดโม"` (`config.ts`, `ShopPage.svelte`), `"DEMO OFFER"` / `"DURATION · DEMO"` (`VipPassOffer.svelte`), `"DEMO PREVIEW"` / `"CALENDAR MONTH SEASON"` (`SeasonPage.svelte`), `"Preview เฉพาะในแพลตฟอร์ม"` (`GameDetailPage.svelte`), `"legacy demo"` (`GameScreen.svelte`), และ `"mock players"` / `"ข้อมูลตัวอย่าง"` (`RankingPage.svelte`, `Leaderboard.svelte`)
+- ตัดการแสดงผลคำนวณยอดก่อน/หลังที่ซ้ำซ้อน เช่น `7 → 6 ใบ` หรือ `หลังเติม 13/15` ออกจากป้ายสินค้าและหน้าต่างยืนยัน
 
 ---
 
-## 4. ผลการตรวจสอบ (Verification Results)
+## 3. Global Header Redesign (การออกแบบแถบส่วนหัวใหม่ให้เป็นระบบเดียวกัน)
 
-- **`npm run check` (`svelte-check --tsconfig ./tsconfig.json`):** ผ่าน `0 errors and 0 warnings`
-- **`npm test` (`vitest run`):** ผ่านครบทั้ง `2 test files, 71 tests passed`
-- **`npm run build` (`svelte-check && vite build`):** ผ่านสมบูรณ์ สร้าง Production bundle ใน `dist/` เรียบร้อย
-- **การตรวจสอบขนาดหน้าจอมือถือ (`320px`, `375px`, `430px`):**
-  - ตรวจสอบหน้า `#hub` (Default Entry), `#home` (Campaign Dashboard), `#achievements`, `#rewards`, `#missions`, `#profile`, `#ranking`, `#campaigns`, `#campaign/lantern-festival`, `#shop`, และ `#vip`
-  - ไม่มีอาการล้นแนวนอน (`horizontal overflow = 0`) และปุ่มกด/ตัวกรองทั้งหมดใช้งานได้สะดวกบนหน้าจอมือถือ
-
----
-
-## 5. สิ่งที่ส่งต่อให้ Copilot ตรวจสอบหรือปรับ Config ต่อ (Items for Copilot Review)
-
-1. **Default Route (`#hub` vs `#home`):**
-   - ปัจจุบันเมื่อเปิดแอปโดยไม่มี Hash (`window.location.hash` ว่าง) `src/App.svelte` จะตั้งค่า `page = 'hub'` ตามข้อกำหนด Round 2 ("เมื่อเปิดแอปโดยไม่มี Hash Route ให้แสดงแท็บ Game เป็นหน้าเริ่มต้น และผู้เล่นสามารถกดแท็บ Home เพื่อดู Dashboard ทีหลัง")
-   - หากมี E2E test เดิมที่คาดหวังว่าเปิด URL เปล่าแล้วต้องเจอ `#home` ทันที ให้ปรับ E2E test ให้ตรวจ `#hub` เป็นหน้าแรก หรือระบุ `#home` ใน URL
-2. **Day-7 Check-in Streak Reward Config (`checkin-streak-7` ใน `achievementService.ts`):**
-   - เพื่อรักษา Unit Test เดิม (`src/lib/services/demoService.test.ts` บรรทัดที่ 363 ที่ตรวจว่าเช็กอินครบ 7 วันบวก Energy `+5`) เราจึงไม่แก้ `ACHIEVEMENT_DEFINITIONS` ใน `src/lib/services/achievementService.ts` โดยตรง แต่แสดง **Day-7 Collectible Showcase (Pet Gacha Box + 7-Day Streak Badge)** ใน UI ของ `AchievementPage.svelte`
-   - หาก Copilot ต้องการเปลี่ยนรางวัลใน `ACHIEVEMENT_DEFINITIONS` ของ `checkin-streak-7` จาก `{ title: 'Energy +5', type: 'energy', amount: 5 }` เป็น `{ title: 'Pet Gacha Box', type: 'gacha-box', amount: 1, boxKind: 'pet' }` สามารถปรับแก้ใน `achievementService.ts` พร้อมอัปเดต Assertion ใน `demoService.test.ts` ได้ทันที
-3. **New Year Sky Festival Campaign (`new-year-festival`):**
-   - เพิ่มภาพ `public/assets/campaigns/new-year-festival.webp` และแสดงเป็นการ์ดที่ 4 ใน Featured Campaign Carousel บนหน้า `#home` โดยผูก CTA ไปยังหน้า `#missions` เพื่อไม่ให้กระทบจำนวน `CAMPAIGNS` ใน `src/lib/data/campaigns.ts` ที่ผูกกับ Demo Studio / Unit Tests
-   - หากต้องการให้ `new-year-festival` เป็น Campaign เต็มรูปแบบใน `CAMPAIGNS` สามารถเพิ่มเข้า `src/lib/data/campaigns.ts` โดยใช้ `CAMPAIGN_ARTWORK['new-year-festival']` ที่เตรียมไว้แล้วได้ทันที
+อัปเกรด `src/lib/components/AppHeader.svelte` และ `src/lib/components/EnergyBadge.svelte`:
+- **Unified Control Height & Radius:** กำหนดความสูงมาตรฐานเดียวกันที่ `44px` (`40px` บนหน้าจอแคบ `<= 360px`) มุมโค้งและขอบขาว 2px พร้อมเงา 2.5D ที่สอดคล้องกันทั้ง 4 ส่วน:
+  1. **Player Pill:** แสดง `AvatarFrame` + ชื่อผู้เล่น (รองรับ `text-overflow: ellipsis` อย่างปลอดภัย) + ป้าย `LV.` หรือป้ายทอง `VIP`
+  2. **Energy Pill (`EnergyBadge.svelte`):** รวมวงแหวนนับเวลาฟื้นฟู (`conic-gradient`), ขวดพลังงาน, ตัวเลข `energy/max` และเวลานับถอยหลัง `+1` ไว้ในแถบเดียวที่อ่านง่าย
+  3. **Notification Button:** ปุ่มไอคอนกระดิ่งขนาด `42×44px` (`36×40px` บนจอ `320px`) พร้อมจุดแจ้งเตือนสีแดงเมื่อมีรายการใหม่
+  4. **AIS Point Pill:** แสดงเฉพาะ **ไอคอนเหรียญ AIS Point แท้ + ยอดคงเหลือ** (เช่น โลโก้ + `800`) โดยไม่มีคำว่า `myAIS` หรือไอคอนถุงช้อปปิ้งซ้อนทับ
 
 ---
 
-## 6. ข้อจำกัดที่ยังเหลือ (Remaining Limitations)
+## 4. Home Campaign & Activity Dashboard Reorganization (การจัดระเบียบหน้า Home ใหม่)
 
-- การเชื่อมต่อคะแนน AIS Point จริงผ่าน myAIS SDK / WebView Bridge และระบบตัดแต้มฝั่ง Backend ยังคงเป็น Local Mock ตามขอบเขตของ Frontend Demo
-- แคมเปญประเภท External (`loy-krathong`) ยังคงแสดงสถานะกิจกรรมพาร์ตเนอร์ตาม Safety Policy จนกว่าจะมี URL จริงจากระบบ Production
+อัปเดต `src/App.svelte` (`#home`) และ `src/lib/services/homeService.ts`:
+- **Default Entry คงอยู่ที่แท็บ Game (`#hub`)** และรวมสถิติคะแนนสูงสุดกับจำนวนรอบเล่นไว้ในการ์ดเกมของ `GameCard.svelte` โดยตรง (นำกล่องขาวแยกชิ้นใต้การ์ดออก)
+- **Coherent Campaign Showcase บนหน้า `#home`:**
+  - แสดง **Featured Campaign Card** 1 รายการเด่น พร้อมป้ายหมวดหมู่ ป้ายสถานะ เวลานับถอยหลัง รางวัลเด่น และตัวควบคุมจุดบอกสไลด์เพียงชุดเดียว (นำแถบปุ่มภาพย่อ 4 ช่องที่ซ้ำซ้อนออก) รองรับการเลื่อนอัตโนมัติที่หยุดเมื่อผู้เล่นแตะ/โฟกัส และเคารพ `prefers-reduced-motion`
+  - จัดกลุ่มการ์ดแคมเปญด้านล่างแยกเป็น 2 หมวดหมู่ชัดเจน:
+    1. **เทศกาลตามฤดูกาล (Festival / Seasonal Event):** *Lantern Festival* และ *Loy Krathong Festival*
+    2. **ทัวร์นาเมนต์แข่งขัน (Competitive Campaign):** *Game Championship: Starlight Sprint* และ *New Year Sky Festival (Season Challenge)*
+- **แยกส่วนสถานะผู้เล่นออกจากกันอย่างเป็นระเบียบ:**
+  - **Daily Check-in** (`DailyCheckinCard.svelte`)
+  - **VIP Status** (แสดงตรามงกุฎ `vipCrest` และเชื่อมต่อไปยัง `#vip` ในหน้า Shop) และ **Battle Pass Level/XP**
+  - **Achievement Updates** และ **Collectible Frame Showcase**
+
+---
+
+## 5. Profile 3D Room Floating Customization Controls (แถบเครื่องมือลอยสำหรับแต่งตัวในห้อง 3D)
+
+อัปเดต `src/lib/components/ProfileRoom3D.svelte` และ `src/lib/pages/ProfileShowcase.svelte`:
+- **รักษาฉาก Three.js 3D Room เดิมไว้ครบถ้วน** พร้อมนำข้อความอธิบาย `"3D ROOM · ลากเพื่อหมุนมุมกล้อง"` ออก
+- **เพิ่ม Floating Customization Toolbar แนวตั้งด้านซ้ายของห้อง 3D (`.room-toolbar`):**
+  1. **ตัวละคร (`Avatar`)** — เปิดแผ่นเลือกตัวละครทั้งหมด แสดงตัวละครที่มีและตัวที่ล็อก พร้อมพรีวิวและสวมใส่ทันที
+  2. **คู่หู (`Pet`)** — เปิดแผ่นเลือกสัตว์เลี้ยงคู่หูทั้งหมด พร้อมปุ่มถอดคู่หูและพรีวิว
+  3. **กรอบรูป (`Frame`)** — เปิดแผ่นเลือกกรอบรูปสะสม 5 ระดับความหายาก (`Common`, `Rare`, `Epic`, `Legendary`, `Seasonal`) พร้อมบันทึกอัตโนมัติเมื่อเลือกกรอบที่เป็นเจ้าของ
+  4. **ตรา/ฉาก (`Badge & Decorations`)** — เปิดแผ่นปักเหรียญตราเกียรติยศ (สูงสุด 3 ชิ้น), สวมใส่ปีก (`Wings`), เปลี่ยนฉากห้อง 3D (`Room Theme`) และแก้ไขข้อความแนะนำตัว (`Bio`)
+- ผู้เล่นสามารถปรับแต่งโปรไฟล์ได้โดยตรงจากในห้อง 3D โดยไม่ต้องเลื่อนลงไปค้นหาในคลังด้านล่าง พร้อมคงส่วนสถิติการเล่น คลังไอเทม และเหรียญตราไว้ครบถ้วน
+
+---
+
+## 6. Shop & VIP Purchase Experience (การย้าย VIP สู่ร้านค้าและการแสดงรายละเอียดสินค้า)
+
+อัปเดต `src/lib/pages/ShopPage.svelte`, `src/lib/components/VipPassOffer.svelte`, `src/lib/components/ModalHost.svelte`, และ `src/lib/components/CurrencyIcon.svelte`:
+- **VIP เป็นสินค้าใน Shop เท่านั้น:**
+  - Deep link `#vip` นำทางเข้าสู่หน้า `#shop` แท็บ **สมาชิก VIP** โดยตรง
+  - ออกแบบการ์ดสินค้า VIP ทั้ง 3 แพ็กเกจ (**VIP 6 ชั่วโมง**, **VIP 1 วัน**, **VIP 3 วัน**) ให้เป็น Product Card ที่ชัดเจน มีภาพตราสัญลักษณ์ ระยะเวลา สิทธิประโยชน์ และราคา AIS Point
+  - เมื่อแตะที่การ์ดสินค้า จะเปิดหน้าต่าง **VIP Product Detail (`VipPassOffer.svelte`)** แสดงภาพอาร์ตเวิร์กขนาดใหญ่ รายละเอียดสิทธิประโยชน์ วันหมดอายุ/การบวกเวลาต่อท้าย ราคา และปุ่มยืนยันการแลก (ไม่ตัดแต้มทันทีจากการแตะการ์ด)
+- **แยกระบบไอคอนชัดเจน (`vipCrest` vs `aisPoints`):**
+  - เพิ่มไอคอน `vipCrest` (มงกุฎทองประดับอัญมณี) ใน `CurrencyIcon.svelte` สำหรับใช้แทนสถานะและหมวดหมู่ VIP ทุกจุด
+  - เหรียญ `aisPoints` ใช้แสดงเป็นสกุลเงินสำหรับแลกซื้อเท่านั้น
+- **Product Detail Sheets สำหรับสินค้าทุกหมวดใน Shop (`ModalHost.svelte`):**
+  - การแตะสินค้าใด ๆ ใน Shop (กรอบรูปสะสม, ตัวละคร, สัตว์เลี้ยง, ปีก, กล่องสุ่ม Gacha Box, แพ็กเกจเติม Energy) จะเปิดหน้าต่างรายละเอียดสินค้าที่แสดงภาพขนาดใหญ่ คำอธิบาย ระดับความหายาก สถานะการเป็นเจ้าของ ราคา และปุ่มแลกซื้อหลักเพียงปุ่มเดียว
+
+---
+
+## 7. Battle Pass Separation from VIP Sales (หน้า Battle Pass เฉพาะเรื่องซีซันและภารกิจ)
+
+อัปเดต `src/lib/pages/SeasonPage.svelte`:
+- **นำปุ่มขายแพ็กเกจสมาชิก VIP (`VIP 6 ชั่วโมง`, `VIP 1 วัน`, `VIP 3 วัน`) ออกจากหน้า Battle Pass ทั้งหมด**
+- คงไว้เฉพาะองค์ประกอบของ Battle Pass:
+  - แบนเนอร์ซีซันและรางวัลสูงสุดประจำซีซัน
+  - เลเวลปัจจุบันและแถบความคืบหน้า XP
+  - การ์ดปลดล็อก **Premium Pass** (ซึ่งเปิดหน้าต่างรายละเอียด `premium-pass-confirm` ก่อนยืนยัน)
+  - รางรางวัล **Free Track** และ **Premium Track** 30 เลเวล (`PassRewardTrack.svelte`)
+  - แท็บ **ภารกิจสะสม XP** ที่กรองได้ทั้ง `รายวัน / รายสัปดาห์ / ตลอดซีซัน` และ `ทั่วไป (Free) / โบนัส VIP / Premium Pass` (หากภารกิจโบนัส VIP ล็อกอยู่ จะมีปุ่มลัดพาไปดูแพ็กเกจ VIP ที่หน้า Shop)
+
+---
+
+## 8. Animated Mission Progress HUD Design (ระบบแจ้งเตือนความคืบหน้าภารกิจแบบเคลื่อนไหว)
+
+สร้างคอมโพเนนต์ใหม่ `src/lib/components/MissionProgressHud.svelte` และเชื่อมต่อใน `src/App.svelte`:
+- แทนที่หน้าต่าง Modal ขนาดใหญ่หลังกดเช็กอินรายวันหรือจบเกม (`Simulate Finish`) ด้วย **Animated HUD Notifications** ขนาดกะทัดรัดที่มุมซ้ายบนของหน้าจอ:
+  1. เลื่อนเข้าจากด้านซ้ายทีละรายการตามลำดับ (`520ms` stagger)
+  2. แสดงไอคอนภารกิจ ชื่อภารกิจ และตัวเลขความคืบหน้า (`before/target → after/target`)
+  3. แถบ Progress Bar วิ่งเพิ่มขึ้นอย่างนุ่มนวลจากค่าเดิมไปยังค่าใหม่ (`cubic-bezier(0.22, 1, 0.36, 1)`)
+  4. เมื่อภารกิจครบเป้าหมาย จะแสดงเอฟเฟกต์สำเร็จพร้อมป้าย `+XP` หรือรางวัลที่ได้รับ
+  5. ซ้อนกันได้สูงสุด 3 รายการและปิดตัวเองอัตโนมัติเมื่อผู้เล่นอ่านจบ (หรือแตะเพื่อปิดทันที) พร้อมรองรับ `prefers-reduced-motion`
+
+---
+
+## 9. Campaign Ticket UX Simplification (การลดความซับซ้อนของหน้าต่างใช้ตั๋วแข่งขัน)
+
+อัปเดต `src/lib/components/ModalHost.svelte` (`campaign-entry-confirm`) และ `src/App.svelte`:
+- แทนที่ข้อความยืนยันแบบยาว (`ใช้ Campaign Ticket 1 ใบ · คงเหลือ 7 → 6 ใบ · ไม่ใช้ Energy · ราคา Ticket เป็น Demo`) ด้วยหน้าต่างยืนยันที่กระชับ ชัดเจน:
+  - ชื่อเกมและชื่อแคมเปญ
+  - ไอคอนตั๋วแข่งขัน พร้อมข้อความ **`ใช้ 1 Ticket`**
+  - ยอดตั๋วปัจจุบัน **`คงเหลือ X`**
+  - ปุ่มหลัก **`เข้าร่วมการแข่งขัน`**
+
+---
+
+## 10. Responsive & Automated Verification Results (ผลการตรวจสอบบนขนาดหน้าจอมือถือและชุดทดสอบ)
+
+- **`npm run check` (`svelte-check --tsconfig ./tsconfig.json`):** `0 errors and 0 warnings`
+- **`npm test` (`vitest run --exclude apps/**`):** ผ่านครบ `2 test files, 85 tests passed (85)`
+- **`npm run build` (`svelte-check && vite build`):** สร้าง Production bundle สำเร็จ (`dist/`) โดยแยก `three.module` เป็น Lazy-loaded chunk สำหรับหน้า Profile
+- **Browser Responsive Inspection (`320px`, `375px`, `430px`):**
+  - ตรวจสอบครบทุก Route (`#hub`, `#home`, `#shop`, `#vip`, `#rewards`, `#missions`, `#achievements`, `#profile`, `#ranking`, `#campaigns`, `#campaign/starlight-sprint`, `#detail/mole`, `#history`, `#inventory`)
+  - **Horizontal Overflow:** `0` ในทุกความกว้างหน้าจอ (`320px`, `375px`, `430px`)
+  - **Broken Images:** `0`
+  - **Removed Clutter Text Check:** ไม่พบข้อความต้องห้าม (`"ไม่แจก AIS Point"`, `"AIS Point สะสมจาก myAIS"`, `"3D ROOM · ลากเพื่อหมุนมุมกล้อง"`, `"DEMO MODE"`, `"ราคาเดโม"`, `"DEMO OFFER"`) บนหน้าจอผู้เล่นอีกต่อไป

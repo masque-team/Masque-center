@@ -37,15 +37,15 @@
   let pinnedBadgeIds = $derived(player.demo.profile?.badgeIds ?? []);
 
   function statusLabel(status: string): string {
-    if (status === 'unlocked') return 'Unlocked';
-    if (status === 'completed') return 'Completed';
-    if (status === 'in-progress') return 'In Progress';
-    return 'Locked';
+    if (status === 'unlocked') return 'ปลดล็อกแล้ว';
+    if (status === 'completed') return 'สำเร็จ';
+    if (status === 'in-progress') return 'กำลังสะสม';
+    return 'ล็อกอยู่';
   }
 </script>
 
 <div class="page-stack pb-8 text-[#1f305e]">
-  <PageTitle eyebrow="LIFETIME COLLECTION" title="Achievement & Check-in" subtitle="เช็กอินรายวัน สะสมเหรียญตรา และปลดล็อกรางวัลโดยไม่แจก AIS Point">
+  <PageTitle eyebrow="ACHIEVEMENTS & CHECK-IN" title="ความสำเร็จ & เช็กอิน" subtitle="เช็กอินรายวันและสะสมเหรียญตราเกียรติยศ">
     {#snippet icon()}<Trophy size={26} />{/snippet}
   </PageTitle>
 
@@ -57,12 +57,12 @@
           <CalendarCheck size={19} />
         </span>
         <div>
-          <h2 class="text-sm font-black">Daily Check-in Streak</h2>
-          <p class="text-[10.5px] font-bold text-[#526c9c]">รับ Energy รายวัน · ต่อเนื่องครบ 7 วันปลดล็อกรางวัลใหญ่</p>
+          <h2 class="text-sm font-black">เช็กอินต่อเนื่อง</h2>
+          <p class="text-[10.5px] font-bold text-[#526c9c]">รับพลังงานทุกวัน ครบ 7 วันรับกล่องสุ่มคู่หู</p>
         </div>
       </div>
       <span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300 bg-[#fff0c2] px-2.5 py-1 text-[10.5px] font-black text-[#925b00] shadow-2xs">
-        <Flame size={13} fill="currentColor" /> {streak}/7 วันติด
+        <Flame size={13} fill="currentColor" /> {streak}/7 วัน
       </span>
     </div>
 
@@ -71,24 +71,23 @@
     <!-- Day 7 Collectible Showcase Banner -->
     <div class="day7-showcase-card" class:unlocked={day7Achievement?.unlocked}>
       <div class="day7-art-cluster">
-        <img class="day7-box-art" src={GACHA_ARTWORK.petBox ?? 'assets/gacha/pet-box.webp'} alt="Day 7 Collectible Box" />
+        <img class="day7-box-art" src={GACHA_ARTWORK.petBox ?? 'assets/gacha/pet-box.webp'} alt="Pet Gacha Box" />
         <img class="day7-badge-art" src="assets/badges/checkin-streak-7.png" alt="7-Day Streak Badge" />
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-1.5">
           <span class="rounded-full bg-[#ffe58f] px-2 py-0.5 text-[9px] font-black text-[#783f00]">
-            <Gift size={10} class="inline" /> DAY-7 SPECIAL REWARD
+            <Gift size={10} class="inline" /> รางวัลเช็กอินครบ 7 วัน
           </span>
           {#if day7Achievement?.unlocked}
-            <span class="rounded-full bg-[#dcfce7] px-2 py-0.5 text-[9px] font-black text-[#166534]">ปลดล็อกแล้ว</span>
+            <span class="rounded-full bg-[#dcfce7] px-2 py-0.5 text-[9px] font-black text-[#166534]">รับแล้ว</span>
           {/if}
         </div>
         <strong class="mt-0.5 block text-xs font-black text-[#3b2200]">
-          เช็กอินครบ 7 วัน · เหรียญตราเกียรติยศ & โบนัสสะสม
+          {day7Achievement?.definition.reward?.title ?? 'Pet Gacha Box'} + เหรียญตรา 7 วัน
         </strong>
         <p class="text-[10.5px] font-bold text-[#6e460c]">
-          รางวัล Config ปัจจุบัน: <b>Badge เช็กอินครบ 7 วัน + {day7Achievement?.definition.reward?.title ?? 'Pet Gacha Box'}</b>
-          <span class="block text-[9.5px] text-[#8c5a14]">(รองรับการผูก Pet Gacha Box / Collectible Skin ใน Reward Config)</span>
+          ปลดล็อกอัตโนมัติเมื่อเช็กอินติดต่อกันครบ 7 วัน
         </p>
       </div>
     </div>
@@ -103,11 +102,11 @@
           <div class="unlock-badge-pedestal" class:unlocked={selected.unlocked}>
             <RewardIcon type="badge" itemId={selected.definition.id} size={62} />
             {#if selected.unlocked}
-              <span class="unlock-sparkle-tag"><Sparkles size={11} /> UNLOCKED</span>
+              <span class="unlock-sparkle-tag"><Sparkles size={11} /> ปลดล็อกแล้ว</span>
             {/if}
           </div>
           <div class="min-w-0">
-            <span class={['inline-block rounded-full px-2.5 py-0.5 text-[9.5px] font-black uppercase', selected.unlocked ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#e0f2fe] text-[#075985]']}>
+            <span class={['inline-block rounded-full px-2.5 py-0.5 text-[9.5px] font-black', selected.unlocked ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#e0f2fe] text-[#075985]']}>
               {statusLabel(selected.status)}
             </span>
             <h2 class="mt-1 text-base font-black text-[#1f305e]">{selected.definition.title}</h2>
@@ -121,7 +120,7 @@
 
       <div class="relative z-10 mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-white/90 bg-white/85 p-2.5">
         <div>
-          <small class="block text-[9.5px] font-black text-[#64748b] uppercase">PROGRESS</small>
+          <small class="block text-[9.5px] font-black text-[#64748b]">ความคืบหน้า</small>
           <strong class="text-sm font-black text-[#1f305e]">{selected.progress} / {selected.definition.target}</strong>
           <progress class="mt-1 h-2 w-full" value={selected.progress} max={selected.definition.target}></progress>
         </div>
@@ -130,9 +129,9 @@
             <RewardIcon type={selected.definition.reward.type} itemId={selected.definition.reward.itemId} boxKind={selected.definition.reward.boxKind} size={36} />
           {/if}
           <div class="min-w-0">
-            <small class="block text-[9.5px] font-black text-[#925b00] uppercase">REWARD</small>
-            <strong class="block truncate text-xs font-black text-[#5c3600]">{selected.definition.reward?.title ?? 'Profile Badge'}</strong>
-            <small class="block text-[9.5px] font-bold text-[#64748b]">+ เหรียญตราติด Profile</small>
+            <small class="block text-[9.5px] font-black text-[#925b00]">รางวัล</small>
+            <strong class="block truncate text-xs font-black text-[#5c3600]">{selected.definition.reward?.title ?? 'เหรียญตราเกียรติยศ'}</strong>
+            <small class="block text-[9.5px] font-bold text-[#64748b]">+ เหรียญตราโปรไฟล์</small>
           </div>
         </div>
       </div>
@@ -140,10 +139,10 @@
       {#if selected.unlocked}
         <div class="relative z-10 mt-2.5 flex items-center justify-between gap-2">
           <span class="text-[11px] font-bold text-[#166534]">
-            {pinnedBadgeIds.includes(selected.definition.id) ? '✓ ติดตั้งแสดงผลบน Profile แล้ว' : 'ปลดล็อกในคอลเลกชันแล้ว'}
+            {pinnedBadgeIds.includes(selected.definition.id) ? '✓ ติดตั้งบนโปรไฟล์แล้ว' : 'พร้อมติดตั้งบนโปรไฟล์'}
           </span>
           <GameButton size="sm" variant="gold" onclick={() => onNavigate('profile')}>
-            เลือกติดตั้งบน Profile
+            ติดตั้งบนโปรไฟล์
           </GameButton>
         </div>
       {/if}
@@ -154,8 +153,8 @@
   <section class="space-y-3" aria-label="Achievement list">
     <div class="flex items-center justify-between gap-2">
       <div>
-        <h2 class="text-base font-black">เป้าหมายความสำเร็จ (Achievements)</h2>
-        <p class="text-[10.5px] font-bold text-[#526c9c]">สะสมระยะยาวไม่รีเซ็ตตามซีซัน · ปลดล็อกแล้ว {unlockedCount}/{achievements.length}</p>
+        <h2 class="text-base font-black">ภารกิจความสำเร็จ</h2>
+        <p class="text-[10.5px] font-bold text-[#526c9c]">ปลดล็อกแล้ว {unlockedCount}/{achievements.length} รายการ</p>
       </div>
       <div class="flex rounded-full border-2 border-white bg-[#e4f2fe] p-0.5 shadow-2xs">
         {#each [{ id: 'all', label: 'ทั้งหมด' }, { id: 'unlocked', label: `ได้แล้ว (${unlockedCount})` }, { id: 'in-progress', label: 'กำลังทำ' }] as tab (tab.id)}
@@ -182,7 +181,7 @@
             class="achievement-badge-slot"
             class:unlocked={item.unlocked}
             onclick={() => (selectedId = item.definition.id)}
-            aria-label={`พรีวิวเหรียญ ${item.definition.title}`}
+            aria-label={`ดูเหรียญ ${item.definition.title}`}
           >
             <RewardIcon type="badge" itemId={item.definition.id} size={42} />
             {#if item.unlocked}
@@ -193,7 +192,7 @@
           <div class="min-w-0 flex-1 space-y-1">
             <div class="flex flex-wrap items-center justify-between gap-1">
               <h3 class="truncate text-xs font-black text-[#1f305e]">{item.definition.title}</h3>
-              <span class={['rounded-full px-2 py-0.5 text-[8.5px] font-black uppercase', item.unlocked ? 'bg-[#dcfce7] text-[#166534]' : item.status === 'in-progress' ? 'bg-[#e0f2fe] text-[#075985]' : 'bg-[#f1f5f9] text-[#64748b]']}>
+              <span class={['rounded-full px-2 py-0.5 text-[8.5px] font-black', item.unlocked ? 'bg-[#dcfce7] text-[#166534]' : item.status === 'in-progress' ? 'bg-[#e0f2fe] text-[#075985]' : 'bg-[#f1f5f9] text-[#64748b]']}>
                 {status}
               </span>
             </div>
@@ -209,7 +208,7 @@
                 {#if item.definition.reward}
                   <RewardIcon type={item.definition.reward.type} itemId={item.definition.reward.itemId} boxKind={item.definition.reward.boxKind} size={16} />
                 {/if}
-                รางวัล: {item.definition.reward?.title ?? 'Profile Badge'} + Badge
+                {item.definition.reward ? `${item.definition.reward.title} + เหรียญตรา` : 'เหรียญตราโปรไฟล์'}
               </span>
               <button
                 class="inline-flex items-center gap-0.5 text-[10px] font-black text-[#0284c7]"
@@ -217,7 +216,7 @@
                 aria-expanded={selectedId === item.definition.id}
                 onclick={() => (selectedId = selectedId === item.definition.id ? null : item.definition.id)}
               >
-                พรีวิว <ChevronRight size={13} class={selectedId === item.definition.id ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                รายละเอียด <ChevronRight size={13} class={selectedId === item.definition.id ? 'rotate-90 transition-transform' : 'transition-transform'} />
               </button>
             </div>
           </div>
@@ -230,8 +229,8 @@
   <section class="space-y-3" aria-label="Badge Collection">
     <div class="flex items-end justify-between gap-3">
       <div>
-        <h2 class="text-base font-black">Badge Collection ({unlockedCount + legacyBadges.length})</h2>
-        <p class="text-[10.5px] font-bold text-[#526c9c]">แตะที่เหรียญตราเพื่อดูเอฟเฟกต์ปลดล็อก หรือเลือกติดบนหน้า Profile (สูงสุด 3 ชิ้น)</p>
+        <h2 class="text-base font-black">คอลเลกชันเหรียญตรา ({unlockedCount + legacyBadges.length})</h2>
+        <p class="text-[10.5px] font-bold text-[#526c9c]">เลือกปักแสดงบนโปรไฟล์ได้สูงสุด 3 ชิ้น</p>
       </div>
       <Medal size={22} class="text-amber-600" />
     </div>
@@ -247,7 +246,7 @@
           onclick={() => (selectedId = item.definition.id)}
         >
           {#if isPinned}
-            <span class="pinned-pill">ติด Profile</span>
+            <span class="pinned-pill">ติดโปรไฟล์</span>
           {/if}
           <div class="badge-icon-holder" class:grayscale={!item.unlocked}>
             <RewardIcon type="badge" itemId={item.definition.id} size={46} />
@@ -276,7 +275,7 @@
       {/each}
     </div>
     <GameButton block size="sm" variant="gold" onclick={() => onNavigate('profile')}>
-      จัดการ Badge ที่แสดงบน Profile ({pinnedBadgeIds.length}/3)
+      จัดการเหรียญตราบนโปรไฟล์ ({pinnedBadgeIds.length}/3)
     </GameButton>
   </section>
 </div>

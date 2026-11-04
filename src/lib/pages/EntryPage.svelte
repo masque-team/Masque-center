@@ -19,14 +19,14 @@
     <header class="flex items-center justify-between gap-2 rounded-2xl border-2 border-white/90 bg-white/85 px-3 py-2 shadow-[0_4px_0_#a6d4f2,0_8px_18px_rgba(14,116,184,0.14)] backdrop-blur-md">
       <img class="h-9 w-36 object-contain object-left" src="assets/brand/masque-game-center-logo.png" alt="Masque Game Center" />
       <span class="inline-flex items-center gap-1 rounded-full border border-[#ffe28a] bg-gradient-to-r from-[#fff8db] to-[#ffe699] px-2.5 py-1 text-[10px] font-black tracking-wide text-[#8c5300] shadow-xs">
-        <Crown size={12} /> MYAIS WORLD
+        <Crown size={12} /> SKY ARCADE
       </span>
     </header>
     <div class="flex flex-1 flex-col justify-end pb-3 pt-6">
       <section class="entry-panel" aria-labelledby="entry-title">
         <span class="eyebrow"><Sparkles size={13} />YOUR FANTASY ARCADE STARTS HERE</span>
         <h1 id="entry-title">ยินดีต้อนรับสู่เกาะลอยฟ้า!<br /><span>ให้เราเรียกคุณว่าอะไรดีคะ?</span></h1>
-        <p class="intro">ตั้งชื่อนักผจญภัยของคุณสำหรับรอบนี้ เล่นเกมสะสมคะแนน ปลดล็อก Chibi Avatar และรางวัลมากมายได้ทันที</p>
+        <p class="intro">ตั้งชื่อนักผจญภัยของคุณ เล่นเกมสะสมคะแนน ปลดล็อกตัวละครและของรางวัลมากมายได้ทันที</p>
         <form class="mt-4 grid gap-3" onsubmit={(event) => { event.preventDefault(); submit(); }}>
           <label class="grid gap-1.5 text-xs font-black text-[#1f305e]" for="player-name">
             <span class="flex items-center gap-1"><Star size={13} class="text-[#d98b00]" /> ชื่อในเกม (Display Name)</span>
@@ -35,7 +35,6 @@
           {#if error}<p id="name-error" class="text-xs font-extrabold text-rose-600" role="alert">{error}</p>{:else}<p id="name-hint" class="text-[11px] font-bold text-[#526c9c]">ชื่อนี้ใช้แสดงบนกระดานจัดอันดับและหน้าโปรไฟล์</p>{/if}
           <GameButton type="submit" block size="lg" variant="gold">เริ่มการผจญภัยเลย<ArrowRight size={18} /></GameButton>
         </form>
-        <p class="disclaimer">DEMO MODE · จำลองการใช้ AIS Points ภายในเครื่องโดยไม่หักคะแนนจริง</p>
       </section>
     </div>
   </div>
@@ -45,7 +44,7 @@
   .entry { position: relative; isolation: isolate; background: linear-gradient(180deg, #bce6ff 0%, #dff3ff 48%, #fff8e7 100%); }
   .entry-art { position: absolute; inset: 0 0 auto; height: min(68dvh, 580px); background: linear-gradient(180deg, rgb(188 230 255 / 4%) 40%, #eaf6ff 92%, #fff8e7 100%), var(--entry-background) center 36% / cover no-repeat; }
   .entry-panel {
-    padding: 20px 18px 16px;
+    padding: 20px 18px 18px;
     border: 3px solid #ffffff;
     border-radius: 26px;
     background: linear-gradient(180deg, rgb(255 253 247 / 96%) 0%, rgb(240 249 255 / 96%) 100%);
@@ -81,6 +80,5 @@
     font-weight: 800;
   }
   input:focus { border-color: #0ea5e9; outline: 3px solid rgb(14 165 233 / 22%); }
-  .disclaimer { margin: 12px 0 0; color: #647ea8; font-size: 10px; font-weight: 800; text-align: center; }
   @media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) { .entry { display: none; } }
 </style>

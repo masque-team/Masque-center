@@ -164,10 +164,24 @@ export function loadPlayer(queryName: string | null, resetMock = false): PlayerS
   if (!catalogFromFile && result.demo.config.games.some((game) => game.id === 'bird' && game.featured) && !result.demo.config.games.some((game) => game.id === 'memory' && game.featured)) {
     result.demo.config.games = result.demo.config.games.map((game) => game.id === 'memory' ? { ...game, featured: true, editorialTag: 'hot' } : game.id === 'bird' ? { ...game, featured: false, editorialTag: 'new' } : game);
   }
-  result.demo.config.vipPlans = result.demo.config.vipPlans.map((plan) => ({ ...plan, bonusPoints: plan.bonusPoints ?? (plan.id === 'seven-day' ? 80 : 0), bonusTickets: plan.bonusTickets ?? (plan.id === 'five-day' ? 1 : 0) }));
+  result.demo.config.vipPlans = result.demo.config.vipPlans.map((plan) => ({
+    ...plan,
+    label: plan.label.replace(/\s*·\s*ราคาเดโม/g, ''),
+    bonusPoints: plan.bonusPoints ?? (plan.id === 'seven-day' ? 80 : 0),
+    bonusTickets: plan.bonusTickets ?? (plan.id === 'five-day' ? 1 : 0),
+  }));
   for (const plan of VIP_PACKAGES) {
     if (!result.demo.config.vipPlans.some((existing) => existing.id === plan.id)) result.demo.config.vipPlans.push(structuredClone(plan));
   }
+  result.demo.config.campaigns = result.demo.config.campaigns.map((camp) => {
+    const canonical = CAMPAIGNS.find((c) => c.id === camp.id);
+    if (!canonical) return camp;
+    return {
+      ...camp,
+      title: camp.title.includes('(mock)') ? canonical.title : camp.title,
+      description: camp.description.includes('ไม่ใช่เงื่อนไขการเงินจริง') || camp.description.includes('ยังไม่มี URL จริง') ? canonical.description : camp.description,
+    };
+  });
   result.displayName = queryName?.trim().replace(/\s+/g, ' ').slice(0, 40) || 'Guest Player';
   const now = Date.now() + result.demo.clockOffset;
   const settled = settleExpiredCampaigns(settleExpiredPasses(result, now), now);
