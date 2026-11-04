@@ -12,11 +12,12 @@
   import { vipOffer } from '../services/passService';
   import type { GameId, PlayerState } from '../types';
 
-  let { player, now, vipActive = false, onClaim, onClaimAll, onBonus, onVip, onMission, onWeekly, onPlay }: {
+  let { player, now, vipActive = false, onClaim, onClaimAll, onBonus, onVip, onMission, onWeekly, onPlay, onPremium, onMissions }: {
     player: PlayerState; now: number; vipActive?: boolean;
     onClaim: (index: number, track: 'free' | 'premium') => void; onClaimAll: () => void; onBonus: () => void;
     onVip: (id: string) => void; onMission: (id?: GameId) => void; onWeekly: () => void;
     onPlay: (id?: GameId) => void;
+    onPremium: () => void; onMissions: () => void;
   } = $props();
   let tab = $state<'rewards' | 'missions'>('rewards');
   let season = $derived(currentSeason(player, now));
@@ -51,7 +52,7 @@
       <div class="flex items-center gap-2">
         <span class="block h-11 w-12 shrink-0 drop-shadow-[0_3px_5px_rgba(120,80,10,0.28)]"><PassArtwork kind="crest" /></span>
         <span class="inline-flex items-center gap-1 rounded-full border border-white bg-[#e4f4ff]/95 px-2.5 py-0.5 text-[9px] font-black tracking-wide text-[#2a6f97] shadow-2xs">
-          <Sparkles size={10} />{player.demo.config.passAutomatic === false ? 'DEMO PREVIEW' : 'SEASON PASS · 30 DAYS'}
+          <Sparkles size={10} />{player.demo.config.passAutomatic === false ? 'DEMO PREVIEW' : 'CALENDAR MONTH SEASON'}
         </span>
       </div>
       <h1 class="mt-1.5 text-[26px] font-black leading-none tracking-tight text-[#332973] drop-shadow-[0_2px_0_#fff]">Masque Pass</h1>
@@ -80,7 +81,7 @@
   <!-- Glossy 3D Level & XP Progress Card -->
   <section class="flex items-center gap-3 rounded-2xl border-2 border-white bg-white/90 p-3 shadow-[0_5px_0_#d3dff0]" aria-label="เลเวล Pass">
     <div class="relative grid size-16 shrink-0 place-content-center justify-items-center rounded-2xl border-2.5 border-white bg-gradient-to-b from-[#9f82ff] to-[#6847d6] text-white shadow-[0_4px_0_#482ca8,0_6px_12px_rgba(95,65,200,0.28)]">
-      <small class="text-[8px] font-black tracking-wider text-purple-100">{progress.complete ? 'BONUS' : 'LEVEL'}</small>
+      <small class="text-[8px] font-black tracking-wider text-purple-100">{progress.complete ? 'MAX' : 'LEVEL'}</small>
       <strong class="text-[26px] font-black leading-none tabular-nums drop-shadow-[0_2px_0_rgba(40,18,105,0.5)]">{progress.level}</strong>
     </div>
     <div class="min-w-0 flex-1 space-y-1.5">
@@ -93,14 +94,20 @@
         <span class="pointer-events-none absolute inset-x-1 top-0.5 h-1 rounded-full bg-white/45"></span>
       </div>
       <div class="flex items-center justify-between text-[10px] font-bold text-[#6e829a]">
-        <span>อีก {100 - progress.withinLevel} XP → LV.{progress.level + 1}</span>
+        <span>{progress.complete ? 'ถึงเลเวลสูงสุดแล้ว' : `อีก ${100 - progress.withinLevel} XP → LV.${progress.level + 1}`}</span>
         <span class="text-[#8a5a10]">{progress.withinLevel}%</span>
       </div>
     </div>
   </section>
 
-  <!-- Royal VIP Pass Showcase & Tier Upgrade Section -->
-  {#if plan}
+  <section class="space-y-3 border-y border-white/80 bg-white/45 py-3" aria-label="สิทธิ์ VIP และ Premium Pass">
+    <div class="flex items-start gap-3"><Crown size={22} class="mt-0.5 shrink-0 text-amber-600" /><div class="min-w-0 flex-1"><h2 class="font-black text-[#332973]">VIP · {vipActive ? 'ใช้งานอยู่' : 'เข้าเกมปกติฟรี'}</h2><p class="text-xs text-slate-600">{vipActive && player.vipExpiresAt ? `หมดอายุ ${new Date(player.vipExpiresAt).toLocaleString('th-TH')}` : 'สิทธิ์ตามเวลา · ไม่รวม Continue, Campaign Ticket หรือ Premium rewards'}</p></div></div>
+    <div class="flex flex-wrap gap-2">{#each player.demo.config.vipPlans as vipPlan (vipPlan.id)}<button class="min-h-10 rounded-md bg-amber-100 px-3 text-xs font-black text-amber-900" onclick={() => onVip(vipPlan.id)}>{vipPlan.label} · {vipPlan.cost} MP</button>{/each}</div>
+    <div class="flex flex-wrap items-center justify-between gap-2 border-t border-white/80 pt-3"><div><h2 class="font-black text-[#332973]">Premium Battle Pass</h2><p class="text-xs text-slate-600">สิทธิ์แยกจาก VIP · ซื้อแล้วกดรับ Premium tiers ย้อนหลังตาม XP ได้</p></div><GameButton size="sm" variant={pass.premium ? 'ghost' : 'gold'} disabled={pass.premium} onclick={onPremium}>{pass.premium ? 'Premium เปิดใช้แล้ว' : `ซื้อ · ${player.demo.config.premiumPrice} MP`}</GameButton></div>
+  </section>
+
+  <!-- Hidden legacy VIP Pass panel retained for later reference. -->
+  {#if false && plan}
     <section class="vip-showcase relative overflow-hidden rounded-2xl border-2.5 border-white p-3.5 shadow-[0_7px_0_#dfb45b,0_12px_22px_rgba(190,135,30,0.18)]" aria-label="VIP Pass 30 วัน">
       <!-- Top Header inside VIP Card -->
       <div class="flex items-start gap-3">
@@ -126,7 +133,7 @@
           </h2>
           <p class="mt-0.5 text-[10px] font-bold text-[#856224]">
             {vipActive && player.vipExpiresAt
-              ? `ใช้ได้ถึง ${new Date(player.vipExpiresAt).toLocaleDateString('th-TH')} · อัปเกรดข้ามเลเวลเพิ่มได้ทันที`
+              ? `ใช้ได้ถึง ${new Date(player.vipExpiresAt!).toLocaleDateString('th-TH')} · อัปเกรดข้ามเลเวลเพิ่มได้ทันที`
               : 'ปลดล็อกรางรางวัล VIP ทั้ง 50 ขั้น พร้อมสิทธิพิเศษตลอด 30 วัน'}
           </p>
         </div>
@@ -169,7 +176,7 @@
               {#each upgrades as upgrade (upgrade.id)}
                 {@const offer = vipOffer(player, upgrade.id, now)}
                 {#if offer}
-                  {@const gainedLevels = Math.max(0, offer.levelAfter - offer.level)}
+                  {@const gainedLevels = Math.max(0, offer!.levelAfter - offer!.level)}
                   <div class="relative flex flex-col justify-between rounded-xl border-2 border-white bg-gradient-to-b from-white via-[#fffdf6] to-[#ffefc2] p-2.5 shadow-[0_4px_0_#d9ab48]">
                     <div class="flex items-center justify-between gap-1">
                       <span class="rounded-full bg-gradient-to-r from-[#ff8a3d] to-[#f24976] px-2 py-0.5 text-[8px] font-black text-white shadow-2xs">
@@ -190,11 +197,11 @@
                       block
                       size="sm"
                       variant="gold"
-                      label={`อัปเกรด VIP Pass LV.${upgrade.startLevel} · ${offer.cost.toLocaleString()} MP`}
+                      label={`อัปเกรด VIP Pass LV.${upgrade.startLevel} · ${offer!.cost.toLocaleString()} MP`}
                       onclick={() => onVip(upgrade.id)}
                     >
                       <CurrencyIcon kind="points" size={15} />
-                      <span>อัปเกรด · {offer.cost.toLocaleString()} MP</span>
+                      <span>อัปเกรด · {offer!.cost.toLocaleString()} MP</span>
                     </GameButton>
                   </div>
                 {/if}
@@ -208,7 +215,7 @@
           <div class="grid grid-cols-3 gap-2">
             {#each allOffers as { plan: tierPlan, offer: tierOffer } (tierPlan.id)}
               {#if tierOffer}
-                {@const isBoost = tierOffer.boosted}
+                {@const isBoost = tierOffer!.boosted}
                 <button
                   type="button"
                   class={[
@@ -232,11 +239,11 @@
                     {isBoost ? `เริ่ม LV.${tierPlan.startLevel}` : 'แพ็ก LV.1'}
                   </strong>
                   <small class="text-[8px] font-bold text-[#856d43]">
-                    {isBoost ? `+${Math.max(0, tierOffer.levelAfter - tierOffer.level)} เลเวลทันที` : 'คุ้มค่า · 30 วัน'}
+                    {isBoost ? `+${Math.max(0, tierOffer!.levelAfter - tierOffer!.level)} เลเวลทันที` : 'คุ้มค่า · 30 วัน'}
                   </small>
                   <span class="mt-1.5 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-amber-300/80 bg-[#fff4c2] py-1 text-[10px] font-black text-[#734400]">
                     <CurrencyIcon kind="points" size={13} />
-                    {tierOffer.cost.toLocaleString()}
+                    {tierOffer!.cost.toLocaleString()}
                   </span>
                 </button>
               {/if}
@@ -263,7 +270,7 @@
         ]}
         role="tab"
         aria-selected={tab === item.id}
-        onclick={() => { tab = item.id; }}
+        onclick={() => { tab = item.id; if (item.id === 'missions') onMissions(); }}
       >
         <item.icon size={16} />{item.label}
         {#if item.id === 'rewards' && available > 0}
@@ -274,7 +281,7 @@
   </div>
 
   {#if tab === 'rewards'}
-    {#if progress.complete}
+    {#if false && progress.complete}
       <section class="flex items-center gap-3 rounded-2xl border-2 border-sky-200 bg-white/90 p-3 shadow-[0_4px_0_#cbe0f2]" aria-label="โบนัสหลังเลเวล 50">
         <RewardIcon type={bonus.reward.type} size={46} />
         <div class="min-w-0 flex-1">

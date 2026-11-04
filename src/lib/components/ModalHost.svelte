@@ -36,7 +36,7 @@
   } = $props();
 
   let SHOP_ITEMS = $derived(player.demo.config.shop);
-  let ENERGY_CONFIG = $derived({ max: player.demo.config.energyMax + (vipActive ? player.demo.config.vipEnergyBonus : 0), refillPacks: player.demo.config.energyPacks });
+  let ENERGY_CONFIG = $derived({ max: player.demo.config.energyMax, refillPacks: player.demo.config.energyPacks });
   let EXCHANGE_RATE = $derived(player.demo.config.exchangeRate);
   let VIP_PACKAGES = $derived(player.demo.config.vipPlans);
   let vip = $derived(modal?.kind === 'vip-confirm' ? VIP_PACKAGES.find((pack) => pack.id === modal.packageId) ?? null : null);

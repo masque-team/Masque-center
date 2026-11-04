@@ -3,20 +3,20 @@ import type { GameId, PlayerState, RankingEntry, RankingPeriod } from '../types'
 
 export function getGameRanking(
   gameId: GameId,
-  period: RankingPeriod,
+  _period: RankingPeriod,
   player: PlayerState,
   currentScore: number,
 ): RankingEntry[] {
-  const multiplier = period === 'allTime' ? 3 : 1;
-  const entries = (MOCK_RANKINGS[gameId] ?? []).map((entry) => ({
+  const entries = (MOCK_RANKINGS[gameId] ?? []).map((entry, index) => ({
     ...entry,
-    score: period === 'weekly' && player.demo.rankingResets.includes(player.demo.config.rankingSeasonId) ? 0 : entry.score * multiplier,
+    achievedAt: entry.achievedAt ?? Date.UTC(2026, 0, 1, 0, 0, index),
   }));
   entries.push({
     playerId: player.id,
     displayName: player.displayName,
-    score: period === 'allTime' ? player.demo.scores[gameId] ?? currentScore : player.demo.seasonScores[player.demo.config.rankingSeasonId]?.[gameId] ?? 0,
+    score: player.demo.scores[gameId] ?? currentScore,
+    achievedAt: player.demo.scoreTimes?.[gameId] ?? Number.MAX_SAFE_INTEGER,
     isCurrentPlayer: true,
   });
-  return entries.sort((left, right) => right.score - left.score);
+  return entries.sort((left, right) => right.score - left.score || (left.achievedAt ?? Number.MAX_SAFE_INTEGER) - (right.achievedAt ?? Number.MAX_SAFE_INTEGER));
 }

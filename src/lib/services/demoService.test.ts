@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { customizeProfile, loadPlayer, parseAisPointSeed, savePlayer } from './playerService';
 import { energyCapacity, nextRefillIn, refreshEnergy, refillEnergy, spendContinueEnergy, spendGameEnergy } from './energyService';
-import { awardPassXp, beginGame, buyDecor, buyPremium, claimMission, claimPass, claimPassBonus, claimRankingReward, claimWeeklyMission, currentPass, currentSeason, dayKey, finishGame, gameMission, hasPassAccess, ledger, nextPassBonus, recordPlayTime, startBattle, validateConfig, weeklyPassMission } from './demoService';
+import { awardPassXp, beginGame, buyDecor, buyPremium, claimMission, claimPass, claimPassBonus, claimRankingReward, claimWeeklyMission, currentPass, currentSeason, dayKey, finishGame, gameMission, getMissions, hasPassAccess, ledger, nextPassBonus, recordPlayTime, seedDemoScenario, settleExpiredPasses, startBattle, validateConfig, weeklyPassMission } from './demoService';
 import { drawPet } from './petService';
 import { buyGachaCoupons, drawGachaBatch, getGachaOdds } from './gachaService';
 import { buyArenaTickets, buyPointPack, pointPackReward, equipWings, exchangeAisPoints, purchaseShopItem } from './walletService';
@@ -11,6 +11,7 @@ import { equipOutfit } from './avatarService';
 import { claimBattlePassReward } from './rewardService';
 import { passProgress, passTrack, passWindow } from './battlePassService';
 import { claimAvailablePass, grantReward } from './demoService';
+import { beginCampaignGame, finalizeCampaign, getCampaignRanking } from './campaignService';
 import type { PlayerState } from '../types';
 
 beforeEach(() => {
@@ -28,55 +29,26 @@ function finishedSample(): PlayerState {
 }
 
 describe('shared demo economy', () => {
-  it('offers normal and LV30 Pass packages without resetting earned XP or claims', () => {
+  it('offers time-only VIP packages without changing Battle Pass XP or rewards', () => {
     const player = { ...sample(), masquePoints: 5000 };
-    const normal = purchaseVip(player, 'monthly')!;
-    expect(currentPass(normal).xp).toBe(100);
+    const normal = purchaseVip(player, 'vip-1d')!;
+    expect(currentPass(normal).xp).toBe(currentPass(player).xp);
     expect(normal.energy).toBe(player.energy);
-    expect(normal.masquePoints).toBe(4010);
-    const boostTwenty = purchaseVip(player, 'monthly-boost-20')!;
-    expect(currentPass(boostTwenty).xp).toBe(2000);
-    expect(boostTwenty.masquePoints).toBe(3510);
-    const boost = purchaseVip(player, 'monthly-boost-30')!;
-    expect(currentPass(boost).xp).toBe(3000);
-    expect(currentPass(boost).claims).toEqual([]);
-    expect(boost.masquePoints).toBe(3010);
-    expect(boost.energy).toBe(player.energy);
-    expect(boost.level).toBe(player.level);
-    expect(purchaseVip(boost, 'monthly-boost-30')).toBeNull();
-    const high = awardPassXp(player, 4000);
-    expect(purchaseVip(high, 'monthly-boost-30')).toBeNull();
-    expect(currentPass(purchaseVip(high, 'monthly')!).xp).toBe(4000);
+    expect(normal.masquePoints).toBe(4950);
+    expect(normal.vipExpiresAt).toBe(Date.now() + 86_400_000);
+    expect(normal.gachaTickets).toBe(player.gachaTickets);
+    expect(normal.level).toBe(player.level);
+    expect(hasPassAccess(normal)).toBe(false);
   });
-  it('allows active VIP tier upgrades at the delta price without extending expiry or regranting coupons', () => {
-    let player = awardPassXp({ ...sample(), masquePoints: 5000 }, 1700);
-    player = purchaseVip(player, 'monthly')!;
-    player = claimPass(player, 'premium', 0)!;
-    const expiresBefore = player.vipExpiresAt!;
-    const renewOffer = vipOffer(player, 'monthly')!;
-    expect(renewOffer.active).toBe(true);
-    expect(renewOffer.levelAfter).toBe(17);
-    expect(renewOffer.eligible).toBe(false);
-    expect(renewOffer.cost).toBe(990);
-    expect(purchaseVip(player, 'monthly')).toBeNull();
-    const couponBalance = player.gachaTickets;
-
-    const lv20Offer = vipOffer(player, 'monthly-boost-20')!;
-    expect(lv20Offer).toMatchObject({ active: true, eligible: true, levelAfter: 20, cost: 500 });
-    const lv20 = purchaseVip(player, 'monthly-boost-20')!;
-    expect(lv20.masquePoints).toBe(player.masquePoints - 500);
-    expect(lv20.vipExpiresAt).toBe(expiresBefore);
-    expect(lv20.gachaTickets).toBe(couponBalance);
-    expect(currentPass(lv20)).toMatchObject({ xp: 2000, claims: ['premium-0'] });
-    expect(purchaseVip(lv20, 'monthly-boost-20')).toBeNull();
-
-    const lv30Offer = vipOffer(lv20, 'monthly-boost-30')!;
-    expect(lv30Offer).toMatchObject({ active: true, eligible: true, levelAfter: 30, cost: 500 });
-    const lv30 = purchaseVip(lv20, 'monthly-boost-30')!;
-    expect(lv30.masquePoints).toBe(lv20.masquePoints - 500);
-    expect(lv30.vipExpiresAt).toBe(lv20.vipExpiresAt);
-    expect(lv30.gachaTickets).toBe(couponBalance);
-    expect(currentPass(lv30)).toMatchObject({ xp: 3000, claims: ['premium-0'] });
+  it('extends active VIP duration from the existing expiration without granting Premium', () => {
+    const player = { ...sample(), masquePoints: 5000, vipExpiresAt: Date.now() + 2 * 86_400_000 };
+    const offer = vipOffer(player, 'vip-3d')!;
+    expect(offer).toMatchObject({ active: true, eligible: true, cost: 120, expiresAt: Date.now() + 5 * 86_400_000 });
+    const renewed = purchaseVip(player, 'vip-3d')!;
+    expect(renewed.vipExpiresAt).toBe(Date.now() + 5 * 86_400_000);
+    expect(renewed.masquePoints).toBe(player.masquePoints - 120);
+    expect(currentPass(renewed)).toEqual(currentPass(player));
+    expect(hasPassAccess(renewed)).toBe(false);
   });
   it('calculates advertised Energy and rewards from the actual configured VIP track', () => {
     const player = sample();
@@ -133,7 +105,7 @@ describe('shared demo economy', () => {
     expect(migrated.masquePoints).toBe(saved.masquePoints);
   });
   it('supports rankings for a newly configured game', () => {
-    expect(getGameRanking('new-game', 'weekly', sample(), 0)).toHaveLength(1);
+    expect(getGameRanking('new-game', 'allTime', sample(), 0)).toHaveLength(1);
   });
   it('moves the legacy Bird feature to Memory without overriding a custom featured game', () => {
     const legacy = sample();
@@ -152,16 +124,146 @@ describe('shared demo economy', () => {
   });
   it('allows purchased overflow and pauses free regeneration above cap', () => {
     const next = refillEnergy(sample(), 8, 70)!;
-    expect(next.energy).toBe(20);
+    expect(next.energy).toBe(23);
     expect(next.masquePoints).toBe(250);
-    expect(refreshEnergy(next, Date.now() + 3_600_000).energy).toBe(20);
+    expect(refreshEnergy(next, Date.now() + 3_600_000).energy).toBe(23);
     expect(nextRefillIn(next)).toBe(0);
     expect(claimBattlePassReward({ ...next, energy: 20 }, 'free', 0)?.energy).toBe(22);
+  });
+  it('uses a natural Energy cap of 15 for everyone and pauses the refill clock during overflow', () => {
+    const player = sample();
+    expect(player.demo.config.energyMax).toBe(15);
+    expect(energyCapacity(player, true)).toBe(15);
+    const overflow = refillEnergy({ ...player, masquePoints: 500, energy: 14 }, 20, 0)!;
+    expect(overflow.energy).toBe(34);
+    expect(refreshEnergy(overflow, Date.now() + 3_600_000).energy).toBe(34);
+    const belowCap = spendContinueEnergy({ ...overflow, energy: 15 }, Date.now() + 3_600_000)!;
+    expect(belowCap.energy).toBe(14);
+    expect(refreshEnergy(belowCap, Date.now() + 89 * 60_000).energy).toBe(14);
+    expect(refreshEnergy(belowCap, Date.now() + 90 * 60_000).energy).toBe(15);
+  });
+  it('uses calendar-month Pass windows and caps XP at the configured MAX', () => {
+    const october = passWindow(Date.UTC(2026, 9, 28, 12));
+    expect(october.starts).toBe('2026-10-01');
+    expect(october.ends).toBe('2026-11-01');
+    expect(passWindow(october.endsAt).index).toBe(october.index + 1);
+    expect(awardPassXp(sample(), 6000)).toMatchObject({ demo: { passes: { 'songkran:2026-10-01': { xp: 5000 } } } });
+    expect(passProgress(6000)).toMatchObject({ level: 50, complete: true, withinLevel: 0 });
+    expect(currentSeason(sample(), Date.UTC(2026, 10, 4))).toMatchObject({ id: 'loy-krathong:2026-11-01', name: 'S11 · Loy Krathong Lights' });
+  });
+  it('auto-delivers eligible expired Pass rewards once and never grants locked Premium tiers', () => {
+    vi.setSystemTime(new Date('2026-10-15T10:00:00Z'));
+    const player = awardPassXp(sample(), 300);
+    const oldSeasonId = currentSeason(player).id;
+    const expiredAt = Date.UTC(2026, 10, 1);
+    const settled = settleExpiredPasses(player, expiredAt);
+    expect(settled.energy).toBe(player.energy + 2);
+    expect(settled.masquePoints).toBe(player.masquePoints + 25);
+    expect(settled.demo.passes[oldSeasonId].premium).toBe(false);
+    expect(settled.demo.settledPasses).toContain(oldSeasonId);
+    expect(settled.demo.notifications?.[0]).toMatchObject({ id: `pass:${oldSeasonId}`, viewed: false });
+    expect(settleExpiredPasses(settled, expiredAt)).toBe(settled);
+  });
+  it('keeps VIP separate from Premium and extends time on repeat purchase', () => {
+    const player = awardPassXp({ ...sample(), masquePoints: 1000 }, 1000);
+    const vip = purchaseVip(player, 'vip-1d')!;
+    expect(hasPassAccess(vip)).toBe(false);
+    expect(vip.vipExpiresAt).toBe(Date.now() + 86_400_000);
+    const renewed = purchaseVip(vip, 'vip-3d')!;
+    expect(renewed.vipExpiresAt).toBe(Date.now() + 4 * 86_400_000);
+    const premium = buyPremium(vip)!;
+    expect(hasPassAccess(premium)).toBe(true);
+    expect(currentPass(premium).xp).toBe(1000);
+    expect(claimPass(premium, 'premium', 9)).not.toBeNull();
+    expect(claimPass(vip, 'premium', 9)).toBeNull();
+  });
+  it('keeps campaign best scores separate by campaign and game and settles prizes once', () => {
+    const player = sample();
+    const started = beginCampaignGame(player, 'lantern-festival', 'bird')!;
+    const sessionId = started.demo.sessions.at(-1)!.id;
+    const finished = finishGame(started, sessionId, 20_000)!;
+    expect(finished.demo.scores.bird).toBeUndefined();
+    expect(finished.demo.campaignScores?.['lantern-festival']?.bird?.score).toBe(20_000);
+    expect(finished.demo.campaignScores?.['lantern-festival']?.memory).toBeUndefined();
+    const ranking = getCampaignRanking('lantern-festival', 'bird', finished);
+    expect(ranking[0]).toMatchObject({ isCurrentPlayer: true, score: 20_000 });
+    const settled = finalizeCampaign(finished, 'lantern-festival')!;
+    expect(settled.energy).toBe(finished.energy + 5);
+    expect(finalizeCampaign(settled, 'lantern-festival')).toBeNull();
+    expect(settled.demo.notifications?.[0].viewed).toBe(false);
+    expect(settled.demo.history?.[0].title).toContain('Lantern Festival');
+  });
+  it('orders equal all-time high scores by earliest achievement and preserves the personal best', () => {
+    const player = sample();
+    player.demo.scores.bird = 15_320;
+    player.demo.scoreTimes = { bird: Date.UTC(2025, 0, 1) };
+    expect(getGameRanking('bird', 'allTime', player, 0)[0].isCurrentPlayer).toBe(true);
+    player.demo.scoreTimes.bird = Date.UTC(2027, 0, 1);
+    expect(getGameRanking('bird', 'allTime', player, 0)[0].displayName).toBe('Aomsin');
+    const started = beginGame(player, 'bird')!;
+    const finished = finishGame(started, started.demo.sessions.at(-1)!.id, 100)!;
+    expect(finished.demo.scores.bird).toBe(15_320);
+    expect(finished.demo.scoreTimes?.bird).toBe(Date.UTC(2027, 0, 1));
+  });
+  it('consumes only the configured demo campaign ticket and does not apply VIP entry waiver', () => {
+    const player = { ...sample(), vipExpiresAt: Date.now() + 86_400_000, campaignTickets: 2 };
+    const next = beginCampaignGame(player, 'starlight-sprint', 'run')!;
+    expect(next.demo.campaignTickets).toBe(1);
+    expect(next.energy).toBe(player.energy);
+    expect(beginCampaignGame({ ...next, demo: { ...next.demo, campaignTickets: 0 } }, 'starlight-sprint', 'run')).toBeNull();
+  });
+  it('shows locked entitlement missions and grants Free mission XP once after game completion', () => {
+    let player = sample();
+    expect(getMissions(player).filter((mission) => mission.entitlement !== 'free').every((mission) => mission.locked)).toBe(true);
+    for (let count = 0; count < 3; count += 1) {
+      const started = beginGame(player, 'bird')!;
+      player = finishGame(started, started.demo.sessions.at(-1)!.id, 100 + count)!;
+    }
+    const daily = getMissions(player).find((mission) => mission.id === 'free-daily')!;
+    expect(daily).toMatchObject({ count: 3, complete: true, locked: false });
+    expect(currentPass(player).xp).toBe(80);
+    expect(player.demo.recentMissionEvents).toContainEqual({ title: 'เล่นเกมประจำวัน', before: 2, after: 3, target: 3, xp: 80 });
+    const fourth = beginGame(player, 'bird')!;
+    player = finishGame(fourth, fourth.demo.sessions.at(-1)!.id, 105)!;
+    expect(currentPass(player).xp).toBe(80);
+  });
+  it('unlocks the frequent-player Profile badge once after ten completed games', () => {
+    let player = { ...sample(), energy: 30 };
+    for (let count = 0; count < 10; count += 1) {
+      const started = beginGame(player, 'bird')!;
+      player = finishGame(started, started.demo.sessions.at(-1)!.id, count + 1)!;
+    }
+    expect(player.demo.achievements.filter((badge) => badge.id === 'frequent-player')).toHaveLength(1);
+    expect(player.demo.history?.some((item) => item.title === 'นักเล่นเกมตัวยง' && item.detail === 'ปลดล็อก Profile badge')).toBe(true);
+    const started = beginGame(player, 'bird')!;
+    const next = finishGame(started, started.demo.sessions.at(-1)!.id, 11)!;
+    expect(next.demo.achievements.filter((badge) => badge.id === 'frequent-player')).toHaveLength(1);
+  });
+  it('seeds the acceptance scenarios without leaking campaign scores into all-time', () => {
+    const player = sample();
+    const premiumScenario = seedDemoScenario(player, 'premium-retro');
+    expect(currentPass(premiumScenario)).toMatchObject({ xp: 1000, premium: false });
+    expect(premiumScenario.vipExpiresAt).toBeNull();
+    const tie = seedDemoScenario(player, 'ranking-tie');
+    expect(getGameRanking('bird', 'allTime', tie, 0).slice(0, 2).map((entry) => entry.displayName)).toEqual(['Aomsin', tie.displayName]);
+    const campaign = seedDemoScenario(player, 'campaign-ranking');
+    expect(campaign.demo.campaignScores?.['lantern-festival']?.bird?.score).toBe(20_000);
+    expect(campaign.demo.scores.bird).toBeUndefined();
+    expect(seedDemoScenario(player, 'energy-overflow').energy).toBe(34);
+  });
+  it('seeds a month-rollover scenario with one pending settlement notification', () => {
+    const player = sample();
+    const oldSeasonId = currentSeason(player).id;
+    const rolled = seedDemoScenario(player, 'pass-rollover');
+    expect(currentSeason(rolled).id).not.toBe(oldSeasonId);
+    expect(rolled.demo.settledPasses).toContain(oldSeasonId);
+    expect(rolled.demo.notifications?.some((item) => item.id === `pass:${oldSeasonId}` && !item.viewed)).toBe(true);
+    expect(seedDemoScenario(player, 'gacha-ready').gachaTickets).toBe(10);
   });
   it('regenerates one unit per configured interval without exceeding the free cap', () => {
     const player = sample(); player.energy = 8;
     expect(refreshEnergy(player, Date.now() + 3_600_000).energy).toBe(10);
-    expect(refreshEnergy(player, Date.now() + 20_000_000).energy).toBe(12);
+    expect(refreshEnergy(player, Date.now() + 20_000_000).energy).toBe(15);
   });
   it('rejects insufficient balance and invalid exchange amounts', () => {
     expect(refillEnergy(sample(), 8, 9999)).toBeNull();
@@ -200,6 +302,7 @@ describe('shared demo economy', () => {
     expect(batch.paidCoupons).toBe(10);
     expect(batch.bonusDraws).toBe(1);
     expect(batch.player.gachaTickets).toBe(0);
+    expect(batch.player.demo.history?.[0]).toMatchObject({ kind: 'reward', title: 'Pet Gacha' });
     expect(getGachaOdds(player, 'pet').some((item) => item.kind === 'energy' && item.rate > 0)).toBe(true);
     expect(getGachaOdds(player, 'avatar').some((item) => item.kind === 'avatar' && item.featured)).toBe(true);
   });
@@ -213,14 +316,14 @@ describe('shared demo economy', () => {
     }
   });
   it('expires VIP without affecting free/vip ranking fairness', () => {
-    const next = purchaseVip({ ...sample(), masquePoints: 2000 }, 'monthly')!;
-    expect(spendGameEnergy(next)!.energy).toBe(12);
-    expect(spendGameEnergy(next, next.vipExpiresAt! + 1)!.energy).toBe(17);
+    const next = purchaseVip({ ...sample(), masquePoints: 2000 }, 'vip-1d')!;
+    expect(spendGameEnergy(next)!.energy).toBe(15);
+    expect(spendGameEnergy(next, next.vipExpiresAt! + 1)!.energy).toBe(14);
     expect(getGameRanking('bird', 'allTime', next, 0)).toEqual(getGameRanking('bird', 'allTime', { ...next, vipExpiresAt: null }, 0));
   });
   it('stores and regenerates numeric Energy for VIP while waiving only game admission', () => {
     const player = sample(); player.vipExpiresAt = Date.now() + 86_400_000; player.energy = 0;
-    expect(energyCapacity(player)).toBe(18);
+    expect(energyCapacity(player)).toBe(15);
     expect(nextRefillIn(player)).toBe(1_800_000);
     expect(spendGameEnergy(player)?.energy).toBe(0);
     expect(spendContinueEnergy(player)).toBeNull();
@@ -231,23 +334,23 @@ describe('shared demo economy', () => {
   });
   it('preserves VIP-earned overflow at expiry and partial regeneration across the boundary', () => {
     const player = sample(); player.energy = 12; player.vipExpiresAt = Date.now() + 45 * 60_000;
-    expect(refreshEnergy(player, Date.now() + 60 * 60_000).energy).toBe(13);
+    expect(refreshEnergy(player, Date.now() + 60 * 60_000).energy).toBe(14);
     const partial = { ...player, energy: 0, vipExpiresAt: Date.now() + 20 * 60_000 };
     expect(refreshEnergy(partial, Date.now() + 30 * 60_000).energy).toBe(1);
     const overflow = { ...player, energy: 20 };
     expect(refreshEnergy(overflow, Date.now() + 3_600_000).energy).toBe(20);
   });
-  it('does not bank full-cap refill time and preserves partial timers when upgrading active VIP', () => {
+  it('does not bank full-cap refill time and preserves partial timers when renewing active VIP', () => {
     const player = sample(); player.masquePoints = 2000; player.energyUpdatedAt = Date.now() - 3_600_000;
-    const vip = purchaseVip(player, 'monthly')!;
-    expect(vip.energy).toBe(12);
+    const vip = purchaseVip(player, 'vip-1d')!;
+    expect(vip.energy).toBe(15);
     expect(vip.energyUpdatedAt).toBe(Date.now());
-    expect(refreshEnergy(vip).energy).toBe(12);
+    expect(refreshEnergy(vip).energy).toBe(15);
     const partial = { ...vip, masquePoints: 2000, energy: 3, energyUpdatedAt: Date.now() - 20 * 60_000 };
-    const upgraded = purchaseVip(partial, 'monthly-boost-20')!;
-    expect(upgraded.masquePoints).toBe(1500);
-    expect(upgraded.vipExpiresAt).toBe(partial.vipExpiresAt);
-    expect(upgraded.energyUpdatedAt).toBe(partial.energyUpdatedAt);
+    const renewed = purchaseVip(partial, 'vip-3d')!;
+    expect(renewed.masquePoints).toBe(1880);
+    expect(renewed.vipExpiresAt).toBe(partial.vipExpiresAt! + 3 * 86_400_000);
+    expect(renewed.energyUpdatedAt).toBe(partial.energyUpdatedAt);
   });
   it('migrates the old unlimited-VIP refill clock without losing Energy or VIP days', () => {
     const player = sample(); player.vipExpiresAt = Date.now() + 86_400_000; player.energy = 14; player.energyUpdatedAt = player.vipExpiresAt;
@@ -294,7 +397,7 @@ describe('shared demo economy', () => {
 describe('progression and duplicate protection', () => {
   it('claims unlocked tiers in one action and converts owned cosmetic rewards to compensation', () => {
     let player = awardPassXp({ ...sample(), masquePoints: 2000 }, 1000);
-    player = purchaseVip(player, 'monthly')!;
+    player = buyPremium(player)!;
     const claimed = claimAvailablePass(player)!;
     expect(currentPass(claimed).claims).toHaveLength(20);
     expect(claimAvailablePass(claimed)).toBeNull();
@@ -307,7 +410,7 @@ describe('progression and duplicate protection', () => {
     let player = sample(); player.masquePoints = 2000;
     const window = passWindow(Date.now());
     vi.setSystemTime(window.endsAt - 2 * 86_400_000);
-    player = purchaseVip(player, 'monthly')!;
+    player = purchaseVip(player, 'vip-3d')!;
     player = awardPassXp(player, 200);
     const oldId = currentSeason(player).id;
     player = claimPass(player, 'free', 0)!;
@@ -317,17 +420,17 @@ describe('progression and duplicate protection', () => {
     expect(currentSeason(player).id).not.toBe(oldId);
     expect(currentPass(player).xp).toBe(0);
     expect(claimPass(player, 'free', 0)).toBeNull();
-    expect(player.demo.passes[oldId]).toMatchObject({ xp: 300, claims: ['free-0'] });
+    expect(player.demo.passes[oldId]).toMatchObject({ xp: 200, claims: ['free-0'] });
     expect(player.level).toBe(profileLevel);
     expect(player.vipExpiresAt).toBe(expires);
-    expect(expires! - Date.now()).toBe(28 * 86_400_000);
-    expect(hasPassAccess(player)).toBe(true);
+    expect(expires! - Date.now()).toBe(86_400_000);
+    expect(hasPassAccess(player)).toBe(false);
   });
-  it('unlocks earned VIP tiers retroactively without resetting XP', () => {
+  it('unlocks earned Premium tiers retroactively without resetting XP', () => {
     const player = awardPassXp({ ...sample(), masquePoints: 2000 }, 1100);
     expect(claimPass(player, 'premium', 9)).toBeNull();
-    const vip = purchaseVip(player, 'monthly')!;
-    const claimed = claimPass(vip, 'premium', 9)!;
+    const premium = buyPremium(player)!;
+    const claimed = claimPass(premium, 'premium', 9)!;
     expect(claimed.ownedPetIds).toContain('mochi');
     expect(currentPass(claimed).xp).toBe(1100);
     expect(claimPass(claimed, 'premium', 9)).toBeNull();
@@ -342,24 +445,25 @@ describe('progression and duplicate protection', () => {
     }
     expect(weeklyPassMission(player).games).toHaveLength(4);
     const claimed = claimWeeklyMission(player)!;
-    expect(currentPass(claimed).xp).toBe(500);
+    expect(currentPass(claimed).xp).toBe(580);
     expect(claimWeeklyMission(claimed)).toBeNull();
     vi.setSystemTime(Date.now() + 7 * 86_400_000);
     expect(weeklyPassMission(claimed).games).toEqual([]);
     expect(claimWeeklyMission(claimed)).toBeNull();
   });
-  it('keeps earning beyond level 50 and claims each light bonus exactly once', () => {
+  it('caps Battle Pass XP at MAX and does not create unapproved bonus rewards', () => {
     let player = awardPassXp(sample(), 5500);
     const initialMp = player.masquePoints;
     expect(awardPassXp(player, NaN)).toBe(player);
     expect(awardPassXp(player, -10)).toBe(player);
+    expect(currentPass(player).xp).toBe(5000);
     expect(claimPass(player, 'free', 49)).not.toBeNull();
-    for (let count = 0; count < 5; count += 1) player = claimPassBonus(player)!;
-    expect(player.masquePoints).toBe(initialMp + 40);
-    expect(player.gachaTickets).toBe(1);
-    expect(nextPassBonus(player)).toMatchObject({ level: 56, ready: false });
     expect(claimPassBonus(player)).toBeNull();
-    expect(currentPass(player).claims).toHaveLength(5);
+    expect(player.masquePoints).toBe(initialMp);
+    expect(player.gachaTickets).toBe(0);
+    expect(nextPassBonus(player)).toMatchObject({ level: 51, ready: false });
+    expect(claimPassBonus(player)).toBeNull();
+    expect(currentPass(player).claims).toEqual([]);
   });
   it('migrates short legacy passes once without resetting VIP, inventory or claimed rewards', () => {
     const player = sample();
@@ -375,12 +479,11 @@ describe('progression and duplicate protection', () => {
     expect(restored.masquePoints).toBe(player.masquePoints);
     expect(restored.ownedPetIds).toEqual(player.ownedPetIds);
     expect(currentSeason(restored).free).toHaveLength(50);
-    expect(currentPass(restored)).toMatchObject({ xp: 330, premium: true, claims: ['free-0', 'premium-1'] });
-    expect(restored.demo.config.vipPlans[0].durationDays).toBe(30);
-    expect(restored.demo.config.vipPlans.map((plan) => plan.id)).toEqual(expect.arrayContaining(['monthly', 'monthly-boost-20', 'monthly-boost-30']));
-    expect(currentPass(loadPlayer(null)).xp).toBe(330);
+    expect(currentPass(restored)).toMatchObject({ xp: 230, premium: true, claims: ['free-0', 'premium-1'] });
+    expect(restored.demo.config.vipPlans.map((plan) => plan.id)).toEqual(expect.arrayContaining(['vip-6h', 'vip-1d', 'vip-3d']));
+    expect(currentPass(loadPlayer(null)).xp).toBe(230);
     restored.demo.config.passSeasonId = 'loy-krathong';
-    expect(currentPass(restored)).toMatchObject({ xp: 500, premium: true, claims: ['premium-0'] });
+    expect(currentPass(restored)).toMatchObject({ xp: 400, premium: true, claims: ['premium-0'] });
   });
   it('builds 50 reward tiers without rewriting existing rewards and grants cosmetic inventory', () => {
     const player = sample();
@@ -397,17 +500,18 @@ describe('progression and duplicate protection', () => {
     expect(grantReward(player, free[44]).demo.arenaTickets).toBe(3);
     expect(grantReward(player, free[49]).demo.achievements.at(-1)?.id).toContain('pass:');
   });
-  it('uses shared 30-day UTC windows with a clean boundary and unlimited bonus levels', () => {
+  it('uses calendar-month UTC windows with a clean boundary and a capped MAX level', () => {
     const now = Date.UTC(2026, 9, 28);
     const first = passWindow(now);
-    expect(first.starts).toBe('2026-10-28');
-    expect(first.endsAt - first.startsAt).toBe(30 * 86_400_000);
+    expect(first.starts).toBe('2026-10-01');
+    expect(first.ends).toBe('2026-11-01');
+    expect(first.endsAt - first.startsAt).toBe(31 * 86_400_000);
     expect(passWindow(first.endsAt - 1).index).toBe(first.index);
     expect(passWindow(first.endsAt).index).toBe(first.index + 1);
     expect(passProgress(99)).toMatchObject({ level: 0, mainLevel: 0 });
     expect(passProgress(100).level).toBe(1);
     expect(passProgress(5000)).toMatchObject({ level: 50, complete: true });
-    expect(passProgress(12300)).toMatchObject({ level: 123, mainLevel: 50 });
+    expect(passProgress(12300)).toMatchObject({ level: 50, mainLevel: 50, complete: true });
     expect(passProgress(Infinity).level).toBe(0);
   });
   it('finishes a session once and updates independent EXP and scores', () => {
@@ -426,25 +530,27 @@ describe('progression and duplicate protection', () => {
     expect(currentPass(next).xp).toBe(200);
     expect(claimMission(next)).toBeNull();
   });
-  it('uses VIP as Pass access without a second purchase and prevents repeated claims', () => {
-    const player = awardPassXp(sample(), 100); player.vipExpiresAt = Date.now() + 86_400_000;
-    expect(hasPassAccess(player)).toBe(true);
-    expect(buyPremium(player)).toBeNull();
-    const next = claimPass(player, 'premium', 0)!;
-    expect(next.masquePoints).toBe(player.masquePoints + 40);
+  it('keeps VIP separate from Premium purchase and prevents repeated Premium claims', () => {
+    const player = awardPassXp({ ...sample(), masquePoints: 1000 }, 100); player.vipExpiresAt = Date.now() + 86_400_000;
+    expect(hasPassAccess(player)).toBe(false);
+    expect(claimPass(player, 'premium', 0)).toBeNull();
+    const premium = buyPremium(player)!;
+    expect(hasPassAccess(premium)).toBe(true);
+    const next = claimPass(premium, 'premium', 0)!;
+    expect(next.masquePoints).toBe(premium.masquePoints + 40);
     expect(claimPass(next, 'premium', 0)).toBeNull();
-    expect(hasPassAccess({ ...player, vipExpiresAt: Date.now() - 1 })).toBe(false);
+    expect(hasPassAccess({ ...premium, vipExpiresAt: Date.now() - 1 })).toBe(true);
   });
-  it('buys a single VIP Pass across seasons and preserves legacy season purchases', () => {
+  it('purchases Premium for the current season without activating VIP or transferring entitlement', () => {
     const player = buyPremium({ ...sample(), masquePoints: 2000 })!;
-    expect(player.vipExpiresAt).toBeGreaterThan(Date.now());
-    expect(player.masquePoints).toBe(1010);
+    expect(player.vipExpiresAt).toBeNull();
+    expect(player.masquePoints).toBe(1800);
+    expect(hasPassAccess(player)).toBe(true);
     player.demo.config.passAutomatic = false;
     player.demo.config.passSeasonId = 'loy-krathong';
-    expect(hasPassAccess(player)).toBe(true);
+    expect(hasPassAccess(player)).toBe(false);
     expect(currentPass(player).claims).toEqual([]);
     player.demo.config.passSeasonId = 'songkran';
-    player.vipExpiresAt = null;
     player.demo.passes.songkran = { xp: 0, premium: true, claims: [] };
     expect(hasPassAccess(player)).toBe(true);
   });
@@ -487,7 +593,6 @@ describe('progression and duplicate protection', () => {
     const next = claimRankingReward(player, 'bird')!;
     expect(claimRankingReward(next, 'bird')).toBeNull();
     next.demo.seasonScores['season-01'] = {};
-    expect(getGameRanking('bird', 'weekly', next, 9999).find((row) => row.isCurrentPlayer)?.score).toBe(0);
     expect(getGameRanking('bird', 'allTime', next, 9999).find((row) => row.isCurrentPlayer)?.score).toBe(20000);
   });
   it('buys separate Arena tickets and spends one ticket, never Energy or MP, on Ranked entry', () => {
@@ -516,7 +621,7 @@ describe('progression and duplicate protection', () => {
   });
   it('keeps casual Energy pricing and records play-time only for an unfinished session', () => {
     const entered = beginGame(sample(), 'bird')!;
-    expect(entered.energy).toBe(11);
+    expect(entered.energy).toBe(14);
     expect(entered.demo.arenaTickets).toBe(0);
     const session = entered.demo.sessions.at(-1)!;
     const timed = recordPlayTime(entered, session.id, 15_000);
@@ -559,7 +664,7 @@ describe('progression and duplicate protection', () => {
     const next = loadPlayer(null);
     expect(next.id).toBe(player.id);
     expect(next.ownedPetIds).toEqual(player.ownedPetIds);
-    expect(currentPass(next)).toMatchObject({ xp: 330, premium: false, claims: ['free-0', 'premium-1'] });
+    expect(currentPass(next)).toMatchObject({ xp: 230, premium: false, claims: ['free-0', 'premium-1'] });
   });
   it('persists room arrangement and guest selection across reloads', () => {
     const player = sample();

@@ -4,8 +4,8 @@ export function isVip(player: PlayerState, now = Date.now()): boolean {
   return player.vipExpiresAt !== null && player.vipExpiresAt > now;
 }
 
-export function energyCapacity(player: PlayerState, vipActive = isVip(player)): number {
-  return player.demo.config.energyMax + (vipActive ? player.demo.config.vipEnergyBonus : 0);
+export function energyCapacity(player: PlayerState, _vipActive = isVip(player)): number {
+  return player.demo.config.energyMax;
 }
 
 export function refreshEnergy(player: PlayerState, now = Date.now()): PlayerState {
@@ -13,6 +13,10 @@ export function refreshEnergy(player: PlayerState, now = Date.now()): PlayerStat
   const refillEveryMs = config.regenMinutes * 60_000;
   let energy = player.energy;
   let updatedAt = Math.min(player.energyUpdatedAt, now);
+  if (energy >= config.energyMax) {
+    updatedAt = now;
+    return updatedAt === player.energyUpdatedAt ? player : { ...player, energyUpdatedAt: updatedAt };
+  }
   function recover(until: number, capacity: number) {
     if (energy >= capacity || until <= updatedAt) return;
     const recovered = Math.min(capacity - energy, Math.floor((until - updatedAt) / refillEveryMs));
@@ -20,8 +24,7 @@ export function refreshEnergy(player: PlayerState, now = Date.now()): PlayerStat
     energy += recovered;
     updatedAt = energy >= capacity ? until : updatedAt + recovered * refillEveryMs;
   }
-  if (player.vipExpiresAt !== null && player.vipExpiresAt > updatedAt && player.vipExpiresAt <= now) recover(player.vipExpiresAt, energyCapacity(player, true));
-  recover(now, energyCapacity(player, isVip(player, now)));
+  recover(now, config.energyMax);
   return energy === player.energy && updatedAt === player.energyUpdatedAt ? player : { ...player, energy, energyUpdatedAt: updatedAt };
 }
 
@@ -31,7 +34,7 @@ function spendEnergy(player: PlayerState, cost: number, now: number): PlayerStat
   return {
     ...current,
     energy: current.energy - cost,
-    energyUpdatedAt: current.energy >= energyCapacity(current, isVip(current, now)) ? now : current.energyUpdatedAt,
+    energyUpdatedAt: current.energy >= current.demo.config.energyMax ? now : current.energyUpdatedAt,
   };
 }
 
@@ -54,12 +57,12 @@ export function refillEnergy(player: PlayerState, amount: number, cost: number, 
     ...current,
     masquePoints: current.masquePoints - cost,
     energy,
-    energyUpdatedAt: energy >= energyCapacity(current, isVip(current, now)) ? now : current.energyUpdatedAt,
+    energyUpdatedAt: energy >= current.demo.config.energyMax ? now : current.energyUpdatedAt,
   };
 }
 
 export function nextRefillIn(player: PlayerState, now = Date.now()): number {
-  if (player.energy >= energyCapacity(player, isVip(player, now))) return 0;
+  if (player.energy >= player.demo.config.energyMax) return 0;
   const elapsed = Math.max(0, now - player.energyUpdatedAt);
   const interval = player.demo.config.regenMinutes * 60_000;
   return interval - elapsed % interval;

@@ -24,6 +24,7 @@
   } = $props();
   let session = $derived(player.demo.sessions.find((session) => session.gameId === game.id && session.id === sessionId));
   let ranked = $derived(session?.mode === 'ranked');
+  let campaign = $derived(session?.mode === 'campaign');
   let hostedUrl = $derived.by(() => { const url = new URL(game.url); if (ranked) url.searchParams.set('mode', 'ranked'); return url.href; });
 </script>
 
@@ -34,7 +35,7 @@
     <EnergyBadge energy={player.energy} {vipActive} countdown={countdown} max={energyCapacity(player, vipActive)} {onRefill} />
   </header>
   <div class="info">
-    <span>{ranked ? 'RANKED · ใช้บัตรเข้า 1 ใบ · ไม่ใช้ Energy' : vipActive && player.demo.config.vipFreeEntry ? 'VIP · เข้าเกมไม่เสีย Energy' : `ใช้ ${player.demo.config.energyCost} Energy ต่อการเข้าเล่น`}</span>
+    <span>{ranked ? 'RANKED · legacy demo' : campaign ? 'CAMPAIGN · ใช้ Demo Ticket ตาม scenario · ไม่ใช้ Energy' : vipActive && player.demo.config.vipFreeEntry ? 'VIP · เข้าเกมไม่เสีย Energy' : `ใช้ ${player.demo.config.energyCost} Energy ต่อการเข้าเล่น`}</span>
     <a href={hostedUrl} target="_blank" rel="noopener noreferrer" aria-label="เปิดเกมในแท็บใหม่"><ExternalLink size={17} /></a>
   </div>
   <section class="stage" aria-label={`เกม ${game.name}`}>

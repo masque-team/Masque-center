@@ -56,7 +56,7 @@
     <div class="grid grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] items-center gap-2 pt-0.5 text-center text-[10px] font-black">
       <span class="flex items-center justify-center gap-1 rounded-lg bg-white/75 py-1 text-sky-700"><Gift size={13} />FREE TRACK</span>
       <span class="text-[9px] text-[#7c8da3]">LV.</span>
-      <span class="flex items-center justify-center gap-1 rounded-lg bg-[#fff3c4]/90 py-1 text-[#8f5700]"><Crown size={13} fill="currentColor" class="text-amber-500" />VIP TRACK</span>
+      <span class="flex items-center justify-center gap-1 rounded-lg bg-[#fff3c4]/90 py-1 text-[#8f5700]"><Crown size={13} fill="currentColor" class="text-amber-500" />PREMIUM TRACK</span>
     </div>
   </div>
 
@@ -81,7 +81,7 @@
             ]}
             style:grid-column={cell.track === 'free' ? 1 : 3}
             style:grid-row={1}
-            aria-label={`LV.${tier} ${cell.track === 'free' ? 'Free' : 'VIP'} ${cell.reward.title}`}
+                aria-label={`LV.${tier} ${cell.track === 'free' ? 'Free' : 'Premium'} ${cell.reward.title}`}
           >
             <div class="self-center"><RewardIcon type={cell.reward.type} itemId={cell.reward.itemId} size={tier % 5 === 0 ? 58 : 46} /></div>
             <strong class="line-clamp-2 self-center break-words text-[11px] font-black leading-4 text-[#374863]">{cell.reward.title}</strong>
@@ -90,7 +90,7 @@
               <span class="inline-flex h-8 items-center gap-1 self-center rounded-full bg-emerald-50 px-2.5 text-[10px] font-black text-emerald-700"><Check size={13} strokeWidth={3} />รับแล้ว</span>
             {:else if !reached || vipLocked}
               <span class={['inline-flex h-8 items-center gap-1 self-center rounded-full px-2.5 text-[9px] font-extrabold', vipLocked ? 'bg-amber-100/80 text-amber-800' : 'bg-slate-100 text-[#8896a8]']}>
-                <LockKeyhole size={11} />{vipLocked ? 'VIP Pass' : `LV.${tier}`}
+                <LockKeyhole size={11} />{vipLocked ? 'Premium Pass' : `LV.${tier}`}
               </span>
             {:else}
               <div class="w-full self-center">

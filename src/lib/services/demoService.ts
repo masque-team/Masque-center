@@ -3,14 +3,25 @@ import { PASS_RULES, passProgress, passTrack, passWindow } from './battlePassSer
 import { GAMES } from '../data/games';
 import { getGameRanking } from './rankingService';
 import { isVip, spendGameEnergy } from './energyService';
-import { purchaseVip } from './passService';
-import type { DemoConfig, DemoReward, DemoState, GameId, GameMode, PlayerState } from '../types';
+import type { DemoConfig, DemoReward, DemoScenario, DemoState, GameId, GameMode, PlayerState, ProfileBadge } from '../types';
 
+const MISSION_DEFINITIONS = [
+  { id: 'check-in', title: 'แวะเช็กอิน', description: 'เช็กอินประจำวัน', entitlement: 'free', period: 'daily', target: 1, xp: 30, trigger: 'checkin' },
+  { id: 'free-daily', title: 'เล่นเกมประจำวัน', description: 'เล่นจบ 3 รอบ', entitlement: 'free', period: 'daily', target: 3, xp: 80, trigger: 'game' },
+  { id: 'vip-daily', title: 'VIP daily streak', description: 'เล่นจบ 5 รอบ', entitlement: 'vip', period: 'daily', target: 5, xp: 120, trigger: 'game' },
+  { id: 'premium-daily', title: 'Premium daily streak', description: 'เล่นจบ 7 รอบ', entitlement: 'premium', period: 'daily', target: 7, xp: 150, trigger: 'game' },
+  { id: 'free-weekly', title: 'ผู้เล่นประจำสัปดาห์', description: 'เล่นจบ 10 รอบ', entitlement: 'free', period: 'weekly', target: 10, xp: 180, trigger: 'game' },
+  { id: 'vip-weekly', title: 'VIP weekly streak', description: 'เล่นจบ 15 รอบ', entitlement: 'vip', period: 'weekly', target: 15, xp: 260, trigger: 'game' },
+  { id: 'premium-weekly', title: 'Premium weekly streak', description: 'เล่นจบ 20 รอบ', entitlement: 'premium', period: 'weekly', target: 20, xp: 320, trigger: 'game' },
+  { id: 'free-season', title: 'นักสำรวจซีซัน', description: 'เล่นจบ 30 รอบ', entitlement: 'free', period: 'season', target: 30, xp: 500, trigger: 'game' },
+  { id: 'vip-season', title: 'VIP season challenge', description: 'เล่นจบ 50 รอบ', entitlement: 'vip', period: 'season', target: 50, xp: 750, trigger: 'game' },
+  { id: 'premium-season', title: 'Premium season challenge', description: 'เล่นจบ 75 รอบ', entitlement: 'premium', period: 'season', target: 75, xp: 900, trigger: 'game' },
+] as const;
 export function createDemo(): DemoState {
   const demo: DemoState = {
-    version: 1, clockOffset: 0, profileXp: 0, transactions: [], sessions: [], arenaTickets: 0, playTimeMs: {}, playCounts: {}, achievements: [], profile: { backgroundId: 'canal-day', bio: '', badgeIds: [] }, scores: {}, seasonScores: {}, rankingClaims: [], rankingResets: [], passes: {}, missionCounts: {}, missionClaims: [], pointPackClaims: [], frames: [], frameId: null, wings: [], wingId: null, ownedDecor: ['sofa', 'plant'], battles: [], room: null,
+    version: 1, clockOffset: 0, profileXp: 0, transactions: [], sessions: [], arenaTickets: 0, campaignTickets: 2, campaignScores: {}, settledCampaigns: [], closedCampaigns: [], notifications: [], history: [], missionProgress: {}, recentMissionEvents: [], settledPasses: [], playTimeMs: {}, playCounts: {}, achievements: [], profile: { backgroundId: 'canal-day', bio: '', badgeIds: [] }, scores: {}, scoreTimes: {}, seasonScores: {}, rankingClaims: [], rankingResets: [], passes: {}, missionCounts: {}, missionClaims: [], pointPackClaims: [], frames: [], frameId: null, wings: [], wingId: null, ownedDecor: ['sofa', 'plant'], battles: [], room: null,
     config: {
-      energyMax: 12, regenMinutes: 30, energyCost: 1, exchangeRate: 10, checkinReward: 35,
+      energyMax: 15, regenMinutes: 30, energyCost: 1, exchangeRate: 10, checkinReward: 35,
       missionTarget: 1, missionXp: 100, premiumPrice: 200, gachaCost: 90, duplicatePoints: 30,
       gachaPool: PETS.map((pet) => ({ petId: pet.id, weight: pet.rarity === 'Legendary' ? 2 : pet.rarity === 'Epic' ? 8 : 20 })),
       games: GAMES.map((game) => ({ ...game, published: game.published ?? true })), vipPlans: structuredClone(VIP_PACKAGES), vipFreeEntry: true, vipEnergyBonus: 6, continueEnergyCost: 1,
@@ -25,7 +36,7 @@ export function createDemo(): DemoState {
       roomLimit: 4, roomVipOnly: false, roomPrivate: true, decorPrice: 25, moderationRule: 'สุภาพ ไม่เปิดเผยข้อมูลส่วนตัว',
     },
   };
-  demo.passRevision = 2;
+  demo.passRevision = 3;
   demo.weeklyGames = {};
   demo.backgrounds = PROFILE_BACKGROUNDS.map((background) => background.id);
   demo.config.passAutomatic = true;
@@ -35,16 +46,52 @@ export function createDemo(): DemoState {
   return demo;
 }
 
+function missionPeriodKey(id: typeof MISSION_DEFINITIONS[number]['period'], player: PlayerState, at: number): string {
+  if (id === 'daily') return dayKey(player, at);
+  const season = currentSeason(player, at);
+  if (id === 'season') return season.id;
+  const week = Math.max(0, Math.floor((at - Date.parse(`${season.starts}T00:00:00Z`)) / (7 * 86_400_000)));
+  return `${season.id}:week-${week}`;
+}
+export function getMissions(player: PlayerState, at = demoNow(player)) {
+  const premium = currentPass(player, at).premium;
+  return MISSION_DEFINITIONS.map((mission) => {
+    const periodKey = missionPeriodKey(mission.period, player, at);
+    const key = `m2:${mission.id}:${periodKey}`;
+    const locked = mission.entitlement === 'vip' ? !isVip(player, at) : mission.entitlement === 'premium' ? !premium : false;
+    return { ...mission, key, count: player.demo.missionProgress?.[key] ?? 0, locked, complete: player.demo.missionClaims.includes(key) };
+  });
+}
+export function progressMissions(player: PlayerState, trigger: 'game' | 'checkin', at = demoNow(player)): PlayerState {
+  let next: PlayerState = { ...player, demo: { ...player.demo, missionProgress: { ...(player.demo.missionProgress ?? {}) }, recentMissionEvents: [] } };
+  const events: NonNullable<PlayerState['demo']['recentMissionEvents']> = [];
+  const premium = currentPass(player, at).premium;
+  for (const mission of MISSION_DEFINITIONS) {
+    if (mission.trigger !== trigger) continue;
+    if (mission.entitlement === 'vip' && !isVip(player, at) || mission.entitlement === 'premium' && !premium) continue;
+    const key = `m2:${mission.id}:${missionPeriodKey(mission.period, player, at)}`;
+    if (next.demo.missionClaims.includes(key)) continue;
+    const before = next.demo.missionProgress?.[key] ?? 0;
+    const after = Math.min(mission.target, before + 1);
+    next = { ...next, demo: { ...next.demo, missionProgress: { ...next.demo.missionProgress, [key]: after } } };
+    events.push({ title: mission.title, before, after, target: mission.target, xp: after === mission.target ? mission.xp : 0 });
+    if (after < mission.target) continue;
+    next = awardPassXp({ ...next, demo: { ...next.demo, missionClaims: [...next.demo.missionClaims, key] } }, mission.xp);
+    const detail = `ภารกิจ ${mission.period} · +${mission.xp} XP`;
+    const history = { id: crypto.randomUUID(), kind: 'reward' as const, title: mission.title, detail, at };
+    next = { ...next, demo: { ...next.demo, history: [history, ...(next.demo.history ?? [])].slice(0, 250) } };
+  }
+  return { ...next, demo: { ...next.demo, recentMissionEvents: events } };
+}
 export function demoNow(player: PlayerState): number { return Date.now() + player.demo.clockOffset; }
 export function validateConfig(config: DemoConfig): string | null {
-  if (!config.vipPlans.some((plan) => (plan.startLevel ?? 1) === 1)) return 'ต้องมีแพ็ก VIP ปกติสำหรับซื้อและเพิ่มเวลา';
-  if (config.vipPlans.some((plan) => !Number.isSafeInteger(plan.startLevel ?? 1) || (plan.startLevel ?? 1) < 1 || (plan.startLevel ?? 1) > PASS_RULES.levels)) return 'เลเวลเริ่มต้นของแพ็ก Pass ต้องอยู่ระหว่าง 1 ถึง 50';
-  if (config.vipPlans.some((plan) => plan.durationDays !== PASS_RULES.days)) return 'VIP Pass ต้องมีอายุ 30 วัน';
+  if (!config.vipPlans.length) return 'ต้องมีแพ็ก VIP อย่างน้อย 1 แพ็ก';
+  if (config.vipPlans.some((plan) => !Number.isFinite(plan.durationDays) || plan.durationDays <= 0)) return 'ระยะเวลา VIP ต้องมากกว่า 0';
   if (!Number.isSafeInteger(config.arenaTicketPrice) || config.arenaTicketPrice < 1) return 'ราคาบัตร Ranked ต้องเป็นจำนวนเต็มมากกว่า 0';
   const positive = [config.energyMax, config.regenMinutes, config.energyCost, config.continueEnergyCost, config.exchangeRate, config.missionTarget, config.missionXp, config.roomLimit];
   const nonnegative = [config.vipEnergyBonus, config.checkinReward, config.premiumPrice, config.gachaCost, config.duplicatePoints, config.rankingPrize, config.battleEntry, config.battlePrize, config.decorPrice, ...config.shop.map((item) => item.cost), ...config.energyPacks.map((pack) => pack.cost), ...config.vipPlans.flatMap((plan) => [plan.cost, plan.bonusPoints ?? 0, plan.bonusTickets ?? 0]), ...config.gachaPool.map((item) => item.weight)];
   if (positive.some((value) => !Number.isSafeInteger(value) || value < 1) || nonnegative.some((value) => !Number.isSafeInteger(value) || value < 0)) return 'จำนวนต้องเป็นเลขจำนวนเต็มที่ถูกต้อง';
-  if (config.energyPacks.some((pack) => !Number.isSafeInteger(pack.energy) || pack.energy < 1) || config.vipPlans.some((plan) => !Number.isSafeInteger(plan.durationDays) || plan.durationDays < 1)) return 'ระยะเวลาและจำนวน Energy ต้องมากกว่า 0';
+  if (config.energyPacks.some((pack) => !Number.isSafeInteger(pack.energy) || pack.energy < 1)) return 'จำนวน Energy ต้องมากกว่า 0';
   if (!config.gachaPool.some((item) => item.weight > 0)) return 'Gacha ต้องมีอย่างน้อย 1 ตัวที่มีน้ำหนักมากกว่า 0';
   if (!config.rankingSeasonId.trim()) return 'กรุณาตั้งชื่อ Ranking Season';
   if (config.games.every((game) => game.published === false)) return 'ต้องเผยแพร่อย่างน้อย 1 เกม';
@@ -71,13 +118,61 @@ export function currentPass(player: PlayerState, at = demoNow(player)) {
   return player.demo.passes[currentSeason(player, at).id] ?? { xp: 0, premium: false, claims: [] };
 }
 export function currentSeason(player: PlayerState, at = demoNow(player)) {
-  const template = player.demo.config.seasons.find((season) => season.id === player.demo.config.passSeasonId) ?? player.demo.config.seasons[0];
-  if (player.demo.config.passAutomatic === false) return template;
+  const selected = player.demo.config.seasons.find((season) => season.id === player.demo.config.passSeasonId) ?? player.demo.config.seasons[0];
+  if (player.demo.config.passAutomatic === false) return selected;
   const window = passWindow(at);
+  const month = window.starts.slice(5, 7);
+  const template = player.demo.config.seasons.find((season) => season.starts.slice(5, 7) === month) ?? selected;
   return { ...template, id: `${template.id}:${window.starts}`, name: `S${window.index + 1} · ${template.name}`, starts: window.starts, ends: window.ends };
 }
+export function settleExpiredPasses(player: PlayerState, at = demoNow(player)): PlayerState {
+  if (player.demo.config.passAutomatic === false) return player;
+  const active = currentSeason(player, at);
+  let next = player;
+  const settled = new Set(player.demo.settledPasses ?? []);
+  for (const [seasonId, pass] of Object.entries(player.demo.passes)) {
+    const starts = seasonId.slice(seasonId.lastIndexOf(':') + 1);
+    const templateId = seasonId.slice(0, seasonId.lastIndexOf(':'));
+    if (!player.demo.config.seasons.some((template) => template.id === templateId) || !/^\d{4}-\d{2}-\d{2}$/.test(starts) || starts >= active.starts || settled.has(seasonId)) continue;
+    const rewards: string[] = [];
+    for (const track of ['free', ...(pass.premium ? ['premium'] : [])] as ('free' | 'premium')[]) {
+      const tiers = player.demo.config.seasons.find((item) => item.id === templateId)?.[track] ?? [];
+      for (let index = 0; index < tiers.length; index += 1) {
+        const claimId = `${track}-${index}`;
+        if (pass.xp < (index + 1) * PASS_RULES.xpPerLevel || pass.claims.includes(claimId)) continue;
+        next = grantReward(next, tiers[index]);
+        rewards.push(tiers[index].title);
+      }
+    }
+    settled.add(seasonId);
+    const detail = rewards.length ? `Auto-delivered: ${rewards.join(' · ')}` : 'ไม่มีรางวัลที่มีสิทธิ์ค้างรับ';
+    const notification = { id: `pass:${seasonId}`, title: `สรุปผล Battle Pass · ${seasonId}`, detail, viewed: false, at };
+    next = { ...next, demo: { ...next.demo, notifications: [notification, ...(next.demo.notifications ?? []).filter((item) => item.id !== notification.id)], history: [{ id: notification.id, kind: 'reward' as const, title: notification.title, detail, at }, ...(next.demo.history ?? [])].slice(0, 250) } };
+  }
+  return settled.size === (player.demo.settledPasses ?? []).length ? player : { ...next, demo: { ...next.demo, settledPasses: [...settled] } };
+}
+export function seedDemoScenario(player: PlayerState, scenario: DemoScenario): PlayerState {
+  const now = demoNow(player);
+  const season = currentSeason(player, now);
+  const pass = currentPass(player, now);
+  if (scenario === 'energy-overflow') return { ...player, energy: 34, energyUpdatedAt: now };
+  if (scenario === 'vip-renewal') return { ...player, masquePoints: Math.max(player.masquePoints, 500), energy: 14, vipExpiresAt: now + 2 * 86_400_000 };
+  if (scenario === 'premium-retro') return { ...player, masquePoints: Math.max(player.masquePoints, player.demo.config.premiumPrice), vipExpiresAt: null, demo: { ...player.demo, passes: { ...player.demo.passes, [season.id]: { xp: 1000, premium: false, claims: [] } } } };
+  if (scenario === 'vip-no-premium') return { ...player, masquePoints: Math.max(player.masquePoints, 200), vipExpiresAt: now + 2 * 86_400_000, demo: { ...player.demo, passes: { ...player.demo.passes, [season.id]: { ...pass, premium: false } } } };
+  if (scenario === 'ranking-tie') return { ...player, demo: { ...player.demo, scores: { ...player.demo.scores, bird: 15_320 }, scoreTimes: { ...player.demo.scoreTimes, bird: Date.UTC(2026, 0, 2) } } };
+  if (scenario === 'campaign-ranking' || scenario === 'campaign-settlement') {
+    const settledCampaigns = (player.demo.settledCampaigns ?? []).filter((id) => id !== 'lantern-festival');
+    const closedCampaigns = (player.demo.closedCampaigns ?? []).filter((id) => id !== 'lantern-festival');
+    return { ...player, energy: 15, demo: { ...player.demo, campaignScores: { ...player.demo.campaignScores, 'lantern-festival': { bird: { score: 20_000, achievedAt: now - 60_000 }, memory: { score: 22, achievedAt: now - 30_000 } } }, settledCampaigns, closedCampaigns } };
+  }
+  if (scenario === 'pass-rollover') {
+    const next = { ...player, demo: { ...player.demo, clockOffset: player.demo.clockOffset + Date.parse(`${season.ends}T00:00:00Z`) - now + 1_000, passes: { ...player.demo.passes, [season.id]: { xp: 300, premium: false, claims: [] } }, settledPasses: (player.demo.settledPasses ?? []).filter((id) => id !== season.id) } };
+    return settleExpiredPasses(next, demoNow(next));
+  }
+  return { ...player, masquePoints: Math.max(player.masquePoints, player.demo.config.gachaCost * 10), gachaTickets: Math.max(player.gachaTickets, 10) };
+}
 export function hasPassAccess(player: PlayerState, at = demoNow(player)): boolean {
-  return isVip(player, at) || currentPass(player, at).premium;
+  return currentPass(player, at).premium;
 }
 export function gameMission(player: PlayerState, gameId: GameId) {
   const prefix = `game:${gameId}:`;
@@ -103,7 +198,7 @@ export function awardPassXp(player: PlayerState, amount: number): PlayerState {
   if (!Number.isSafeInteger(amount) || amount <= 0) return player;
   const id = currentSeason(player).id;
   const pass = currentPass(player);
-  return { ...player, demo: { ...player.demo, passes: { ...player.demo.passes, [id]: { ...pass, xp: Math.min(Number.MAX_SAFE_INTEGER, pass.xp + amount) } } } };
+  return { ...player, demo: { ...player.demo, passes: { ...player.demo.passes, [id]: { ...pass, xp: Math.min(PASS_RULES.levels * PASS_RULES.xpPerLevel, pass.xp + amount) } } } };
 }
 export function claimWeeklyMission(player: PlayerState): PlayerState | null {
   const mission = weeklyPassMission(player);
@@ -129,7 +224,11 @@ export function ledger(previous: PlayerState, next: PlayerState, label: string):
   const ais = next.aisPoints - previous.aisPoints;
   const energy = next.energy - previous.energy;
   if (!mp && !ais && !energy) return next;
-  return { ...next, demo: { ...next.demo, transactions: [{ id: crypto.randomUUID(), at: demoNow(next), label, mp, ais, energy }, ...next.demo.transactions].slice(0, 150) } };
+  const at = demoNow(next);
+  const transaction = { id: crypto.randomUUID(), at, label, mp, ais, energy };
+  const kind: 'purchase' | 'reward' = label.includes('ซื้อ') || label.includes('เติม') || label.includes('VIP') || label.includes('คูปอง') ? 'purchase' : 'reward';
+  const history = { id: transaction.id, kind, title: label, detail: [mp ? `${mp > 0 ? '+' : ''}${mp} MP` : '', ais ? `${ais > 0 ? '+' : ''}${ais} AIS Point` : '', energy ? `${energy > 0 ? '+' : ''}${energy} Energy` : ''].filter(Boolean).join(' · '), at };
+  return { ...next, demo: { ...next.demo, transactions: [transaction, ...next.demo.transactions].slice(0, 150), history: [history, ...(next.demo.history ?? [])].slice(0, 250) } };
 }
 export function ownsPassReward(player: PlayerState, reward: DemoReward): boolean {
   if (!reward.itemId) return false;
@@ -144,7 +243,11 @@ export function ownsPassReward(player: PlayerState, reward: DemoReward): boolean
   }
 }
 export function grantReward(player: PlayerState, reward: DemoReward): PlayerState {
-  if (ownsPassReward(player, reward)) return { ...player, masquePoints: player.masquePoints + player.demo.config.duplicatePoints };
+  if (ownsPassReward(player, reward)) {
+    const at = demoNow(player);
+    const next = { ...player, masquePoints: player.masquePoints + player.demo.config.duplicatePoints };
+    return { ...next, demo: { ...next.demo, history: [{ id: crypto.randomUUID(), kind: 'reward' as const, title: reward.title, detail: `ซ้ำ · ชดเชย ${player.demo.config.duplicatePoints} MP`, at }, ...(next.demo.history ?? [])].slice(0, 250) } };
+  }
   const next = { ...player };
   if (reward.type === 'points') next.masquePoints += reward.amount ?? 0;
   if (reward.type === 'energy') next.energy += reward.amount ?? 0;
@@ -160,7 +263,8 @@ export function grantReward(player: PlayerState, reward: DemoReward): PlayerStat
   }
   if (reward.type === 'avatar' && AVATARS.some((item) => item.id === reward.itemId) && !next.ownedAvatarIds.includes(reward.itemId!)) next.ownedAvatarIds = [...next.ownedAvatarIds, reward.itemId!];
   if (reward.type === 'pet' && PETS.some((item) => item.id === reward.itemId) && !next.ownedPetIds.includes(reward.itemId!)) next.ownedPetIds = [...next.ownedPetIds, reward.itemId!];
-  return next;
+  const at = demoNow(player);
+  return { ...next, demo: { ...next.demo, history: [{ id: crypto.randomUUID(), kind: 'reward' as const, title: reward.title, detail: 'รับรางวัลจำลอง', at }, ...(next.demo.history ?? [])].slice(0, 250) } };
 }
 export function beginGame(player: PlayerState, gameId: GameId, mode: GameMode = 'casual'): PlayerState | null {
   if (!player.demo.config.games.some((game) => game.id === gameId && game.published !== false)) return null;
@@ -182,34 +286,54 @@ export function finishGame(player: PlayerState, sessionId: string, score: number
   if (!session || session.finished || !Number.isSafeInteger(score) || score < 0) return null;
   const seasonId = player.demo.config.rankingSeasonId;
   const seasonScores = player.demo.seasonScores[seasonId] ?? {};
+  const isCampaign = session.mode === 'campaign' && Boolean(session.campaignId);
+  const previousBest = player.demo.scores[session.gameId] ?? 0;
+  const improvesBest = score > previousBest;
+  const campaignBest = isCampaign ? player.demo.campaignScores?.[session.campaignId!]?.[session.gameId] : undefined;
+  const improvesCampaign = isCampaign && (!campaignBest || score > campaignBest.score);
   const reward = session.reward ?? { points: 0, xp: 40 };
   const profileXp = player.demo.profileXp + reward.xp;
   const achievements = [...player.demo.achievements];
-  if (!achievements.some((badge) => badge.id === 'first-finish')) achievements.push({ id: 'first-finish', title: 'First Finish', earnedAt: demoNow(player), gameId: session.gameId });
-  if (session.mode === 'ranked' && !achievements.some((badge) => badge.id === 'ranked-debut')) achievements.push({ id: 'ranked-debut', title: 'Ranked Debut', earnedAt: demoNow(player), gameId: session.gameId });
+  const newAchievements: ProfileBadge[] = [];
+  const addAchievement = (badge: ProfileBadge) => {
+    if (achievements.some((earned) => earned.id === badge.id)) return;
+    achievements.push(badge);
+    newAchievements.push(badge);
+  };
+  addAchievement({ id: 'first-finish', title: 'First Finish', earnedAt: demoNow(player), gameId: session.gameId });
+  if (session.mode === 'ranked') addAchievement({ id: 'ranked-debut', title: 'Ranked Debut', earnedAt: demoNow(player), gameId: session.gameId });
   const playCounts = { ...player.demo.playCounts, [session.gameId]: (player.demo.playCounts[session.gameId] ?? 0) + 1 };
-  if (Object.keys(playCounts).length >= 5 && !achievements.some((badge) => badge.id === 'explorer')) achievements.push({ id: 'explorer', title: '5-Game Explorer', earnedAt: demoNow(player) });
+  if (Object.keys(playCounts).length >= 5) addAchievement({ id: 'explorer', title: '5-Game Explorer', earnedAt: demoNow(player) });
+  if (Object.values(playCounts).reduce<number>((total, count) => total + (count ?? 0), 0) >= 10) addAchievement({ id: 'frequent-player', title: 'นักเล่นเกมตัวยง', earnedAt: demoNow(player) });
   const today = dayKey(player);
   const passId = currentSeason(player).id;
   const week = weeklyPassMission(player);
-  return { ...player, masquePoints: player.masquePoints + reward.points, level: 18 + Math.floor(profileXp / 100), demo: { ...player.demo, profileXp, achievements, playCounts,
+  const at = demoNow(player);
+  const gameHistory = { id: crypto.randomUUID(), kind: 'game' as const, title: GAMES.find((game) => game.id === session.gameId)?.name ?? session.gameId, detail: `${session.mode === 'campaign' ? 'Campaign' : 'Normal'} · ${score.toLocaleString()} คะแนน`, at, gameId: session.gameId };
+  const achievementHistory = newAchievements.map((badge) => ({ id: `achievement:${badge.id}`, kind: 'reward' as const, title: badge.title, detail: 'ปลดล็อก Profile badge', at }));
+  const finished: PlayerState = { ...player, masquePoints: player.masquePoints + reward.points, level: 18 + Math.floor(profileXp / 100), demo: { ...player.demo, profileXp, achievements, playCounts,
     sessions: player.demo.sessions.map((entry) => entry.id === sessionId ? { ...entry, finished: true, score } : entry),
-    scores: { ...player.demo.scores, [session.gameId]: Math.max(score, player.demo.scores[session.gameId] ?? 0) },
-    seasonScores: { ...player.demo.seasonScores, [seasonId]: { ...seasonScores, [session.gameId]: Math.max(score, seasonScores[session.gameId] ?? 0) } },
+    scores: isCampaign || !improvesBest ? player.demo.scores : { ...player.demo.scores, [session.gameId]: score },
+    scoreTimes: !isCampaign && improvesBest ? { ...player.demo.scoreTimes, [session.gameId]: at } : player.demo.scoreTimes,
+    campaignScores: improvesCampaign ? { ...player.demo.campaignScores, [session.campaignId!]: { ...player.demo.campaignScores?.[session.campaignId!], [session.gameId]: { score, achievedAt: at } } } : player.demo.campaignScores,
+    seasonScores: isCampaign ? player.demo.seasonScores : { ...player.demo.seasonScores, [seasonId]: { ...seasonScores, [session.gameId]: Math.max(score, seasonScores[session.gameId] ?? 0) } },
+    history: [...achievementHistory, gameHistory, ...(player.demo.history ?? [])].slice(0, 250),
     missionCounts: { ...player.demo.missionCounts, [today]: (player.demo.missionCounts[today] ?? 0) + 1, [`${passId}:${today}`]: (player.demo.missionCounts[`${passId}:${today}`] ?? 0) + 1 },
     weeklyGames: { ...player.demo.weeklyGames, [week.id]: [...new Set([...week.games, session.gameId])] },
   } };
+  return progressMissions(finished, 'game', at);
 }
 export function buyPremium(player: PlayerState): PlayerState | null {
-  if (hasPassAccess(player)) return null;
-  const plan = player.demo.config.vipPlans.find((item) => item.durationDays === PASS_RULES.days && (item.startLevel ?? 1) === 1) ?? player.demo.config.vipPlans[0];
-  return plan ? purchaseVip(player, plan.id, demoNow(player)) : null;
+  if (hasPassAccess(player) || player.masquePoints < player.demo.config.premiumPrice) return null;
+  const season = currentSeason(player);
+  const pass = currentPass(player);
+  return { ...player, masquePoints: player.masquePoints - player.demo.config.premiumPrice, demo: { ...player.demo, passes: { ...player.demo.passes, [season.id]: { ...pass, premium: true } } } };
 }
 export function claimPass(player: PlayerState, track: 'free' | 'premium', index: number): PlayerState | null {
   const pass = currentPass(player);
   const reward = currentSeason(player)[track][index];
   const claimId = `${track}-${index}`;
-  if (!Number.isSafeInteger(index) || !reward || pass.xp < (index + 1) * PASS_RULES.xpPerLevel || pass.claims.includes(claimId) || (track === 'premium' && !hasPassAccess(player))) return null;
+  if (!Number.isSafeInteger(index) || !reward || pass.xp < (index + 1) * PASS_RULES.xpPerLevel || pass.claims.includes(claimId) || (track === 'premium' && !pass.premium)) return null;
   const next = grantReward(player, reward);
   return { ...next, demo: { ...next.demo, passes: { ...next.demo.passes, [currentSeason(player).id]: { ...pass, claims: [...pass.claims, claimId] } } } };
 }
@@ -235,7 +359,7 @@ export function claimBattle(player: PlayerState, id: string): PlayerState | null
 export function claimRankingReward(player: PlayerState, gameId: GameId): PlayerState | null {
   const id = `${player.demo.config.rankingSeasonId}:${gameId}`;
   const score = player.demo.seasonScores[player.demo.config.rankingSeasonId]?.[gameId] ?? 0;
-  const rank = getGameRanking(gameId, 'weekly', player, score).findIndex((entry) => entry.isCurrentPlayer);
+  const rank = getGameRanking(gameId, 'allTime', player, score).findIndex((entry) => entry.isCurrentPlayer);
   if (!score || rank > 2 || player.demo.rankingClaims.includes(id)) return null;
   const badge = { id: `top:${id}`, title: `Top ${rank + 1}`, earnedAt: demoNow(player), seasonId: player.demo.config.rankingSeasonId, gameId };
   return { ...player, masquePoints: player.masquePoints + player.demo.config.rankingPrize, demo: { ...player.demo, rankingClaims: [...player.demo.rankingClaims, id], achievements: [...player.demo.achievements, badge] } };

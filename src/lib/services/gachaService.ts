@@ -79,7 +79,14 @@ export function drawGachaBatch(player: PlayerState, kind: GachaKind, count: 1 | 
     current = drawn.player;
     results.push(drawn.result);
   }
-  return { player: current, results, paidCoupons: count, bonusDraws };
+  const detail = results.map((result) => {
+    if (result.kind === 'energy') return `Energy +${result.amount}`;
+    const item = result.kind === 'pet' ? PETS.find((entry) => entry.id === result.itemId) : AVATARS.find((entry) => entry.id === result.itemId);
+    return `${item?.name ?? result.itemId}${result.duplicate ? ' · ซ้ำ' : ''}`;
+  }).join(' · ');
+  const history = { id: crypto.randomUUID(), kind: 'reward' as const, title: `${kind === 'pet' ? 'Pet' : 'Avatar'} Gacha`, detail: `${detail} · ใช้ ${count} คูปอง${bonusDraws ? ` · โบนัส ${bonusDraws}` : ''}`, at: now };
+  const withHistory = { ...current, demo: { ...current.demo, history: [history, ...(current.demo.history ?? [])].slice(0, 250) } };
+  return { player: withHistory, results, paidCoupons: count, bonusDraws };
 }
 
 export function buyGachaCoupons(player: PlayerState, quantity: 1 | 10): PlayerState | null {

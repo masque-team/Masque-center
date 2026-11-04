@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Zap } from '@lucide/svelte';
 
-  let { energy, vipActive, countdown = '', onRefill, max = 12 }: {
+  let { energy, vipActive, countdown = '', onRefill, max = 15 }: {
     energy: number;
     vipActive: boolean;
     countdown?: string;

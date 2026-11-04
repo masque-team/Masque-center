@@ -17,19 +17,28 @@
   let offer = $derived(vipOffer(player, packageId, now));
   let plans = $derived(player.demo.config.vipPlans.filter((plan) => {
     const candidate = vipOffer(player, plan.id, now);
-    return !!candidate && candidate.eligible && (!candidate.active || candidate.boosted);
+    return !!candidate && candidate.eligible;
   }));
-  let basePlanCost = $derived(player.demo.config.vipPlans.find((plan) => (plan.startLevel ?? 1) === 1)?.cost ?? 0);
+  let short = $derived(Math.max(0, (offer?.cost ?? 0) - player.masquePoints));
+  let season = $derived(currentSeason(player, now));
+  let existingTrack = $derived(hasPassAccess(player, now));
   let milestones = $derived(passBenefitMilestones(player, now));
   let levelThirty = $derived(milestones.find((item) => item.level === 30));
-  let season = $derived(currentSeason(player, now));
-  let existingTrack = $derived(!offer?.active && hasPassAccess(player, now));
-  let short = $derived(Math.max(0, (offer?.cost ?? 0) - player.masquePoints));
-  let pending = $derived(offer && (!existingTrack || offer.boosted) ? season.premium.slice(0, Math.min(50, offer.levelAfter)).map((reward, index) => ({ reward, index })).filter((item) => !player.demo.passes[season.id]?.claims.includes(`premium-${item.index}`)) : []);
+  let pending = $derived(offer ? season.premium.slice(0, Math.min(50, offer.levelAfter)).map((reward, index) => ({ reward, index })).filter((item) => !player.demo.passes[season.id]?.claims.includes(`premium-${item.index}`)) : []);
   let pendingEnergy = $derived(pending.filter((item) => item.reward.type === 'energy').reduce((total, item) => total + (item.reward.amount ?? 0), 0));
   let pendingPoints = $derived(pending.filter((item) => item.reward.type === 'points').reduce((total, item) => total + (item.reward.amount ?? 0), 0));
   let pendingTickets = $derived(pending.filter((item) => item.reward.type === 'ticket').reduce((total, item) => total + (item.reward.amount ?? 0), 0));
   let highlights = $derived(pending.filter((item) => ['avatar', 'pet', 'wing', 'frame', 'background'].includes(item.reward.type)).slice(-4));
+  let plan = $derived(player.demo.config.vipPlans[0]);
+  let allOffers = $derived(player.demo.config.vipPlans.map((item) => ({ plan: item, offer: vipOffer(player, item.id, now) })).filter((entry) => entry.offer && entry.offer.eligible));
+  let upgrades = $derived(player.demo.config.vipPlans.filter((item) => {
+    const candidate = vipOffer(player, item.id, now);
+    return candidate?.active && candidate.boosted && candidate.eligible;
+  }));
+
+  function durationLabel(days: number): string {
+    return days < 1 ? `${Math.round(days * 24)} ชั่วโมง` : days === 1 ? '1 วัน' : `${days} วัน`;
+  }
 </script>
 
 {#if offer}
@@ -40,15 +49,15 @@
         <PassArtwork kind={offer.boosted ? 'boost' : 'crest'} />
       </span>
       <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-white/90 px-2 py-0.5 text-[9px] font-black text-[#8f5400]">
-        <Sparkles size={11} class="text-amber-500" />MASQUE ROYAL VIP PASS
+        <Sparkles size={11} class="text-amber-500" />VIP · DEMO OFFER
       </span>
       <h2 class="mt-1 text-xl font-black leading-tight text-[#352b73]">
-        {offer.active ? 'อัปเกรดเลเวล VIP Pass' : 'เลือกแพ็กเกจ VIP Pass'}
+        {offer.active ? 'ต่ออายุ VIP' : 'เลือกช่วงเวลา VIP'}
       </h2>
       <p class="mt-1 text-[10px] font-bold leading-relaxed text-[#6b5b3e]">
         {offer.active && player.vipExpiresAt
-          ? `VIP ใช้งานถึง ${new Date(player.vipExpiresAt).toLocaleDateString('th-TH')} · อัปเกรดข้ามเลเวลทันทีโดยไม่เพิ่มวัน VIP`
-          : 'ปลดล็อกรางรางวัล VIP 50 ขั้น + สิทธิพิเศษเข้าเกมฟรีตลอด 30 วัน'}
+          ? `VIP ใช้งานถึง ${new Date(player.vipExpiresAt).toLocaleDateString('th-TH')} · ซื้อเพิ่มเพื่อบวกเวลาต่อจากวันหมดอายุ`
+          : 'VIP ยกเว้นเฉพาะค่าเข้าเกมปกติ · ไม่รวม Continue, Campaign Ticket หรือ Premium Pass'}
       </p>
     </header>
 
@@ -57,14 +66,12 @@
       <div
         class={['grid gap-2 pt-1', plans.length === 3 ? 'grid-cols-3' : 'grid-cols-2']}
         role="radiogroup"
-        aria-label={offer.active ? 'เลือกอัปเกรดเลเวล Pass' : 'เลือกแพ็ก VIP Pass'}
+        aria-label={offer.active ? 'เลือกเวลาต่ออายุ VIP' : 'เลือกช่วงเวลา VIP'}
       >
         {#each plans as plan (plan.id)}
           {@const candidate = vipOffer(player, plan.id, now)}
           {#if candidate}
             {@const selected = plan.id === packageId}
-            {@const gained = Math.max(0, candidate.levelAfter - candidate.level)}
-            {@const extraCost = candidate.active ? candidate.cost : Math.max(0, plan.cost - basePlanCost)}
             <button
               class={[
                 'relative flex min-w-0 flex-col items-center rounded-2xl border-2 px-2 pt-4 pb-2.5 text-center transition-[transform,border-color,box-shadow] duration-150 active:translate-y-0.5 disabled:opacity-40 motion-reduce:transition-none',
@@ -74,28 +81,26 @@
               ]}
               role="radio"
               aria-checked={selected}
-              aria-label={candidate.boosted ? `VIP Pass LV.${plan.startLevel}` : 'VIP Pass ปกติ'}
+              aria-label={`${plan.label} · ${plan.durationDays} วัน`}
               disabled={!candidate.eligible}
               onclick={() => onSelect(plan.id)}
             >
               <span
                 class={[
                   'absolute -top-2.5 inset-x-1 mx-auto w-fit rounded-full border border-white px-2 py-0.5 text-[8px] font-black text-white shadow-2xs',
-                  plan.startLevel === 30 ? 'bg-gradient-to-r from-[#ff7a29] to-[#e63e6d]' : candidate.boosted ? 'bg-[#ed9c61]' : 'bg-[#4ea4cc]',
+                  'bg-[#4ea4cc]',
                 ]}
               >
-                {candidate.boosted ? `+${gained} LV BOOST` : 'STANDARD'}
+                DURATION · DEMO
               </span>
               <span class="my-1 block h-16 w-full drop-shadow-[0_3px_5px_rgba(120,80,20,0.22)]">
                 <PassArtwork kind={candidate.boosted ? 'boost' : 'standard'} />
               </span>
               <strong class="text-xs font-black text-[#352b73]">
-                {candidate.boosted ? `ข้ามไป LV.${plan.startLevel}` : 'แพ็ก LV.1'}
+                {plan.label}
               </strong>
               <span class="mt-0.5 min-h-7 text-[8px] font-bold leading-tight text-[#786a52]">
-                {candidate.boosted
-                  ? `+${(gained * PASS_RULES.xpPerLevel).toLocaleString()} XP · ${candidate.active ? `ส่วนต่าง ${extraCost.toLocaleString()}` : `รวม ${plan.cost.toLocaleString()}`}`
-                  : `ไม่ลดเลเวล · ${PASS_RULES.days} วัน`}
+                {candidate.active ? `เพิ่มเวลา ${durationLabel(candidate.plan.durationDays)}` : `ใช้งาน ${durationLabel(candidate.plan.durationDays)}`}
               </span>
               <span class="mt-2 flex w-full items-center justify-between border-t border-amber-200/70 pt-1.5">
                 <strong class="inline-flex items-center gap-1 text-[11px] font-black tabular-nums text-[#6d4200]">
@@ -121,52 +126,37 @@
     <div class="grid grid-cols-3 gap-2 rounded-2xl border-2 border-white bg-[#f3f8ff] p-2.5 text-center shadow-inner">
       <div class="rounded-xl bg-white/90 p-2">
         <Clock3 size={15} class="mx-auto mb-0.5 text-sky-500" />
-        <strong class="block text-xs font-black text-[#2e3d59]">{offer.active ? 'คงวันเดิม' : `${offer.plan.durationDays} วัน`}</strong>
-        <small class="text-[8px] font-bold text-[#7f90a6]">{offer.active ? 'ไม่ขยายวัน VIP' : 'อายุสิทธิ์ VIP'}</small>
+        <strong class="block text-xs font-black text-[#2e3d59]">{durationLabel(offer.plan.durationDays)}</strong>
+        <small class="text-[8px] font-bold text-[#7f90a6]">{offer.active ? 'บวกเวลาต่อท้าย' : 'อายุสิทธิ์ VIP'}</small>
       </div>
       <div class="rounded-xl bg-white/90 p-2">
-        <div class="mx-auto mb-0.5 w-fit"><CurrencyIcon kind="energyPotion" size={16} /></div>
-        <strong class="block text-xs font-black text-[#2e3d59]">{player.demo.config.energyMax + player.demo.config.vipEnergyBonus} MAX</strong>
-        <small class="text-[8px] font-bold text-[#7f90a6]">เพดาน +{player.demo.config.vipEnergyBonus}</small>
+        <div class="mx-auto mb-0.5 w-fit"><Zap size={15} class="text-sky-600" /></div>
+        <strong class="block text-xs font-black text-[#2e3d59]">ค่าเข้า 0</strong>
+        <small class="text-[8px] font-bold text-[#7f90a6]">เกมปกติเท่านั้น</small>
       </div>
       <div class="rounded-xl bg-white/90 p-2">
         <Crown size={15} class="mx-auto mb-0.5 text-amber-500" fill="currentColor" />
-        <strong class="block text-xs font-black text-[#2e3d59]">LV.{offer.levelAfter}</strong>
-        <small class="text-[8px] font-bold text-[#7f90a6]">เลเวลหลังซื้อ</small>
+        <strong class="block text-xs font-black text-[#2e3d59]">{offer.active ? 'ต่ออายุ' : 'ทันที'}</strong>
+        <small class="text-[8px] font-bold text-[#7f90a6]">เปิดสิทธิ์เมื่อซื้อ</small>
       </div>
     </div>
 
     <!-- Perks List -->
     <div class="space-y-1.5 rounded-2xl border border-[#e3ecf7] bg-white/90 p-3 text-[11px] font-semibold text-[#3f536e]">
-      <p class="flex items-center gap-2"><Check size={15} class="shrink-0 text-emerald-600" strokeWidth={3} />{player.demo.config.vipFreeEntry ? 'เกมทั่วไปเข้าเล่นฟรี ไม่หัก Energy (Ranked ใช้ตั๋วตามปกติ)' : 'สิทธิ์เข้าเกมตามกติกาปกติ'}</p>
-      <p class="flex items-center gap-2"><Zap size={15} class="shrink-0 text-amber-500" fill="currentColor" />เพดาน Energy เพิ่มเป็น {player.demo.config.energyMax + player.demo.config.vipEnergyBonus} · ฟื้น +1 ทุก {player.demo.config.regenMinutes} นาที</p>
-      <p class="flex items-center gap-2"><Crown size={15} class="shrink-0 text-purple-600" fill="currentColor" />ปลดล็อกของรางวัลช่อง VIP Track ทุกเลเวลในซีซัน</p>
-      <p class="flex items-center gap-2"><CurrencyIcon kind="petGachaTicket" size={16} />รับคูปองสุ่มกาชาโบนัสทันที: <b>{offer.active ? 0 : offer.plan.bonusTickets ?? 0} ใบ</b></p>
-      <p class="flex items-center gap-2"><Clock3 size={15} class="shrink-0 text-sky-600" />ใช้สิทธิ์ได้ถึง {new Date(offer.expiresAt).toLocaleDateString('th-TH')}</p>
+      <p class="flex items-center gap-2"><Check size={15} class="shrink-0 text-emerald-600" strokeWidth={3} />เข้าเกมปกติฟรีทันทีขณะ VIP ยัง active</p>
+      <p class="flex items-center gap-2"><Zap size={15} class="shrink-0 text-amber-500" fill="currentColor" />Continue / revive ยังคงมีค่าใช้จ่าย Energy</p>
+      <p class="flex items-center gap-2"><Crown size={15} class="shrink-0 text-amber-600" fill="currentColor" />Campaign Ticket และ Premium Pass แยกจาก VIP</p>
+      <p class="flex items-center gap-2"><Clock3 size={15} class="shrink-0 text-sky-600" />หมดอายุ {new Date(offer.expiresAt).toLocaleString('th-TH')}</p>
     </div>
 
-    {#if existingTrack && offer.active && offer.boosted}
-      <p class="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[10px] font-bold leading-relaxed text-sky-800">
-        มีสิทธิ์ช่อง VIP ซีซันนี้แล้ว · การอัปเกรดเพิ่มเลเวล Pass และปลดล็อกรางวัลตาม XP โดยไม่เพิ่มวัน VIP
-      </p>
-    {:else if existingTrack}
-      <p class="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[10px] font-bold leading-relaxed text-sky-800">
-        มีสิทธิ์ช่อง VIP ซีซันนี้แล้ว · รางวัลที่ปลดล็อกกดรับในหน้า Pass
-      </p>
-    {:else if !offer.active && !offer.boosted && levelThirty}
-      <p class="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[10px] font-bold leading-relaxed text-sky-800">
-        เมื่อเล่นถึง LV.30 รับจากช่อง VIP เพิ่มอีก <strong>{levelThirty.vipEnergy} Energy</strong>, {levelThirty.vipPoints.toLocaleString()} MP และคูปองกาชา {levelThirty.vipTickets} ใบ
-      </p>
-    {/if}
-
     <!-- Instant Unlock Rewards Preview -->
-    {#if (offer.boosted || !offer.active) && pending.length > 0}
+    {#if false}
       <section class="space-y-2 rounded-2xl border-2 border-amber-200 bg-gradient-to-b from-[#fffdf4] to-[#fff3cc] p-3" aria-label="รางวัลที่ปลดล็อกหลังซื้อ">
         <div class="flex items-center justify-between">
           <h3 class="flex items-center gap-1 text-xs font-black text-[#7a4b00]">
             <Sparkles size={13} class="text-amber-500" />ปลดล็อกทันที {pending.length} ขั้น VIP ให้กดรับ!
           </h3>
-          <span class="rounded-full bg-amber-400/25 px-2 py-0.5 text-[9px] font-black text-[#855200]">ถึง LV.{Math.min(50, offer.levelAfter)}</span>
+            <span class="rounded-full bg-amber-400/25 px-2 py-0.5 text-[9px] font-black text-[#855200]">ถึง LV.{Math.min(50, offer?.levelAfter ?? 0)}</span>
         </div>
         <div class="flex flex-wrap gap-2 text-[11px] font-black">
           {#if pendingEnergy > 0}
@@ -199,7 +189,7 @@
       </section>
     {/if}
 
-    {#if !offer.active || offer.boosted}
+    {#if false}
       <details class="rounded-xl border border-[#e5ebf2] bg-white/70 px-3 py-2">
         <summary class="flex min-h-8 cursor-pointer items-center justify-between text-xs font-extrabold text-[#4b5e78]">
           ตารางรางวัล Energy สะสมตามเลเวล<ChevronDown size={15} />
@@ -223,12 +213,7 @@
 
     <!-- Sticky Purchase Footer -->
     <footer class="sticky bottom-0 space-y-2 border-t-2 border-white bg-[#fcfbff]/95 pt-3 pb-1 backdrop-blur-md">
-      {#if offer.active && !offer.boosted}
-        <p class="text-center text-xs font-bold text-[#6b8795]">
-          VIP Pass ใช้งานถึง {new Date(offer.expiresAt).toLocaleDateString('th-TH')} · เลือกอัปเกรดเลเวล Pass ได้ด้านบน
-        </p>
-        <GameButton block variant="ghost" onclick={onClose}>ปิดหน้าต่าง</GameButton>
-      {:else}
+      {#if offer}
         <div class="flex items-center justify-between gap-2 rounded-xl bg-[#f5f0ff] px-3 py-2">
           <div class="flex items-center gap-1.5">
             <CurrencyIcon kind="points" size={22} />
@@ -248,12 +233,12 @@
           <GameButton
             block
             variant="gold"
-            label={`${offer.active ? 'อัปเกรด' : 'ซื้อ'} VIP Pass LV.${offer.plan.startLevel ?? 1} · ${offer.cost.toLocaleString()} MP`}
+            label={`VIP · ${durationLabel(offer.plan.durationDays)} · ${offer.cost.toLocaleString()} MP`}
             disabled={short > 0 || !offer.eligible}
             onclick={onConfirm}
           >
             <Crown size={16} fill="currentColor" />
-            {offer.active ? `อัปเกรดเป็น LV.${offer.plan.startLevel}` : `ซื้อแพ็ก LV.${offer.plan.startLevel ?? 1}`}
+            {offer.active ? `ต่อ VIP +${durationLabel(offer.plan.durationDays)}` : `ซื้อ VIP ${durationLabel(offer.plan.durationDays)}`}
           </GameButton>
         </div>
         {#if short > 0}

@@ -14,7 +14,7 @@
   } = $props();
   let tab = $state<'info' | 'ranking'>('info');
   let freeEntry = $derived(vipActive && player.demo.config.vipFreeEntry);
-  let period = $state<RankingPeriod>('weekly');
+  let period = $state<RankingPeriod>('allTime');
   let avatar = $derived(AVATARS.find((item) => item.id === player.avatarId) ?? AVATARS[0]);
   let pet = $derived(PETS.find((item) => item.id === player.petId));
   let rankingGame = $state<GameId>('bird');

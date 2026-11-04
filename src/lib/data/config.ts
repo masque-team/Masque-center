@@ -1,7 +1,7 @@
 import type { VipPackage } from '../types';
 
 export const ENERGY_CONFIG = {
-  max: 12,
+  max: 15,
   costPerGame: 1,
   refillEveryMs: 30 * 60 * 1000,
   refillPacks: [
@@ -35,9 +35,9 @@ export const POINT_PACKS = [
 ] as const;
 
 export const VIP_PACKAGES: VipPackage[] = [
-  { id: 'monthly', label: 'VIP Pass LV.1', durationDays: 30, cost: 990, reward: 'Gacha Coupons x2', bonusPoints: 0, bonusTickets: 2, startLevel: 1 },
-  { id: 'monthly-boost-20', label: 'VIP Pass LV.20', durationDays: 30, cost: 1490, reward: 'Gacha Coupons x2', bonusPoints: 0, bonusTickets: 2, startLevel: 20 },
-  { id: 'monthly-boost-30', label: 'VIP Pass LV.30', durationDays: 30, cost: 1990, reward: 'Gacha Coupons x2', bonusPoints: 0, bonusTickets: 2, startLevel: 30 },
+  { id: 'vip-6h', label: 'VIP 6 ชั่วโมง · ราคาเดโม', durationDays: 0.25, cost: 20, reward: 'เข้าเกมปกติฟรี', startLevel: 1 },
+  { id: 'vip-1d', label: 'VIP 1 วัน · ราคาเดโม', durationDays: 1, cost: 50, reward: 'เข้าเกมปกติฟรี', startLevel: 1 },
+  { id: 'vip-3d', label: 'VIP 3 วัน · ราคาเดโม', durationDays: 3, cost: 120, reward: 'เข้าเกมปกติฟรี', startLevel: 1 },
 ];
 
 export const BATTLE_PASS = {

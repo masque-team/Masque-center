@@ -1,14 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Clock3, Coins, FlaskConical, RotateCcw, Save, Settings2, Trophy } from '@lucide/svelte';
+  import { Clock3, Coins, FlaskConical, RotateCcw, Save, Settings2, Sparkles, Trophy } from '@lucide/svelte';
   import GameButton from '../components/GameButton.svelte';
   import PageTitle from '../components/PageTitle.svelte';
   import { createDemo } from '../services/demoService';
   import { AVATARS, PETS, PROFILE_BACKGROUNDS, WINGS } from '../data/config';
-  import type { DemoConfig, DemoReward, PlayerState } from '../types';
-  let { player, onSave, onReset, onClock, onRankingReset, onSeed }: {
+  import type { DemoConfig, DemoReward, DemoScenario, PlayerState } from '../types';
+  let { player, onSave, onReset, onClock, onRankingReset, onSeed, onSeedScenario }: {
     player: PlayerState; onSave: (config: DemoConfig) => void; onReset: () => void;
     onClock: (hours: number) => void; onRankingReset: () => void; onSeed: () => void;
+    onSeedScenario: (scenario: DemoScenario) => void;
   } = $props();
   let draft = $state<DemoConfig>(createDemo().config);
   let section = $state('economy');
@@ -16,6 +17,7 @@
   let newCatalogItem = $state('avatar:nami');
   let newCatalogPrice = $state(100);
   let catalogMessage = $state('');
+  let scenario = $state<DemoScenario>('premium-retro');
   onMount(() => { draft = structuredClone($state.snapshot(player.demo.config)); });
   const numericFields = [
     ['energyMax', 'เพดาน Energy ฟรี', 1], ['vipEnergyBonus', 'VIP เพิ่มเพดาน Energy', 0], ['regenMinutes', 'ฟื้น 1 Energy ทุก (นาที)', 1], ['energyCost', 'Energy ค่าเข้าเกม', 1], ['continueEnergyCost', 'Energy เล่นต่อ (เตรียมไว้)', 1],
@@ -50,6 +52,23 @@
     <GameButton variant="ghost" size="sm" onclick={onSeed}><Coins size={15} />เติมทุนจำลอง</GameButton>
     <GameButton variant="ghost" size="sm" onclick={onReset}><RotateCcw size={15} />Reset Demo</GameButton>
   </div>
+  <section class="space-y-2 border-y border-sky-200 bg-sky-50/60 py-3" aria-label="Acceptance scenarios">
+    <label class="grid gap-1 text-xs font-bold">Acceptance scenario
+      <select class="min-h-11 rounded-md border border-white bg-white/80 px-3 text-sm" bind:value={scenario}>
+        <option value="energy-overflow">Energy overflow · 34/15</option>
+        <option value="vip-renewal">VIP renewal · 2 days remain</option>
+        <option value="premium-retro">Free Pass level 10 · Premium not owned</option>
+        <option value="vip-no-premium">VIP active · Premium locked</option>
+        <option value="ranking-tie">All-time ranking tie · Alice earlier</option>
+        <option value="campaign-ranking">Bird + Memory campaign scores</option>
+        <option value="campaign-settlement">Campaign results ready to settle</option>
+        <option value="pass-rollover">New calendar season · auto-delivery popup</option>
+        <option value="gacha-ready">Gacha test · 10 tickets</option>
+      </select>
+    </label>
+    <GameButton block variant="mint" onclick={() => onSeedScenario(scenario)}><Sparkles size={16} />Load scenario</GameButton>
+    <p class="text-[10px] text-slate-600">DEV ONLY · Replaces the relevant mock values locally; no server or payment calls.</p>
+  </section>
   <div class="grid grid-cols-4 gap-1 border-b border-white pb-2" aria-label="หมวดตั้งค่า">{#each [{ id: 'economy', label: 'Economy' }, { id: 'season', label: 'Seasons' }, { id: 'catalog', label: 'Catalog' }, { id: 'social', label: 'Social' }] as item (item.id)}<button class="min-h-11 min-w-0 rounded-md px-1 text-xs font-bold" class:bg-white={section === item.id} aria-pressed={section === item.id} onclick={() => section = item.id}>{item.label}</button>{/each}</div>
   <form class="space-y-5" onsubmit={(event) => { event.preventDefault(); onSave(structuredClone($state.snapshot(draft))); }}>
     {#if section === 'economy'}

@@ -55,11 +55,13 @@ export interface RankingEntry {
   playerId: string;
   displayName: string;
   score: number;
+  achievedAt?: number;
   isCurrentPlayer?: boolean;
 }
 
-export type RankingPeriod = 'weekly' | 'allTime';
-export type GameMode = 'casual' | 'ranked';
+export type RankingPeriod = 'allTime';
+export type GameMode = 'casual' | 'ranked' | 'campaign';
+export type DemoScenario = 'energy-overflow' | 'vip-renewal' | 'premium-retro' | 'vip-no-premium' | 'ranking-tie' | 'campaign-ranking' | 'campaign-settlement' | 'pass-rollover' | 'gacha-ready';
 export type GachaKind = 'avatar' | 'pet';
 export type GachaDrawResult =
   | { kind: 'energy'; amount: number; duplicate: false }
@@ -69,7 +71,7 @@ export interface GachaBatchResult { player: PlayerState; results: GachaDrawResul
 export interface ProfileStyle { backgroundId: string; bio: string; badgeIds: string[] }
 export interface ProfileBadge { id: string; title: string; earnedAt: number; seasonId?: string; gameId?: GameId }
 
-export type Page = 'home' | 'world' | 'shop' | 'rewards' | 'ranking' | 'avatar' | 'profile' | 'room' | 'game' | 'detail' | 'battle' | 'admin' | 'wallet' | 'points' | 'gacha';
+export type Page = 'home' | 'hub' | 'world' | 'shop' | 'rewards' | 'ranking' | 'avatar' | 'profile' | 'room' | 'game' | 'detail' | 'battle' | 'admin' | 'wallet' | 'points' | 'gacha' | 'campaigns' | 'campaign' | 'missions' | 'inventory' | 'history' | 'vip';
 
 export type ShopTab = 'items' | 'exchange' | 'energy' | 'vip';
 
@@ -101,6 +103,23 @@ export interface DemoSeason {
   ends: string;
   free: DemoReward[];
   premium: DemoReward[];
+}
+
+export interface CampaignRewardTier {
+  label: string;
+  fromRank: number;
+  toRank: number;
+  rewards: DemoReward[];
+}
+
+export interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  gameIds: GameId[];
+  entry: 'free' | 'ticket';
+  ticketCost: number;
+  rewards: CampaignRewardTier[];
 }
 
 export interface DemoConfig {
@@ -148,14 +167,24 @@ export interface DemoState {
   config: DemoConfig;
   profileXp: number;
   transactions: { id: string; at: number; label: string; mp: number; ais: number; energy: number }[];
-  sessions: { id: string; gameId: GameId; startedAt: number; finished: boolean; score?: number; mode?: GameMode; reward?: { points: number; xp: number } }[];
+  sessions: { id: string; gameId: GameId; startedAt: number; finished: boolean; score?: number; mode?: GameMode; campaignId?: string; reward?: { points: number; xp: number } }[];
   arenaTickets: number;
   playTimeMs: Partial<Record<GameId, number>>;
   playCounts: Partial<Record<GameId, number>>;
   achievements: ProfileBadge[];
   profile: ProfileStyle;
   scores: Partial<Record<GameId, number>>;
+  scoreTimes?: Partial<Record<GameId, number>>;
   seasonScores: Record<string, Partial<Record<GameId, number>>>;
+  campaignScores?: Record<string, Partial<Record<GameId, { score: number; achievedAt: number }>>>;
+  campaignTickets?: number;
+  settledCampaigns?: string[];
+  settledPasses?: string[];
+  closedCampaigns?: string[];
+  notifications?: { id: string; title: string; detail: string; viewed: boolean; at: number }[];
+  history?: { id: string; kind: 'game' | 'purchase' | 'reward'; title: string; detail: string; at: number; gameId?: GameId }[];
+  missionProgress?: Record<string, number>;
+  recentMissionEvents?: { title: string; before: number; after: number; target: number; xp: number }[];
   rankingClaims: string[];
   rankingResets: string[];
   passes: Record<string, { xp: number; premium: boolean; claims: string[] }>;

@@ -3,19 +3,20 @@ import type { DemoReward, PlayerState } from '../types';
 
 export const PASS_RULES = { days: 30, levels: 50, xpPerLevel: 100, dailyXp: 200, weeklyXp: 500, weeklyGames: 4 } as const;
 const DAY = 86_400_000;
-const EPOCH = Date.UTC(2026, 0, 1);
 
 export function passWindow(now: number) {
-  const index = Math.floor((now - EPOCH) / (PASS_RULES.days * DAY));
-  const startsAt = EPOCH + index * PASS_RULES.days * DAY;
-  const endsAt = startsAt + PASS_RULES.days * DAY;
+  const date = new Date(now);
+  const startsAt = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1);
+  const endsAt = Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1);
+  const index = date.getUTCFullYear() * 12 + date.getUTCMonth() - 2026 * 12;
   return { index, startsAt, endsAt, starts: new Date(startsAt).toISOString().slice(0, 10), ends: new Date(endsAt).toISOString().slice(0, 10), remaining: Math.max(0, endsAt - now) };
 }
 
 export function passProgress(xp: number) {
   const safeXp = Number.isSafeInteger(xp) && xp > 0 ? xp : 0;
-  const level = Math.floor(safeXp / PASS_RULES.xpPerLevel);
-  return { level, mainLevel: Math.min(PASS_RULES.levels, level), nextXp: (level + 1) * PASS_RULES.xpPerLevel, withinLevel: safeXp % PASS_RULES.xpPerLevel, complete: level >= PASS_RULES.levels };
+  const cappedXp = Math.min(PASS_RULES.levels * PASS_RULES.xpPerLevel, safeXp);
+  const level = Math.floor(cappedXp / PASS_RULES.xpPerLevel);
+  return { level, mainLevel: level, nextXp: (level + 1) * PASS_RULES.xpPerLevel, withinLevel: level === PASS_RULES.levels ? 0 : cappedXp % PASS_RULES.xpPerLevel, complete: level >= PASS_RULES.levels };
 }
 
 export function battlePassLevel(player: PlayerState): number {

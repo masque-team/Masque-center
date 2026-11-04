@@ -3,7 +3,6 @@
   import AssetPortrait from '../components/AssetPortrait.svelte';
   import CurrencyIcon from '../components/CurrencyIcon.svelte';
   import GameButton from '../components/GameButton.svelte';
-  import PointShop from '../components/PointShop.svelte';
   import RarityChip from '../components/RarityChip.svelte';
   import { AVATARS, NAV_ARTWORK, PETS, WINGS } from '../data/config';
   import { energyCapacity } from '../services/energyService';
@@ -17,8 +16,9 @@
     onBuy,
     onRefill,
     onBuyTickets,
-    onBuyPointPack,
     onBuyGachaCoupons,
+    onVip,
+    onMockAisTopUp,
   }: {
     player: PlayerState;
     vipActive: boolean;
@@ -27,8 +27,9 @@
     onRefill: (id: string) => void;
     countdown: string;
     onBuyTickets: (quantity: number) => void;
-    onBuyPointPack: (id: string) => void;
     onBuyGachaCoupons: (quantity: 1 | 10) => void;
+    onVip: (id: string) => void;
+    onMockAisTopUp: (amount: number) => void;
   } = $props();
 
   let category = $state<'all' | 'avatar' | 'pet' | 'wing' | 'frame'>('all');
@@ -37,9 +38,10 @@
   let gachaCost = $derived(player.demo.config.gachaCost);
 
   const tabs = [
-    { id: 'items', label: 'ของขาย', kind: 'arenaTicket' as const },
-    { id: 'exchange', label: 'เติมแต้ม', kind: 'points' as const },
+    { id: 'items', label: 'ของขาย', kind: 'points' as const },
     { id: 'energy', label: 'Energy', kind: 'energyPotion' as const },
+    { id: 'vip', label: 'VIP', kind: 'aisPoints' as const },
+    { id: 'exchange', label: 'AIS Point', kind: 'aisPoints' as const },
   ] as const;
 
   let products = $derived(
@@ -84,7 +86,7 @@
   </div>
 
   <div
-    class="sticky top-[74px] z-20 grid grid-cols-3 gap-1.5 rounded-2xl border-2 border-white bg-[#e8f1ff]/95 p-1.5 shadow-[0_4px_0_#c5d5eb] backdrop-blur-md"
+    class="sticky top-[74px] z-20 grid grid-cols-4 gap-1 rounded-2xl border-2 border-white bg-[#e8f1ff]/95 p-1.5 shadow-[0_4px_0_#c5d5eb] backdrop-blur-md"
     role="tablist"
     aria-label="หมวดร้านค้า"
   >
@@ -110,7 +112,20 @@
 
   <section class="min-h-[calc(100dvh_-_180px)]" aria-label={tab === 'exchange' ? 'แพ็กเติมแต้ม' : tab === 'energy' ? 'เติม Energy' : 'สินค้า'}>
     {#if tab === 'exchange'}
-      <PointShop {player} embedded onBuy={onBuyPointPack} />
+      <div class="space-y-4">
+        <section class="space-y-3 rounded-2xl border-2 border-white bg-white/80 p-4" aria-label="AIS Point top-up จำลอง">
+          <h2 class="text-base font-black text-[#2b2468]">AIS Point · Demo top-up</h2>
+          <p class="text-xs text-[#71839a]">ยอด {player.aisPoints.toLocaleString()} · ไม่เรียก Billing API และไม่มีการตัดเงินจริง</p>
+          <div class="grid grid-cols-2 gap-2">{#each [100, 500] as amount (amount)}<GameButton block variant="mint" onclick={() => onMockAisTopUp(amount)}>จำลอง +{amount} AIS Point</GameButton>{/each}</div>
+        </section>
+      </div>
+    {:else if tab === 'vip'}
+      <div class="space-y-3">
+        <h2 class="font-black text-[#2b2468]">VIP · ยกเว้นเฉพาะค่าเข้าเกมปกติ</h2>
+        <p class="text-xs text-[#71839a]">ไม่รวม Continue, Campaign Ticket หรือ Premium Pass · แพ็กและราคาเป็นตัวอย่างเดโม</p>
+        {#if vipActive && player.vipExpiresAt}<p class="border-y border-white py-2 text-xs font-bold">ใช้งานถึง {new Date(player.vipExpiresAt).toLocaleString('th-TH')}</p>{/if}
+        {#each player.demo.config.vipPlans as plan (plan.id)}<button class="flex min-h-14 w-full items-center justify-between gap-3 border-b border-white/80 px-2 text-left" aria-label={`${vipActive ? 'ต่ออายุ' : 'ซื้อ'} ${plan.label} · ${plan.cost} MP`} onclick={() => onVip(plan.id)}><span><strong class="block text-sm">{plan.label}</strong><small class="text-xs text-[#71839a]">{plan.durationDays < 1 ? `${Math.round(plan.durationDays * 24)} ชั่วโมง` : `${plan.durationDays} วัน`} · ราคาเดโม</small></span><b class="shrink-0 text-amber-800">{plan.cost} MP</b></button>{/each}
+      </div>
     {:else if tab === 'energy'}
       <div class="space-y-4">
         <section class="space-y-3 rounded-2xl border-2 border-white bg-gradient-to-br from-white via-[#f2faff] to-[#e1f3ff] p-4 shadow-[0_5px_0_#bfd8ea]" aria-label="สถานะ Energy">
@@ -140,7 +155,7 @@
           {/if}
           {#if vipActive}
             <p class="rounded-xl border border-amber-200 bg-[#fff9e8] p-2.5 text-[11px] font-semibold leading-relaxed text-amber-800">
-              👑 VIP Pass ทำงานอยู่: เกมทั่วไปเข้าเล่นฟรี 0 Energy · MAX +{player.demo.config.vipEnergyBonus}
+              VIP ทำงานอยู่: เกมปกติเข้าฟรี · Natural cap ยังคง {player.demo.config.energyMax} · Continue ยังใช้ Energy
             </p>
           {/if}
         </section>
@@ -180,7 +195,7 @@
         <!-- Game-Style Ticket & Gacha Coupon Showcase Cards (No Web Form Number Input!) -->
         <div class="grid grid-cols-2 gap-3" aria-label="ตั๋วเข้าเล่นและคูปองสุ่ม">
           <!-- Arena Ranked Ticket Card -->
-          <article class="relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-white bg-gradient-to-b from-[#fff5f6] via-white to-[#ffecef] p-3 pt-5 text-center shadow-[0_5px_0_#e5c2cb]">
+          {#if false}<article class="relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-white bg-gradient-to-b from-[#fff5f6] via-white to-[#ffecef] p-3 pt-5 text-center shadow-[0_5px_0_#e5c2cb]">
             <span class="absolute -top-2.5 rounded-full border border-white bg-gradient-to-r from-rose-500 to-amber-500 px-2.5 py-0.5 text-[9px] font-extrabold text-white shadow-xs">
               ⚔️ BATTLE ARENA
             </span>
@@ -211,7 +226,7 @@
                 <CurrencyIcon kind="points" size={15} />แพ็ก 5 ใบ · {ticketPrice * 5} MP
               </GameButton>
             </div>
-          </article>
+          </article>{/if}
 
           <!-- Gacha Coupon Card -->
           <article class="relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-white bg-gradient-to-b from-[#f0f9ff] via-white to-[#fff5df] p-3 pt-5 text-center shadow-[0_5px_0_#c4d9eb]">
