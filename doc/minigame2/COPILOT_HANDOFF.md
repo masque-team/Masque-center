@@ -3,6 +3,7 @@
 **Status:** Functional frontend demo through M1-M3; ready for Gemini/Argon visual exploration.  
 **Implementation commit:** `c484447` (pushed to `main`).
 **Final rules/UI follow-up commit:** `45c9288` (pushed to `main`). AIS Point only in customer flows, Shop Gacha Boxes, VIP Energy MAX 30 while active, and floating Simulate Finish.
+**Functional audit commit:** `560698c` (committed locally; not pushed per request).
 **Scope:** Svelte 5 + Vite + TypeScript + Tailwind CSS 4. Frontend only; local mock state and the existing `masquegame_center_v2` localStorage save. No backend, database, AIS integration, billing, SSO, multiplayer service, or score verification was added.
 
 ## Screens And Routes
