@@ -119,10 +119,35 @@ progress::-moz-progress-bar {
   box-shadow: 0 10px 48px rgb(28 60 110 / 22%);
 }
 .app-main { min-height: 100dvh; }
+.page-sheet {
+  margin-top: -18px;
+  border-top: 2px solid rgb(255 255 255 / 92%);
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(180deg, rgb(255 255 255 / 96%) 0%, rgb(246 242 255 / 94%) 140px, rgb(244 250 255 / 94%) 100%);
+  box-shadow: 0 -6px 18px rgb(28 45 86 / 16%), inset 0 2px 0 #ffffff;
+  backdrop-filter: blur(8px);
+}
+.story-sheet-glow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(76%, 280px);
+  height: 18px;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at 50% 0%, rgb(250 204 21 / 75%) 0%, rgb(168 85 247 / 32%) 58%, transparent 100%);
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: sheet-catch-glow 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes sheet-catch-glow {
+  0% { opacity: 0; width: 48px; }
+  45% { opacity: 1; width: min(82%, 310px); }
+  100% { opacity: 0; width: min(92%, 340px); }
+}
 .page-shell {
   width: 100%;
   min-height: 100dvh;
-  padding: calc(10px + env(safe-area-inset-top, 0px)) 14px calc(108px + env(safe-area-inset-bottom, 0px));
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 14px calc(78px + env(safe-area-inset-bottom, 0px));
 }
 .page-stack {
   display: grid;

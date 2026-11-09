@@ -4,15 +4,18 @@
   import { SvelteDate } from 'svelte/reactivity';
   import { Crown, Gamepad2, Settings2, ArrowUpRight, Trophy, Sparkles, Clock3, Flag, ChevronLeft, ChevronRight, Award, Flame } from '@lucide/svelte';
   import AppHeader from './lib/components/AppHeader.svelte';
+  import ScenicHeader from './lib/components/ScenicHeader.svelte';
   import BottomNav from './lib/components/BottomNav.svelte';
   import CurrencyIcon from './lib/components/CurrencyIcon.svelte';
   import DailyCheckinCard from './lib/components/DailyCheckinCard.svelte';
   import GameDetailPage from './lib/pages/GameDetailPage.svelte';
+  import GameOverPage from './lib/pages/GameOverPage.svelte';
   import GameCard from './lib/components/GameCard.svelte';
   import GameScreen from './lib/components/GameScreen.svelte';
   import EntryPage from './lib/pages/EntryPage.svelte';
   import ModalHost from './lib/components/ModalHost.svelte';
-  import MissionProgressHud, { type HudNotificationItem } from './lib/components/MissionProgressHud.svelte';
+  import MissionProgressHud from './lib/components/MissionProgressHud.svelte';
+  import { achievementHud, checkinHud, type HudNotificationItem } from './lib/services/missionHud';
   import SectionHeading from './lib/components/SectionHeading.svelte';
   import Toast from './lib/components/Toast.svelte';
   import PetGacha from './lib/components/PetGacha.svelte';
@@ -26,6 +29,7 @@
   import RankingPage from './lib/pages/RankingPage.svelte';
   import AdminPage from './lib/pages/AdminPage.svelte';
   import ShopPage from './lib/pages/ShopPage.svelte';
+  import HomeDashboard from './lib/pages/HomeDashboard.svelte';
   import VeaseFrame from './lib/components/VeaseFrame.svelte';
   import RewardIcon from './lib/components/RewardIcon.svelte';
   import type { SceneState } from '@masque/vease-protocol';
@@ -33,7 +37,7 @@
   import { GAMES, GAME_BY_ID } from './lib/data/games';
   import { MOCK_RANKINGS } from './lib/data/mockRankings';
   import { equipOutfit, selectAvatar } from './lib/services/avatarService';
-  import { isVip, nextRefillIn, refreshEnergy, refillEnergy } from './lib/services/energyService';
+  import { energyCapacity, isVip, nextRefillIn, refreshEnergy, refillEnergy } from './lib/services/energyService';
   import { purchaseVip, vipOffer } from './lib/services/passService';
   import { beginCampaignGame, buyCampaignTicketPack, finalizeCampaign, markNotificationViewed, settleExpiredCampaigns } from './lib/services/campaignService';
   import { equipPet } from './lib/services/petService';
@@ -64,12 +68,15 @@
   let homeGenre = $state('all');
   let carouselIndex = $state(0);
   let carouselPaused = $state(false);
+  let carouselInteracted = $state(false);
+  let swipeStart: { x: number; y: number } | null = null;
   let pointsReturnRoute = $state<Page | null>(null);
   let sceneState = $derived(veaseState(player));
   let wardrobeHeight = $state(1000);
   let motionReduced = $state(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const initialGameId = GAMES.find((game) => game.published !== false)!.id;
   let gameId = $state<GameId>(initialGameId);
+  let lastGameResult = $state<{ gameId: GameId; score: number } | null>(null);
   let rankingGameId = $state<GameId>(initialGameId);
   let rankingPeriod = $state<RankingPeriod>('allTime');
   let modal = $state<ModalState>(null);
@@ -85,7 +92,7 @@
   let gachaTimer: number | undefined;
   let lastPlaySample = performance.now();
   let playClockVisible = !document.hidden;
-  let shopTab = $state<ShopTab>('items');
+  let shopTab = $state<ShopTab>('energy');
   let exchangeAmount = $state(1);
   let joinCode = $state('');
   let gachaBusy = $state(false);
@@ -135,15 +142,24 @@
   }
 
   function persist(next = player, label = 'อัปเดตข้อมูล'): void {
+    const updates = achievementHud(player, next, demoNow(next));
+    enqueueHudNotifications(updates);
+    for (const update of updates) {
+      if (update.badgeId && !player.demo.achievements.some((badge) => badge.id === update.badgeId)) {
+        next = markNotificationViewed(next, `achievement:${update.badgeId}`);
+      }
+    }
     player = ledger(player, next, label);
     savePlayer(player);
   }
 
-  function enterSession(name: string): void {
+  function enterSession(name: string, avatarId: string): void {
     const displayName = name.trim().replace(/\s+/g, ' ').slice(0, 40);
     if (!displayName) return;
+    const selected = selectAvatar(player, avatarId);
+    if (!selected) return;
     sessionName = displayName;
-    player = { ...player, displayName };
+    player = { ...selected, displayName };
     savePlayer(player);
     hasEntered = true;
     if (window.location.hash && window.location.hash !== '#') handleRoute();
@@ -230,13 +246,13 @@
 
   function simulateFinish(): void {
     flushPlayTime();
-    const prevAchievementIds = new Set((player.demo.achievements ?? []).map((a) => a.id));
     const score = Math.round((MOCK_RANKINGS[gameId]?.[0]?.score ?? 1000) * (0.7 + Math.random() * 0.6));
     const session = player.demo.sessions.find((entry) => entry.id === activeSessionId);
-    const reward = session?.reward ?? { points: 0, xp: 40 };
     const next = finishGame(player, activeSessionId, score);
     if (!next) return;
+    const profileXpGain = next.demo.profileXp - player.demo.profileXp;
     persist(next, 'จบเกม');
+    lastGameResult = { gameId, score };
     navigate(session?.mode === 'campaign' && session.campaignId ? `campaign/${session.campaignId}` : `detail/${gameId}`);
 
     const events = next.demo.recentMissionEvents ?? [];
@@ -264,27 +280,17 @@
         before: 0,
         after: 1,
         target: 1,
-        xp: reward.xp,
-      });
-    }
-
-    const newlyUnlocked = (next.demo.achievements ?? []).filter((a) => !prevAchievementIds.has(a.id));
-    for (const ach of newlyUnlocked) {
-      newHudItems.push({
-        id: crypto.randomUUID(),
-        kind: 'achievement',
-        title: ach.title,
-        subtitle: 'ปลดล็อกเหรียญตราใหม่!',
-        before: 0,
-        after: 1,
-        target: 1,
         xp: 0,
-        rewardText: 'เหรียญตราใหม่',
-        badgeId: ach.id,
+        rewardText: profileXpGain > 0 ? `+${profileXpGain} Profile XP` : undefined,
       });
     }
 
     enqueueHudNotifications(newHudItems);
+  }
+
+  function leaveGame(): void {
+    const session = player.demo.sessions.find((entry) => entry.id === activeSessionId);
+    navigate(session?.mode === 'campaign' && session.campaignId ? `campaign/${session.campaignId}` : `detail/${gameId}`);
   }
 
   function todayKey(date = new Date(now)): string {
@@ -308,8 +314,20 @@
     if (!hasEntered) return;
     flushPlayTime();
     clearIframeTimeout();
+    if (gachaBusy) showToast('เก็บกล่องไว้ในคลังแล้ว');
+    if (gachaTimer) window.clearTimeout(gachaTimer);
+    gachaTimer = undefined;
+    gachaBusy = false;
+    modal = null;
+    confirmAction = null;
+    if (pendingNotificationId) {
+      player = markNotificationViewed(player, pendingNotificationId);
+      savePlayer(player);
+      pendingNotificationId = null;
+    }
     const [routePath, hashQuery = ''] = window.location.hash.replace(/^#/, '').split('?');
     const [route, requestedGame] = routePath.split('/');
+    if (lastGameResult && (route !== 'detail' || requestedGame !== lastGameResult.gameId)) lastGameResult = null;
     if (route !== 'points') { vipTopUpIntent = null; pointsReturnRoute = null; }
     if (!route) {
       page = 'hub';
@@ -337,7 +355,7 @@
       return;
     }
     const routes: Page[] = ['home', 'hub', 'shop', 'rewards', 'ranking', 'profile', 'admin', 'campaigns', 'campaign', 'achievements', 'missions', 'inventory', 'history', 'vip'];
-    if (route === 'campaign' && requestedGame) {
+    if (route === 'campaign' && requestedGame && player.demo.config.campaigns.some((campaign) => campaign.id === requestedGame)) {
       campaignId = requestedGame;
       page = 'campaign';
       window.scrollTo({ top: 0 });
@@ -353,9 +371,27 @@
       const sessionId = new URLSearchParams(hashQuery).get('session');
       const session = player.demo.sessions.find((entry) => entry.id === sessionId && entry.gameId === requestedGame);
       if (!session) {
+        if (sessionId) {
+          navigate(`detail/${requestedGame}`);
+          showToast('ไม่พบรอบเล่นนี้ กรุณาเริ่มรอบใหม่');
+          return;
+        }
         const params = new URLSearchParams(hashQuery);
         const mode = params.get('mode');
-        enterGame(requestedGame as GameId, mode === 'campaign' ? 'campaign' : mode === 'ranked' ? 'ranked' : 'casual', params.get('campaign') ?? undefined);
+        if (mode === 'campaign') {
+          const selectedCampaign = params.get('campaign');
+          window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#campaign/${selectedCampaign ?? ''}`);
+          if (selectedCampaign && player.demo.config.campaigns.some((campaign) => campaign.id === selectedCampaign)) {
+            campaignId = selectedCampaign;
+            page = 'campaign';
+            requestCampaignPlay(requestedGame as GameId, selectedCampaign);
+          } else {
+            navigate('campaigns');
+            showToast('ไม่พบกิจกรรมนี้');
+          }
+          return;
+        }
+        enterGame(requestedGame as GameId, mode === 'ranked' ? 'ranked' : 'casual');
         return;
       }
       activeSessionId = session.id;
@@ -371,7 +407,12 @@
     }
     const inviteCode = new URLSearchParams(hashQuery).get('code');
     if (route === 'room' && inviteCode) joinCode = inviteCode.toUpperCase();
-    page = routes.includes(route as Page) ? route as Page : 'hub';
+    const supported = routes.includes(route as Page) && route !== 'campaign' && !requestedGame;
+    page = supported ? route as Page : 'hub';
+    if (!supported) {
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#hub`);
+      showToast('ไม่พบหน้านี้ กลับไปเลือกเกม');
+    }
     window.scrollTo({ top: 0 });
   }
 
@@ -399,7 +440,7 @@
     playClockVisible = !document.hidden;
   }
 
-  function openRefill(refillId = 'small'): void {
+  function openRefill(refillId = 'energy-4'): void {
     modal = { kind: 'refill-confirm', refillId };
   }
 
@@ -429,6 +470,7 @@
   }
 
   function closeModal(): void {
+    confirmAction = null;
     if (modal?.kind === 'gacha-coupon-confirm') pointsReturnRoute = null;
     if (pendingNotificationId) {
       player = markNotificationViewed(player, pendingNotificationId);
@@ -459,8 +501,7 @@
   }
 
   function claimCheckin(): void {
-    const prevAchievementIds = new Set((player.demo.achievements ?? []).map((a) => a.id));
-    const beforeStreak = Math.min(6, player.checkinDates.length);
+    const before = player;
     const at = demoNow(player);
     const checkedIn = claimDailyCheckin(player, at);
     if (!checkedIn) return;
@@ -468,19 +509,8 @@
     const finalState = progressMissions(withAchievement, 'checkin', at);
     persist(finalState, 'Daily check-in');
 
-    const afterStreak = Math.min(7, finalState.checkinDates.length);
     const newHudItems: HudNotificationItem[] = [
-      {
-        id: crypto.randomUUID(),
-        kind: 'checkin',
-        title: 'เช็กอินประจำวันสำเร็จ!',
-        subtitle: afterStreak >= 7 ? 'ครบ 7 วัน รับโบนัสกล่องสุ่ม Pet!' : `สะสมต่อเนื่อง ${afterStreak}/7 วัน`,
-        before: beforeStreak,
-        after: afterStreak,
-        target: 7,
-        xp: 0,
-        rewardText: afterStreak >= 7 ? `+${CHECKIN_REWARD} Energy & Pet Box` : `+${CHECKIN_REWARD} Energy`,
-      },
+      checkinHud(before, finalState, at),
     ];
 
     for (const ev of finalState.demo.recentMissionEvents ?? []) {
@@ -493,22 +523,6 @@
         after: ev.after,
         target: ev.target,
         xp: ev.xp,
-      });
-    }
-
-    const newlyUnlocked = (finalState.demo.achievements ?? []).filter((a) => !prevAchievementIds.has(a.id));
-    for (const ach of newlyUnlocked) {
-      newHudItems.push({
-        id: crypto.randomUUID(),
-        kind: 'achievement',
-        title: ach.title,
-        subtitle: 'ปลดล็อกเหรียญตราใหม่!',
-        before: 0,
-        after: 1,
-        target: 1,
-        xp: 0,
-        rewardText: 'เหรียญตราใหม่',
-        badgeId: ach.id,
       });
     }
 
@@ -529,7 +543,9 @@
     if (gachaBusy) return;
     if ((player.demo.gachaBoxes?.[kind] ?? 0) < 1) { showToast('แลกกล่องจาก Shop ก่อนเปิดสุ่ม'); return; }
     gachaBusy = true;
+    showToast('กำลังเปิดกล่อง...');
     gachaTimer = window.setTimeout(() => {
+      gachaTimer = undefined;
       const draw = drawGachaBox(player, kind, Math.random, demoNow(player));
       gachaBusy = false;
       if (!draw) { showToast('เปิดกล่องไม่สำเร็จ'); return; }
@@ -563,6 +579,13 @@
       return;
     }
     enterGame(id, 'campaign', selectedCampaignId);
+  }
+
+  function openCampaignTicketShop(): void {
+    confirmAction = null;
+    modal = null;
+    shopTab = 'items';
+    navigate('shop');
   }
 
   function confirmVip(): void {
@@ -719,7 +742,7 @@
     }, 1000);
 
     const slideTimer = window.setInterval(() => {
-      if (page === 'home' && !carouselPaused && !motionReduced && dashboardCampaigns.length > 1) {
+      if (page === 'home' && !carouselPaused && !carouselInteracted && !motionReduced && dashboardCampaigns.length > 1) {
         carouselIndex = (carouselIndex + 1) % dashboardCampaigns.length;
       }
     }, 6000);
@@ -746,355 +769,63 @@
 </script>
 
 {#if !hasEntered}
-  <EntryPage onEnter={enterSession} />
+  <EntryPage ownedAvatarIds={player.ownedAvatarIds} selectedAvatarId={player.avatarId} onEnter={enterSession} />
 {:else}
-<div class="app-frame" class:world-frame={page === 'world'}>
+<div class="app-frame" data-page={page} class:world-frame={page === 'world'}>
   {#if page === 'world' || page === 'avatar'}
     <div class={['w-full overflow-hidden', page === 'avatar' ? 'relative z-10 pt-[74px]' : 'fixed top-0 left-1/2 z-0 max-w-[460px] -translate-x-1/2', page !== 'world' && page !== 'avatar' ? 'pointer-events-none' : '']} style:height={page === 'world' ? 'calc(100dvh - 74px - env(safe-area-inset-bottom, 0px))' : page === 'avatar' ? `${wardrobeHeight + 74}px` : '100dvh'}>
       <VeaseFrame {sceneState} route={page} mode={page === 'world' ? 'town' : page === 'avatar' ? 'wardrobe' : 'backdrop'} onSize={(height) => { wardrobeHeight = height; }} onNavigate={navigate} onOutfit={(outfit) => { const next = equipOutfit(player, outfit); if (!next) return null; persist(next, 'เปลี่ยนชุดจาก MV'); return veaseState(player); }} />
     </div>
   {/if}
-  {#if page !== 'world' && page !== 'game'}
+  {#if page === 'avatar'}
     <div class="fixed top-0 left-1/2 z-30 w-full max-w-[460px] -translate-x-1/2 border-b border-white/80 bg-white/85 px-3 pt-2 pb-1.5 backdrop-blur-md">
       <AppHeader {player} {vipActive} hasUnread={hasUnreadNotifications} countdown={formatCountdown(refillCountdown)} onRefill={() => openRefill()} onShop={() => navigate('shop')} onProfile={() => navigate('profile')} onHistory={() => navigate('history')} />
     </div>
+  {:else if page !== 'world'}
+    <ScenicHeader {page} {player} {vipActive} compact={page === 'game'} profileExpanded={page === 'profile'} onBack={page === 'game' ? leaveGame : undefined} hasUnread={hasUnreadNotifications} countdown={formatCountdown(refillCountdown)} onRefill={() => openRefill()} onShop={() => navigate('shop')} onProfile={() => navigate('profile')} onHistory={() => navigate('history')} />
   {/if}
 
   <!-- Animated Sequential Mission Progress HUD -->
-  <MissionProgressHud items={hudQueue} {motionReduced} onDismiss={shiftHudNotification} />
+  <MissionProgressHud items={hudQueue} {motionReduced} hidden={page === 'game' || !!modal || (page === 'detail' && lastGameResult?.gameId === gameId)} onDismiss={shiftHudNotification} />
 
   {#if page === 'avatar'}<div class="h-24" aria-hidden="true"></div>{/if}
   {#if page === 'game'}
     <GameScreen
       game={currentGame}
       {player}
-      countdown={formatCountdown(refillCountdown)}
       sessionId={activeSessionId}
-      {vipActive}
       loading={gameLoading}
       fallback={gameFallback}
       version={iframeVersion}
-      onBack={() => {
-        const session = player.demo.sessions.find((entry) => entry.id === activeSessionId);
-        navigate(session?.mode === 'campaign' && session.campaignId ? `campaign/${session.campaignId}` : `detail/${gameId}`);
-      }}
       onLoad={onIframeLoad}
       onError={() => (gameFallback = true)}
       onReload={reloadGame}
-      onRefill={() => openRefill()}
       onFinish={simulateFinish}
       finished={player.demo.sessions.find((session) => session.id === activeSessionId)?.finished ?? false}
     />
   {:else if page !== 'world' && page !== 'avatar'}
-    <main class="app-main relative z-10 pt-[76px]">
+    <main class="app-main relative z-20">
       {#key page}
-      <div class="page-transition relative border-t border-white/60 bg-white/35 backdrop-blur-[2px]" in:fly={{ y: motionReduced ? 0 : 8, duration: motionReduced ? 0 : 180 }}>
+      <div class="page-transition page-sheet story-sheet-open relative" in:fly={{ y: motionReduced ? 0 : 14, duration: motionReduced ? 0 : 260 }}>
+      <div class="story-sheet-glow" aria-hidden="true"></div>
       <div class="page-shell">
         {#if page === 'home'}
-          {@const activeSlide = dashboardCampaigns[carouselIndex % dashboardCampaigns.length] ?? dashboardCampaigns[0]}
-          <div class="home-dashboard">
-            <!-- Dashboard Header -->
-            <div class="flex items-center justify-between gap-2">
-              <div>
-                <p class="text-[10px] font-black tracking-wider text-[#0284c7] uppercase">CAMPAIGNS & PLAYER ACTIVITY</p>
-                <h1 class="text-xl font-black leading-tight text-[#1f305e]">กิจกรรม & ความคืบหน้า</h1>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <button class="inline-flex min-h-9 items-center gap-1 rounded-full border-2 border-white bg-[#fff6d6] px-3 text-xs font-black text-[#7c4a03] shadow-[0_3px_0_#dfc16b]" onclick={() => navigate('campaigns')}>
-                  <Flag size={13} /> ทั้งหมด ({player.demo.config.campaigns.length})
-                </button>
-                {#if import.meta.env.DEV}
-                  <button class="grid size-9 shrink-0 place-items-center rounded-xl border-2 border-white bg-[#e0f2fe] text-[#0284c7] shadow-[0_3px_0_#9bcdf0]" onclick={() => navigate('admin')} aria-label="เปิด Demo Studio" title="Demo Studio">
-                    <Settings2 size={17} />
-                  </button>
-                {/if}
-              </div>
-            </div>
-
-            <!-- 1. Featured Campaign Showcase + Categorized Event Collection -->
-            {#if activeSlide}
-              <section
-                class="campaign-carousel-card"
-                aria-label="แคมเปญเด่น"
-                onpointerenter={() => (carouselPaused = true)}
-                onpointerleave={() => (carouselPaused = false)}
-                onfocusin={() => (carouselPaused = true)}
-                onfocusout={() => (carouselPaused = false)}
-              >
-                <div class="campaign-visual-wrap">
-                  <img class="campaign-visual-img" src={activeSlide.artwork} alt={activeSlide.title} />
-                  <div class="campaign-visual-scrim"></div>
-
-                  <div class="campaign-top-badges">
-                    <div class="flex items-center gap-1.5">
-                      <span class="campaign-status-pill tone-{activeSlide.statusTone}">
-                        <Flame size={12} fill="currentColor" /> {activeSlide.statusLabel}
-                      </span>
-                      <span class="rounded-full border border-white/80 bg-white/90 px-2.5 py-0.5 text-[10px] font-black text-[#1f305e]">
-                        {activeSlide.categoryLabel}
-                      </span>
-                    </div>
-                    <span class="campaign-countdown-pill">
-                      <Clock3 size={12} /> {activeSlide.countdownLabel}
-                    </span>
-                  </div>
-
-                  <div class="campaign-hero-copy">
-                    <small class="campaign-theme-eyebrow">{activeSlide.themeTag}</small>
-                    <h2 class="campaign-hero-title">{activeSlide.title}</h2>
-                    <p class="campaign-hero-sub">{activeSlide.subtitle}</p>
-                  </div>
-                </div>
-
-                <div class="campaign-carousel-footer">
-                  <div class="campaign-reward-strip">
-                    <RewardIcon type={activeSlide.rewardPreview.type} itemId={activeSlide.rewardPreview.itemId} boxKind={activeSlide.rewardPreview.boxKind} size={40} />
-                    <div class="min-w-0 flex-1">
-                      <small class="block text-[10px] font-black tracking-wide text-[#7c5800] uppercase">รางวัลเด่น · {activeSlide.entryLabel}</small>
-                      <strong class="block truncate text-xs font-black text-[#1f305e]">{activeSlide.rewardTitle}</strong>
-                    </div>
-                  </div>
-
-                  <div class="flex items-center justify-between gap-2 pt-1">
-                    <div class="flex items-center gap-1.5" role="tablist" aria-label="เลือกกิจกรรมไฮไลต์">
-                      <button
-                        type="button"
-                        class="carousel-step-btn"
-                        onclick={() => (carouselIndex = (carouselIndex - 1 + dashboardCampaigns.length) % dashboardCampaigns.length)}
-                        aria-label="กิจกรรมก่อนหน้า"
-                      >
-                        <ChevronLeft size={15} />
-                      </button>
-                      {#each dashboardCampaigns as slide, idx (slide.id)}
-                        <button
-                          type="button"
-                          class="carousel-dot"
-                          class:active={idx === carouselIndex % dashboardCampaigns.length}
-                          onclick={() => (carouselIndex = idx)}
-                          aria-label={`กิจกรรมที่ ${idx + 1}: ${slide.title}`}
-                          aria-selected={idx === carouselIndex % dashboardCampaigns.length}
-                          role="tab"
-                        ></button>
-                      {/each}
-                      <button
-                        type="button"
-                        class="carousel-step-btn"
-                        onclick={() => (carouselIndex = (carouselIndex + 1) % dashboardCampaigns.length)}
-                        aria-label="กิจกรรมถัดไป"
-                      >
-                        <ChevronRight size={15} />
-                      </button>
-                    </div>
-
-                    <button type="button" class="btn-gold-3d min-h-10 px-4 text-xs" onclick={() => navigate(activeSlide.route)}>
-                      {activeSlide.ctaLabel} <ArrowUpRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              </section>
-            {/if}
-
-            <!-- Categorized Campaign Showcase: Festival vs Competitive -->
-            <section class="grid gap-2.5" aria-label="หมวดหมู่แคมเปญ">
-              <!-- Festival / Seasonal Events -->
-              <div class="card-25d space-y-2 p-3">
-                <div class="flex items-center justify-between">
-                  <span class="inline-flex items-center gap-1.5 text-xs font-black text-[#9d174d]">
-                    <Sparkles size={14} class="text-pink-500" /> เทศกาลตามฤดูกาล (Seasonal Festival)
-                  </span>
-                  <span class="text-[10px] font-bold text-[#526c9c]">{festivalCampaigns.length} กิจกรรม</span>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                  {#each festivalCampaigns as item (item.id)}
-                    <button
-                      type="button"
-                      class="flex flex-col overflow-hidden rounded-2xl border-2 border-white bg-gradient-to-b from-white to-[#fff5f8] text-left shadow-xs transition-transform active:translate-y-0.5"
-                      onclick={() => navigate(item.route)}
-                    >
-                      <div class="relative aspect-[16/9] w-full overflow-hidden">
-                        <img class="h-full w-full object-cover" src={item.artwork} alt={item.title} />
-                        <span class="absolute top-1.5 left-1.5 rounded-full bg-pink-600/90 px-2 py-0.5 text-[8.5px] font-black text-white">
-                          {item.entryLabel}
-                        </span>
-                      </div>
-                      <div class="flex flex-1 flex-col justify-between p-2">
-                        <strong class="line-clamp-1 text-xs font-black text-[#1f305e]">{item.title}</strong>
-                        <span class="mt-1 inline-flex items-center justify-between text-[10px] font-extrabold text-pink-700">
-                          <span class="truncate">{item.countdownLabel}</span>
-                          <ArrowUpRight size={12} class="shrink-0" />
-                        </span>
-                      </div>
-                    </button>
-                  {/each}
-                </div>
-              </div>
-
-              <!-- Competitive Campaigns -->
-              <div class="card-25d space-y-2 p-3">
-                <div class="flex items-center justify-between">
-                  <span class="inline-flex items-center gap-1.5 text-xs font-black text-[#92400e]">
-                    <Trophy size={14} class="text-amber-500" /> ทัวร์นาเมนต์แข่งขัน (Competitive)
-                  </span>
-                  <span class="text-[10px] font-bold text-[#526c9c]">ชิงอันดับ & รางวัล</span>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                  {#each competitiveCampaigns as item (item.id)}
-                    <button
-                      type="button"
-                      class="flex flex-col overflow-hidden rounded-2xl border-2 border-white bg-gradient-to-b from-white to-[#fffbeb] text-left shadow-xs transition-transform active:translate-y-0.5"
-                      onclick={() => navigate(item.route)}
-                    >
-                      <div class="relative aspect-[16/9] w-full overflow-hidden">
-                        <img class="h-full w-full object-cover" src={item.artwork} alt={item.title} />
-                        <span class="absolute top-1.5 left-1.5 rounded-full bg-amber-600/95 px-2 py-0.5 text-[8.5px] font-black text-white">
-                          {item.entryLabel}
-                        </span>
-                      </div>
-                      <div class="flex flex-1 flex-col justify-between p-2">
-                        <strong class="line-clamp-1 text-xs font-black text-[#1f305e]">{item.title}</strong>
-                        <span class="mt-1 inline-flex items-center justify-between text-[10px] font-extrabold text-[#92400e]">
-                          <span class="truncate">{item.countdownLabel}</span>
-                          <ArrowUpRight size={12} class="shrink-0" />
-                        </span>
-                      </div>
-                    </button>
-                  {/each}
-                </div>
-              </div>
-            </section>
-
-            <!-- 2. Compact Daily Check-in -->
-            <DailyCheckinCard compact reward={CHECKIN_REWARD} days={checkinDays} claimed={checkedInToday} onClaim={claimCheckin} />
-
-            <!-- 3. Player Status Grid: VIP Status + Battle Pass Level/XP Progress -->
-            <section class="grid grid-cols-2 gap-2.5" aria-label="สถานะผู้เล่น">
-              <!-- VIP Status Card -->
-              <button
-                type="button"
-                class="status-card vip-status-card text-left transition-transform active:translate-y-0.5"
-                onclick={() => navigate('vip')}
-              >
-                <div class="flex items-center justify-between gap-1">
-                  <span class="inline-flex items-center gap-1 rounded-full bg-[#ffe899] px-2 py-0.5 text-[10px] font-black text-[#784300]">
-                    <CurrencyIcon kind="vipCrest" size={13} /> สมาชิก VIP
-                  </span>
-                  <span class="status-dot" class:on={vipActive}></span>
-                </div>
-                <strong class="mt-1.5 block text-sm font-black text-[#593100]">
-                  {vipActive ? 'VIP เปิดใช้งานอยู่' : 'ผู้เล่นทั่วไป'}
-                </strong>
-                <small class="mt-0.5 block text-[11px] font-extrabold text-[#8a5200]">
-                  {vipActive ? `⏱ ${vipRemainingLabel}` : 'เล่นเกมปกติฟรี · MAX 30'}
-                </small>
-                <div class="mt-2 flex items-center justify-between border-t border-amber-300/60 pt-1.5 text-[10px] font-black text-[#704000]">
-                  <span>{vipActive ? 'ดูสิทธิ์ใน Shop' : 'ดูแพ็กเกจใน Shop'}</span>
-                  <ArrowUpRight size={13} />
-                </div>
-              </button>
-
-              <!-- Battle Pass Level / XP Progress Card -->
-              <button
-                type="button"
-                class="status-card pass-status-card text-left transition-transform active:translate-y-0.5"
-                onclick={() => navigate('rewards')}
-              >
-                <div class="flex items-center justify-between gap-1">
-                  <span class="inline-flex items-center gap-1 rounded-full bg-[#dff3ff] px-2 py-0.5 text-[10px] font-black text-[#0369a1]">
-                    <Sparkles size={11} /> BATTLE PASS
-                  </span>
-                  <span class="rounded-full bg-[#1f305e] px-2 py-0.5 text-[10px] font-black text-[#ffd86e]">
-                    LV.{activePassLevel}
-                  </span>
-                </div>
-                <strong class="mt-1.5 block truncate text-sm font-black text-[#1f305e]">
-                  {activePassSeason.name}
-                </strong>
-                <div class="mt-1 space-y-1">
-                  <div class="flex items-center justify-between text-[10px] font-extrabold text-[#476596]">
-                    <span>{activePassState.premium ? 'Premium Pass' : 'Free Track'}</span>
-                    <span>{activePassProg.complete ? 'MAX' : `${activePassProg.withinLevel}/100 XP`}</span>
-                  </div>
-                  <progress class="h-2 w-full" value={activePassProg.complete ? 100 : activePassProg.withinLevel} max={100}></progress>
-                </div>
-                <div class="mt-1.5 flex items-center justify-between border-t border-sky-200/80 pt-1 text-[10px] font-black text-[#0284c7]">
-                  <span>รับรางวัล & ภารกิจ</span>
-                  <ArrowUpRight size={13} />
-                </div>
-              </button>
-            </section>
-
-            <!-- 4. Achievement Updates -->
-            <section class="card-25d space-y-2.5 p-3.5" aria-label="อัปเดตเหรียญตราและความสำเร็จ">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                  <span class="grid size-9 place-items-center rounded-xl border-2 border-white bg-gradient-to-b from-[#ffe999] to-[#f59e0b] text-[#5c3400] shadow-[0_2px_0_#b86e00]">
-                    <Award size={18} />
-                  </span>
-                  <div>
-                    <p class="text-[10px] font-black tracking-wide text-[#0284c7] uppercase">ACHIEVEMENTS</p>
-                    <h3 class="text-sm font-black text-[#1f305e]">ปลดล็อกแล้ว {unlockedAchievements.length}/{achievements.length} เหรียญตรา</h3>
-                  </div>
-                </div>
-                <button type="button" class="inline-flex min-h-8 items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 text-[11px] font-black text-[#0284c7]" onclick={() => navigate('achievements')}>
-                  ดูทั้งหมด <ArrowUpRight size={13} />
-                </button>
-              </div>
-
-              {#if latestBadges.length}
-                <div class="flex items-center gap-2 overflow-x-auto pb-0.5">
-                  {#each latestBadges as badge (badge.id)}
-                    <button
-                      type="button"
-                      class="flex min-w-0 shrink-0 items-center gap-2 rounded-2xl border-2 border-white bg-gradient-to-r from-[#fffdf5] to-[#fff3cc] px-2.5 py-1.5 text-left shadow-xs"
-                      onclick={() => navigate('profile')}
-                    >
-                      <img class="size-8 shrink-0 object-contain drop-shadow-xs" src={BADGE_ARTWORK[badge.id] ?? BADGE_ARTWORK['explorer']} alt={badge.title} />
-                      <div class="min-w-0">
-                        <small class="block text-[9px] font-black text-[#9a5b00]">ปลดล็อกล่าสุด</small>
-                        <strong class="block truncate text-xs font-black text-[#3b2300]">{badge.title}</strong>
-                      </div>
-                    </button>
-                  {/each}
-                </div>
-              {:else if nextAchievement}
-                <div class="flex items-center gap-2.5 rounded-2xl border border-sky-100 bg-white/90 p-2.5">
-                  <img class="size-10 shrink-0 object-contain opacity-90" src={BADGE_ARTWORK[nextAchievement.definition.id] ?? BADGE_ARTWORK['first-finish']} alt={nextAchievement.definition.title} />
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between text-xs">
-                      <strong class="truncate font-black text-[#1f305e]">{nextAchievement.definition.title}</strong>
-                      <span class="font-black text-[#0284c7]">{nextAchievement.progress}/{nextAchievement.definition.target}</span>
-                    </div>
-                    <p class="truncate text-[11px] font-bold text-[#526c9c]">{nextAchievement.definition.description} · รางวัล {nextAchievement.definition.reward?.title ?? 'เหรียญตราเกียรติยศ'}</p>
-                    <progress class="mt-1 h-2 w-full" value={nextAchievement.progress} max={nextAchievement.definition.target}></progress>
-                  </div>
-                </div>
-              {/if}
-            </section>
-
-            <!-- 5. Limited Promotion Showcase -->
-            <div class="promo-showcase-banner">
-              <div class="flex items-center gap-3">
-                <div class="relative flex -space-x-2 shrink-0">
-                  {#each PROFILE_FRAMES.slice(2, 5) as frame (frame.id)}
-                    <img class="size-11 object-contain drop-shadow-[0_3px_5px_rgba(20,10,45,0.35)]" src={frame.imagePath} alt={frame.name} />
-                  {/each}
-                </div>
-                <div class="min-w-0 flex-1">
-                  <span class="inline-block rounded-full bg-[#ffe58f] px-2 py-0.5 text-[9px] font-black text-[#6e3b00]">COLLECTIBLE COSMETICS</span>
-                  <strong class="mt-0.5 block text-sm font-black text-white">กรอบรูปสะสม 5 ระดับ & อวดโฉมบน Ranking</strong>
-                  <small class="block text-[11px] font-bold text-sky-100">สวมใส่กรอบรูปประจำตัวแสดงผลทั้งใน Profile และ Leaderboard</small>
-                </div>
-              </div>
-              <div class="mt-2.5 grid grid-cols-2 gap-2">
-                <button type="button" class="rounded-xl border border-white/80 bg-white/95 py-1.5 text-center text-[11px] font-black text-[#1f305e] shadow-xs" onclick={() => navigate('profile')}>
-                  แต่งโปรไฟล์
-                </button>
-                <button type="button" class="rounded-xl border border-white/80 bg-[#ffd45c] py-1.5 text-center text-[11px] font-black text-[#5c3400] shadow-xs" onclick={() => navigate('shop')}>
-                  ไปที่ร้านค้า Shop
-                </button>
-              </div>
-            </div>
-          </div>
+          <HomeDashboard
+            {player} {vipActive}
+            passLevel={activePassLevel}
+            passXp={activePassProg.withinLevel}
+            passComplete={activePassProg.complete}
+            checkedIn={checkedInToday}
+            checkinReward={CHECKIN_REWARD}
+            checkinDays={checkinDays}
+            games={catalogGames}
+            festivals={festivalCampaigns}
+            competitions={competitiveCampaigns}
+            scores={player.demo.scores}
+            playCounts={player.demo.playCounts}
+            onNavigate={navigate}
+            onCheckin={claimCheckin}
+          />
         {:else if page === 'hub'}
           <div class="home">
             <SectionHeading eyebrow="ALL PLAYABLE TITLES" title="Game Hub" chip={`${catalogGames.length} เกม`}>{#snippet icon()}<Gamepad2 size={20} />{/snippet}</SectionHeading>
@@ -1119,8 +850,10 @@
               <p class="card-25d py-8 text-center text-xs font-bold text-[#526c9c]">ไม่มีเกมในหมวดนี้</p>
             {/if}
           </div>
+        {:else if page === 'detail' && lastGameResult?.gameId === gameId}
+          <GameOverPage game={currentGame} {player} score={lastGameResult.score} bestScore={mockScores[gameId] ?? 0} onReplay={() => enterGame(gameId)} onHome={() => navigate('home')} />
         {:else if page === 'detail'}
-          {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId] ?? 0} countdown={formatCountdown(refillCountdown)} onPlay={() => enterGame(gameId)} onBack={() => navigate('hub')} onRefill={() => openRefill()} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onBuyItem={(itemId) => (modal = { kind: 'item-confirm', itemId })} />{/key}
+          {#key gameId}<GameDetailPage game={currentGame} {player} {vipActive} score={mockScores[gameId] ?? 0} onPlay={() => enterGame(gameId)} onAvatar={chooseAvatar} onPet={chooseEquipPet} onWing={chooseWings} onBuyItem={(itemId) => (modal = { kind: 'item-confirm', itemId })} />{/key}
         {:else if page === 'shop'}
           <ShopPage
             {player} {vipActive} countdown={formatCountdown(refillCountdown)} bind:tab={shopTab}
@@ -1128,6 +861,12 @@
             onRefill={openRefill}
             onBuyGachaBox={purchaseBox}
             onOpenGachaBox={openGachaBox}
+            onBuyCampaignTickets={(packId) => {
+              const pack = player.demo.config.campaignTicketPacks.find((item) => item.id === packId);
+              if (!pack) return;
+              confirmAction = () => applyAction(buyCampaignTicketPack(player, packId), `แลกตั๋วแข่งขัน +${pack.quantity} ใบแล้ว`);
+              modal = { kind: 'ticket-pack-confirm', packId };
+            }}
             onVip={openVipConfirm}
           />
         {:else if page === 'achievements'}
@@ -1210,6 +949,7 @@
   onOpenVip={() => { modal = null; openVipShop(); }}
   onOpenExchange={openExchange}
   onWait={() => { modal = null; navigate('hub'); }}
+  onOpenTicketShop={openCampaignTicketShop}
 />
 {/if}
 
@@ -1217,177 +957,9 @@
   .app-frame.world-frame { display: block; width: min(100%, 460px); height: 100dvh; min-height: 100dvh; overflow: hidden; box-shadow: none; }
   @media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) { .app-frame.world-frame { display: none; } }
   .home { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding-top: 4px; }
-  .home-dashboard { display: grid; grid-template-columns: minmax(0, 1fr); gap: 13px; padding-top: 2px; }
   .game-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-
-  .campaign-carousel-card {
-    overflow: hidden;
-    border-radius: 24px;
-    border: 2.5px solid #fff;
-    background: linear-gradient(180deg, #ffffff 0%, #f3faff 100%);
-    box-shadow: 0 6px 0 #9ccbf0, 0 12px 24px rgba(24, 64, 122, 0.16);
-  }
-  .campaign-visual-wrap {
-    position: relative;
-    aspect-ratio: 16 / 9.2;
-    width: 100%;
-    overflow: hidden;
-    background: #142242;
-  }
-  .campaign-visual-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.35s ease;
-  }
-  .campaign-visual-scrim {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(12, 22, 48, 0.38) 0%, rgba(12, 22, 48, 0.12) 38%, rgba(12, 22, 48, 0.88) 100%);
-  }
-  .campaign-top-badges {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-  }
-  .campaign-status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.03em;
-    border: 1.5px solid #fff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  }
-  .campaign-status-pill.tone-live { background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; }
-  .campaign-status-pill.tone-tournament { background: linear-gradient(135deg, #f59e0b, #b45309); color: #fff; }
-  .campaign-status-pill.tone-external { background: linear-gradient(135deg, #ec4899, #be185d); color: #fff; }
-  .campaign-status-pill.tone-limited { background: linear-gradient(135deg, #6366f1, #4338ca); color: #fff; }
-
-  .campaign-countdown-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 9px;
-    border-radius: 999px;
-    background: rgba(15, 23, 42, 0.78);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    color: #fff8db;
-    font-size: 10px;
-    font-weight: 800;
-    backdrop-filter: blur(4px);
-  }
-  .campaign-hero-copy {
-    position: absolute;
-    left: 12px;
-    right: 12px;
-    bottom: 10px;
-    color: #fff;
-  }
-  .campaign-theme-eyebrow {
-    display: inline-block;
-    font-size: 9.5px;
-    font-weight: 900;
-    letter-spacing: 0.06em;
-    color: #fde047;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-  }
-  .campaign-hero-title {
-    font-size: 1.15rem;
-    font-weight: 900;
-    line-height: 1.15;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
-  }
-  .campaign-hero-sub {
-    margin-top: 2px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #e0f2fe;
-    display: -webkit-box;
-    line-clamp: 2;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .campaign-carousel-footer {
-    padding: 10px 12px 10px;
-    display: grid;
-    gap: 6px;
-  }
-  .campaign-reward-strip {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 6px 9px;
-    border-radius: 16px;
-    background: linear-gradient(90deg, #fffbeb 0%, #fff3c7 100%);
-    border: 1.5px solid #fde68a;
-  }
-  .carousel-step-btn {
-    display: grid;
-    place-items: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 999px;
-    border: 1.5px solid #bae6fd;
-    background: #fff;
-    color: #0284c7;
-  }
-  .carousel-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: #cbd5e1;
-    transition: all 0.2s ease;
-  }
-  .carousel-dot.active {
-    width: 22px;
-    background: #0284c7;
-  }
-
-  .status-card {
-    border-radius: 20px;
-    border: 2px solid #fff;
-    padding: 10px 11px;
-  }
-  .vip-status-card {
-    background: linear-gradient(180deg, #fffdf4 0%, #ffefb8 100%);
-    box-shadow: 0 4px 0 #dfb858, 0 8px 16px rgba(180, 125, 20, 0.12);
-  }
-  .pass-status-card {
-    background: linear-gradient(180deg, #ffffff 0%, #e6f5ff 100%);
-    box-shadow: 0 4px 0 #9ccbf0, 0 8px 16px rgba(25, 85, 150, 0.12);
-  }
-  .status-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: #cbd5e1;
-    border: 1.5px solid #fff;
-  }
-  .status-dot.on {
-    background: #22c55e;
-    box-shadow: 0 0 6px #22c55e;
-  }
-
-  .promo-showcase-banner {
-    border-radius: 22px;
-    border: 2px solid #fff;
-    padding: 12px;
-    background: linear-gradient(125deg, #271745 0%, #1d4ed8 58%, #0284c7 100%);
-    box-shadow: 0 5px 0 #8ec5ed, 0 10px 20px rgba(25, 50, 110, 0.2);
-  }
-
   @media (max-width: 350px) {
     .game-list { gap: 9px; }
-    .home, .home-dashboard { gap: 11px; }
+    .home { gap: 11px; }
   }
 </style>

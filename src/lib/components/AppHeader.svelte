@@ -7,11 +7,12 @@
   import { energyCapacity } from '../services/energyService';
   import type { PlayerState } from '../types';
 
-  let { player, vipActive = false, hasUnread = false, countdown = '', onRefill, onShop, onProfile, onHistory }: {
+  let { player, vipActive = false, hasUnread = false, countdown = '', scenic = false, onRefill, onShop, onProfile, onHistory }: {
     player: PlayerState;
     vipActive?: boolean;
     hasUnread?: boolean;
     countdown?: string;
+    scenic?: boolean;
     onRefill: () => void;
     onShop: () => void;
     onProfile: () => void;
@@ -24,7 +25,7 @@
   let isVipLook = $derived(vipActive || avatar.rarity === 'VIP');
 </script>
 
-<header class="bar">
+<header class="bar" class:scenic>
   <button class="player" class:vip={isVipLook} onclick={onProfile} aria-label={`โปรไฟล์ของ ${player.displayName}`}>
     <span class="thumb" data-frame={player.demo.frameId}>
       <AssetPortrait src={avatar.imagePath} alt="" placeholder={avatar.placeholder} kind="avatar" loading="eager" className="thumb-img" style={`--avatar-color:${avatar.color}`} />
@@ -65,6 +66,18 @@
     gap: 6px;
     min-height: 52px;
   }
+  .bar.scenic {
+    position: absolute;
+    top: calc(7px + env(safe-area-inset-top, 0px));
+    right: 10px;
+    left: 10px;
+    z-index: 4;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 44px;
+  }
+  .bar.scenic .history,
+  .bar.scenic .wallet { display: none; }
+  .bar.scenic .player { width: min(185px, 48vw); }
   button {
     font: inherit;
     color: inherit;

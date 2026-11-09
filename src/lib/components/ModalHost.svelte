@@ -8,7 +8,8 @@
   import RarityChip from './RarityChip.svelte';
   import RewardIcon from './RewardIcon.svelte';
   import VipPassOffer from './VipPassOffer.svelte';
-  import { AVATARS, PETS, PROFILE_FRAMES, WINGS } from '../data/config';
+  import { focusDialog } from './dialog';
+  import { AVATARS, GACHA_ARTWORK, PETS, PROFILE_FRAMES, WINGS } from '../data/config';
   import { passProgress } from '../services/battlePassService';
   import { currentSeason } from '../services/demoService';
   import { energyCapacity } from '../services/energyService';
@@ -17,7 +18,7 @@
   let {
     modal, player, vipActive = false, now = Date.now(), exchangeAmount, checkinReward,
     onClose, onPickRefill, onConfirmRefill, onConfirmVip, onConfirmExchange, onConfirmGachaCoupons,
-    onOpenRefill, onOpenVip, onOpenExchange, onWait, onConfirmItem, onConfirmAction = () => {}, onPickVip = () => {},
+    onOpenRefill, onOpenVip, onOpenExchange, onOpenTicketShop, onWait, onConfirmItem, onConfirmAction = () => {}, onPickVip = () => {},
   }: {
     modal: ModalState;
     player: PlayerState;
@@ -34,6 +35,7 @@
     onOpenRefill: () => void;
     onOpenVip: () => void;
     onOpenExchange: () => void;
+    onOpenTicketShop: () => void;
     onWait: () => void;
     onConfirmItem: () => void;
     onConfirmAction?: () => void;
@@ -80,30 +82,11 @@
   );
   let season = $derived(currentSeason(player, now));
 
-  function focusDialog(node: HTMLElement) {
-    const previous = document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const elements = () => Array.from(node.querySelectorAll<HTMLElement>('button:not([disabled]), input, select, a[href]'));
-    queueMicrotask(() => elements()[0]?.focus());
-    function trap(event: KeyboardEvent) {
-      if (event.key !== 'Tab') return;
-      const focusable = elements();
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-    }
-    node.addEventListener('keydown', trap);
-    return { destroy() { node.removeEventListener('keydown', trap); document.body.style.overflow = overflow; previous?.focus(); } };
-  }
 </script>
-
-<svelte:window onkeydown={(event) => { if (event.key === 'Escape' && modal) onClose(); }} />
 
 {#if modal}
   <div class="backdrop" role="presentation" onclick={onClose}>
-    <div class="card" use:focusDialog class:spot={modal.kind === 'gacha-result'} role="dialog" tabindex="-1" aria-label="รายละเอียดรายการ" aria-modal="true" onclick={(event) => event.stopPropagation()} onkeydown={(event) => event.stopPropagation()}>
+    <div class="card" use:focusDialog={onClose} class:spot={modal.kind === 'gacha-result'} role="dialog" tabindex="-1" aria-label="รายละเอียดรายการ" aria-modal="true" onclick={(event) => event.stopPropagation()} onkeydown={(event) => event.stopPropagation()}>
       <button class="close" aria-label="ปิดหน้าต่าง" onclick={onClose}><X size={18} strokeWidth={3} /></button>
       {#if celebrate}<div class="confetti" aria-hidden="true">{#each Array.from({ length: 14 }) as _, i (i)}<i style={`--n:${i}`}></i>{/each}</div>{/if}
 
@@ -188,8 +171,8 @@
         {@const shortPoints = Math.max(0, boxCost - player.aisPoints)}
         <div class="mx-auto mb-2.5 overflow-hidden rounded-2xl border-2 border-white shadow-sm">
           <img
-            class="h-32 w-full object-cover"
-            src={isPet ? 'images/gacha_banner_pet.png' : 'images/gacha_banner_avatar.png'}
+            class="h-32 w-full object-contain"
+            src={(isPet ? GACHA_ARTWORK.petBox : GACHA_ARTWORK.avatarBox) ?? undefined}
             alt={isPet ? 'Pet Gacha Box' : 'Avatar Gacha Box'}
           />
         </div>
@@ -197,8 +180,8 @@
         <h2>{isPet ? 'Pet Gacha Box' : 'Avatar Gacha Box'}</h2>
         <p class="summary">
           {isPet
-            ? 'สุ่มรับสัตว์เลี้ยงคู่หู 1 ตัว หากได้ตัวซ้ำจะแปลงเป็น Energy +5 ทันที'
-            : 'สุ่มรับตัวละครฮีโร่ 1 ตัว หากได้ตัวซ้ำจะแปลงเป็น Energy +5 ทันที'}
+            ? `สุ่มสัตว์เลี้ยงคู่หูหรือ Energy +1 หากได้ตัวซ้ำรับ Energy +${player.demo.config.duplicateEnergy}`
+            : `สุ่มตัวละครฮีโร่หรือ Energy +1 หากได้ตัวซ้ำรับ Energy +${player.demo.config.duplicateEnergy}`}
         </p>
 
         <!-- Preview sample pool -->
@@ -257,7 +240,7 @@
           <div class="text-center">
             <span class="block text-[11px] font-bold text-[#526c9c]">ค่าเข้าร่วม</span>
             <strong class="mt-0.5 inline-flex items-center gap-1.5 text-lg font-black text-[#1f305e]">
-              <CurrencyIcon kind="campaignTicket" size={20} /> ใช้ 1 Ticket
+              <CurrencyIcon kind="campaignTicket" size={20} /> ใช้ {campaignEntry.campaign?.ticketCost ?? 0} Ticket
             </strong>
           </div>
           <div class="h-8 w-[1.5px] bg-sky-200"></div>
@@ -269,9 +252,16 @@
           </div>
         </div>
 
+        {#if campaignEntry.campaign && (player.demo.campaignTickets ?? 0) < campaignEntry.campaign.ticketCost}
+          <div class="mb-2 rounded-2xl border border-amber-200 bg-amber-50/90 p-3 text-center">
+            <p class="mb-2 text-xs font-bold text-amber-900">บัตรไม่พอสำหรับเข้าอีเวนต์นี้ · ซื้อบัตรเพิ่มได้ใน Shop</p>
+            <GameButton block variant="purple" onclick={onOpenTicketShop}>ไปซื้อบัตรเข้าอีเวนต์</GameButton>
+          </div>
+        {/if}
+
         <div class="actions">
           <GameButton variant="ghost" onclick={onClose}>ยกเลิก</GameButton>
-          <GameButton variant="gold" onclick={onConfirmAction}>
+          <GameButton variant="gold" disabled={!campaignEntry.campaign || (player.demo.campaignTickets ?? 0) < campaignEntry.campaign.ticketCost} onclick={onConfirmAction}>
             <Ticket size={16} /> เข้าร่วมการแข่งขัน
           </GameButton>
         </div>
@@ -280,14 +270,48 @@
         {@const passCost = player.demo.config.premiumPrice}
         {@const shortPassPoints = Math.max(0, passCost - player.aisPoints)}
         {@const currentPassLv = passProgress(player.demo.passes[season.id]?.xp ?? 0).level}
-        <div class="mx-auto mb-2 grid size-24 place-items-center rounded-3xl border-2 border-white bg-gradient-to-b from-[#fff9db] to-[#ffe28a] p-2 shadow-sm">
-          <PassArtwork kind="crest" />
-        </div>
+        {@const lastPremiumReward = season.premium[season.premium.length - 1]}
+        {@const premiumHighlights = season.premium
+          .map((reward, index) => ({ ...reward, level: index + 1 }))
+          .filter((reward) => reward.type !== 'energy' && reward.level < season.premium.length)}
         <p class="eyebrow">SEASON BATTLE PASS</p>
         <h2>ปลดล็อก Premium Pass</h2>
-        <p class="summary">รับรางวัลสาย Premium ประจำ {season.name} ครบทั้ง 30 เลเวล พร้อมปลดล็อกภารกิจโบนัสหมวด Premium</p>
+        <p class="summary">รับสิทธิ์รางวัล Premium ครบ {season.premium.length} เลเวลของ {season.name} ตาม XP ที่สะสม พร้อมภารกิจโบนัส Premium</p>
+        <section class="mb-3 overflow-hidden rounded-2xl border border-violet-200 bg-gradient-to-br from-[#231653] via-[#4e3289] to-[#b56bbd] p-3 text-left text-white shadow-[0_4px_0_#392268]" aria-label="รางวัลเด่น Premium Pass">
+          <div class="flex items-center gap-3">
+            <div class="grid size-24 shrink-0 place-items-center rounded-2xl border border-white/35 bg-white/10 p-1 shadow-inner">
+              {#if lastPremiumReward}
+                <RewardIcon type={lastPremiumReward.type} itemId={lastPremiumReward.itemId} boxKind={lastPremiumReward.boxKind} size={82} />
+              {:else}
+                <PassArtwork kind="crest" />
+              {/if}
+            </div>
+            <div class="min-w-0">
+              <span class="inline-flex items-center gap-1 rounded-full bg-amber-300 px-2 py-0.5 text-[9px] font-black text-[#48276a]">
+                <Crown size={11} fill="currentColor" /> รางวัลสุดท้าย · LV.{season.premium.length}
+              </span>
+              <strong class="mt-1 block text-base font-black leading-tight">{lastPremiumReward?.title ?? 'รางวัล Premium'}</strong>
+              <p class="mt-1 text-[10px] font-bold leading-snug text-violet-100">ไอเทมระดับสูงสุดของซีซัน ปลดล็อกเมื่อสะสม XP ถึงเลเวลที่กำหนด</p>
+            </div>
+          </div>
+          <div class="mt-3 border-t border-white/20 pt-2">
+            <div class="mb-2 flex items-center justify-between gap-2">
+              <strong class="text-[10px] font-black">ไฮไลต์รางวัลสะสม</strong>
+              <span class="text-[9px] font-bold text-violet-100">{premiumHighlights.length} ไอเทมเด่น + รางวัลครบทุกเลเวล</span>
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-1" aria-label="ไอเทมเด่นใน Premium Pass">
+              {#each premiumHighlights as reward (`${reward.level}-${reward.type}-${reward.itemId ?? reward.title}`)}
+                <div class="grid w-[68px] shrink-0 justify-items-center gap-1 rounded-xl border border-white/20 bg-white/10 p-1.5 text-center">
+                  <RewardIcon type={reward.type} itemId={reward.itemId} boxKind={reward.boxKind} size={42} />
+                  <small class="text-[8px] font-black text-amber-200">LV.{reward.level}</small>
+                  <span class="line-clamp-2 min-h-5 w-full text-[8px] font-bold leading-tight text-white">{reward.title}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        </section>
         <div class="receipt">
-          <div><span>เลเวลปัจจุบัน</span><b>LV.{currentPassLv} / 30</b></div>
+          <div><span>เลเวลปัจจุบัน</span><b>LV.{currentPassLv} / {season.premium.length}</b></div>
           <div><span>ราคา</span><b class="cost"><CurrencyIcon kind="aisPoints" size={16} />{passCost.toLocaleString()} AIS Point</b></div>
         </div>
         {#if shortPassPoints > 0}
@@ -337,7 +361,7 @@
         {#if refillShort > 0}<div class="short"><TriangleAlert size={16} />คะแนนไม่พอ ขาดอีก <b>{refillShort.toLocaleString('en-US')}</b> AIS Point</div>{/if}
         <div class="actions">
           <GameButton variant="ghost" size="md" onclick={onClose}>ยกเลิก</GameButton>
-          <GameButton variant="purple" size="md" disabled={refillShort > 0} onclick={onConfirmRefill}>เติมพลังงาน<Zap size={16} fill="currentColor" /></GameButton>
+          <GameButton variant="purple" size="md" disabled={refillShort > 0} onclick={onConfirmRefill}>เติมพลังงาน<CurrencyIcon kind="energyPotion" size={18} /></GameButton>
         </div>
 
       {:else if modal.kind === 'exchange-confirm'}
@@ -424,7 +448,7 @@
 
 <style>
   .backdrop { position: fixed; inset: 0; z-index: 70; display: flex; overflow-y: auto; padding: 50px 14px 18px; background: rgb(36 22 90 / 62%); backdrop-filter: blur(5px); animation: fade 0.18s both; overscroll-behavior: contain; }
-  .card { position: relative; width: min(100%, 368px); margin: auto; padding: 42px 16px 16px; border: 3px solid #fff; border-radius: 26px; background: linear-gradient(180deg, #fff, #f3edff); box-shadow: 0 10px 0 -3px #8a72dc, 0 22px 50px rgb(30 15 80 / 45%); text-align: center; animation: pop 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) both; }
+  .card { position: relative; width: min(100%, 368px); max-height: calc(100dvh - 68px); overflow-y: auto; overscroll-behavior: contain; margin: auto; padding: 42px 16px 16px; border: 3px solid #fff; border-radius: 26px; background: linear-gradient(180deg, #fff, #f3edff); box-shadow: 0 10px 0 -3px #8a72dc, 0 22px 50px rgb(30 15 80 / 45%); text-align: center; animation: pop 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) both; }
   .close { position: absolute; z-index: 3; top: 9px; right: 9px; display: grid; place-items: center; width: 38px; height: 38px; border: 0; border-radius: 13px; color: #7d74b4; background: #efeaff; }
   .eyebrow { margin: 0; color: #8a7fc4; font-size: 11px; font-weight: 900; letter-spacing: 0.9px; }
   h2 { margin: 2px 0 8px; color: var(--g-ink); font-size: 21px; font-weight: 900; line-height: 1.2; }

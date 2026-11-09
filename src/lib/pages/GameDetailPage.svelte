@@ -1,17 +1,15 @@
 <script lang="ts">
-  import { ArrowLeft, Play, Trophy, Info, Sparkles, Check, ShoppingBag, Zap, Crown } from '@lucide/svelte';
+  import { Play, Trophy, Info, Sparkles, Check, ShoppingBag, Zap, Crown } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
   import CurrencyIcon from '../components/CurrencyIcon.svelte';
   import GameButton from '../components/GameButton.svelte';
   import Leaderboard from '../components/Leaderboard.svelte';
-  import EnergyBadge from '../components/EnergyBadge.svelte';
   import { AVATARS, PETS, WINGS } from '../data/config';
-  import { energyCapacity } from '../services/energyService';
   import type { Game, PlayerState, RankingPeriod } from '../types';
 
-  let { game, player, vipActive, score, countdown, onPlay, onBack, onRefill, onAvatar, onPet, onWing, onBuyItem }: {
-    game: Game; player: PlayerState; vipActive: boolean; score: number; countdown: string;
-    onPlay: () => void; onBack: () => void; onRefill: () => void; onAvatar: (id: string) => void;
+  let { game, player, vipActive, score, onPlay, onAvatar, onPet, onWing, onBuyItem }: {
+    game: Game; player: PlayerState; vipActive: boolean; score: number;
+    onPlay: () => void; onAvatar: (id: string) => void;
     onPet: (id: string | null) => void; onWing: (id: string | null) => void; onBuyItem: (id: string) => void;
   } = $props();
   let tab = $state<'info' | 'ranking'>('info');
@@ -30,15 +28,6 @@
 </script>
 
 <div class="page-stack">
-  <div class="heading">
-    <button title="กลับ" aria-label="กลับหน้าเกม" onclick={onBack}><ArrowLeft size={21} /></button>
-    <div class="min-w-0 flex-1">
-      <small>{game.genre} · SKY ARCADE</small>
-      <h1>{game.name}</h1>
-    </div>
-    <EnergyBadge energy={player.energy} {vipActive} max={energyCapacity(player, vipActive)} {countdown} {onRefill} />
-  </div>
-
   {#if game.cover}
     <div class="hero-card">
       <img class="cover" class:logo={game.id === 'memory'} src={`images/${game.cover}`} alt={game.name} />
@@ -188,9 +177,6 @@
 </div>
 
 <style>
-  .heading { display: flex; align-items: center; gap: 10px; }
-  .heading > button { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 auto; border: 2.5px solid #fff; border-radius: 15px; color: #0284c7; background: linear-gradient(180deg, #ffffff, #e0f2fe); box-shadow: 0 4px 0 #9bcdf0; }
-  h1 { margin: 0; font-size: 21px; font-weight: 900; color: #1f305e; line-height: 1.2; }
   small { font-size: 11px; font-weight: 800; color: #0284c7; }
   .hero-card { position: relative; overflow: hidden; border-radius: 24px; border: 3px solid #fff; box-shadow: 0 6px 0 #9bcdf0, 0 14px 26px rgba(20, 76, 145, 0.18); }
   .cover { width: 100%; aspect-ratio: 1.62; display: block; object-fit: cover; object-position: center 38%; }

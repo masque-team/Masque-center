@@ -81,10 +81,15 @@ export function progressMissions(player: PlayerState, trigger: 'game' | 'checkin
     const before = next.demo.missionProgress?.[key] ?? 0;
     const after = Math.min(mission.target, before + 1);
     next = { ...next, demo: { ...next.demo, missionProgress: { ...next.demo.missionProgress, [key]: after } } };
-    events.push({ title: mission.title, before, after, target: mission.target, xp: after === mission.target ? mission.xp : 0 });
-    if (after < mission.target) continue;
+    if (after < mission.target) {
+      events.push({ title: mission.title, before, after, target: mission.target, xp: 0 });
+      continue;
+    }
+    const xpBefore = currentPass(next, at).xp;
     next = awardPassXp({ ...next, demo: { ...next.demo, missionClaims: [...next.demo.missionClaims, key] } }, mission.xp);
-    const detail = `ภารกิจ ${mission.period} · +${mission.xp} XP`;
+    const xp = currentPass(next, at).xp - xpBefore;
+    events.push({ title: mission.title, before, after, target: mission.target, xp });
+    const detail = `ภารกิจ ${mission.period} · ${xp > 0 ? `+${xp} XP` : 'XP เต็มแล้ว'}`;
     const history = { id: crypto.randomUUID(), kind: 'reward' as const, title: mission.title, detail, at };
     next = { ...next, demo: { ...next.demo, history: [history, ...(next.demo.history ?? [])].slice(0, 250) } };
   }
@@ -240,7 +245,7 @@ export function ledger(previous: PlayerState, next: PlayerState, label: string):
   if (!mp && !ais && !energy) return next;
   const at = demoNow(next);
   const transaction = { id: crypto.randomUUID(), at, label, mp, ais, energy };
-  const kind: 'purchase' | 'reward' = label.includes('ซื้อ') || label.includes('เติม') || label.includes('VIP') || label.includes('คูปอง') ? 'purchase' : 'reward';
+  const kind: 'purchase' | 'reward' = ais < 0 || label.includes('ซื้อ') || label.includes('เติม') || label.includes('VIP') || label.includes('คูปอง') ? 'purchase' : 'reward';
   const history = { id: transaction.id, kind, title: label, detail: [ais ? `${ais > 0 ? '+' : ''}${ais} AIS Point` : '', energy ? `${energy > 0 ? '+' : ''}${energy} Energy` : ''].filter(Boolean).join(' · '), at };
   return { ...next, demo: { ...next.demo, transactions: [transaction, ...next.demo.transactions].slice(0, 150), history: [history, ...(next.demo.history ?? [])].slice(0, 250) } };
 }

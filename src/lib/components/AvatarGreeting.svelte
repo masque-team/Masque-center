@@ -8,11 +8,19 @@
     avatarId,
     petId = null,
     displayName,
+    energy,
+    energyMax,
+    checkedIn,
+    vipActive,
     onAvatarClick,
   }: {
     avatarId: string;
     petId?: string | null;
     displayName: string;
+    energy: number;
+    energyMax: number;
+    checkedIn: boolean;
+    vipActive: boolean;
     onAvatarClick?: () => void;
   } = $props();
 
@@ -21,14 +29,18 @@
   let avatar = $derived(AVATARS.find((item) => item.id === avatarId) ?? AVATARS[0]);
   let pet = $derived(petId ? PETS.find((item) => item.id === petId) : undefined);
 
-  const greetings = [
-    'เป็นไงบ้างคะวันนี้? มาสะสมแต้มกันเถอะ! ✨',
-    'วันนี้อยากเล่นเกมจับคู่กันไหมคะ? 🃏',
-    'แวะเช็กอินรับ Energy ฟรีทุกวันเลยนะ! ⚡',
-    'อยากลองหมุนตู้สุ่ม Avatar หรือ Pet ไหมคะ? 🎰',
-    'ถ้าเหนื่อย พักเติม Energy ก่อนลุยต่อได้นะคะ ⚡',
-    'วันนี้มาทำสถิติใหม่ในเกมโปรดกันค่ะ! 🏆',
-  ];
+  let greetings = $derived([
+    checkedIn
+      ? `${displayName} วันนี้เช็กอินแล้ว เก่งมากเลย! พร้อมเล่นเกมกันหรือยังคะ? ✨`
+      : `${displayName} วันนี้แวะเช็กอินรับ +Energy ก่อนเริ่มเล่นกันไหมคะ? 🎁`,
+    energy <= 2
+      ? `Energy เหลือ ${energy}/${energyMax} แล้วนะคะ แวะพักหรือเติมพลังได้เลย ⚡`
+      : `ตอนนี้มี Energy ${energy}/${energyMax} พร้อมลุยเกมโปรดหรือยังคะ? 🎮`,
+    `${displayName} อยากเริ่มจากเกมไหน ให้ฉันกับ ${pet?.name ?? 'คู่หู'} ช่วยเชียร์ไหมคะ? 💫`,
+    vipActive
+      ? 'สมาชิก VIP พร้อมลุยเกมปกติได้เลยนะคะ ส่วนอีเวนต์อาจใช้ Ticket ค่ะ 👑'
+      : 'ลองแวะดูแคมเปญวันนี้ไหมคะ เผื่อมีกิจกรรมที่ถูกใจ! 🏆',
+  ]);
 
   function nextLine() {
     line = (line + 1) % greetings.length;
@@ -85,8 +97,8 @@
 
         <div class="speaker-tag">
           <MessageCircleHeart size={12} class="shrink-0 text-rose-500" />
-          <span>{avatar.name}</span>
-          <small>ถึง {displayName}</small>
+          <span class="speaker-name">{avatar.name}</span>
+          <small class="recipient">ถึง {displayName}</small>
         </div>
 
         <p class="dialogue">{greetings[line]}</p>
@@ -104,20 +116,28 @@
   .comic-stage {
     position: relative;
     display: grid;
-    grid-template-columns: 98px minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
-    padding: 4px 2px 2px;
+    gap: 8px;
+    padding: 0;
+    overflow: visible;
   }
   .chara-stand {
     position: relative;
-    height: 112px;
-    width: 98px;
+    height: 116px;
+    width: 96px;
     border: 0;
     background: transparent;
     padding: 0;
     cursor: pointer;
     transition: transform 0.2s cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+  .chara-stand::before {
+    position: absolute;
+    inset: 18px 4px 4px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgb(162 211 255 / 38%), transparent 72%);
+    content: '';
   }
   .chara-stand:active {
     transform: scale(0.94);
@@ -127,11 +147,10 @@
     bottom: 3px;
     left: 10px;
     right: 10px;
-    height: 16px;
+    height: 11px;
     border-radius: 50%;
-    border: 2px solid #fff;
-    background: radial-gradient(circle, #ffe89e 0%, #9ad9f5 75%, #6cbbe3 100%);
-    box-shadow: 0 3px 0 #5aa4cc, 0 5px 10px rgba(45, 90, 140, 0.22);
+    background: rgb(70 105 145 / 16%);
+    filter: blur(3px);
   }
   .chara-body {
     position: absolute;
@@ -160,20 +179,18 @@
   }
   .comic-bubble {
     position: relative;
-    margin-left: 8px;
-    padding: 11px 13px 9px;
-    border: 2.5px solid #ffffff;
+    margin-left: 5px;
+    padding: 10px 12px 9px;
+    border: 1px solid rgb(255 255 255 / 94%);
     border-radius: 22px 24px 22px 18px;
-    background: linear-gradient(180deg, #fffdf7 0%, #f0f9ff 100%);
-    box-shadow:
-      0 5px 0 #95caf0,
-      0 10px 18px rgba(24, 92, 160, 0.14),
-      inset 0 2px 0 #ffffff;
+    background: rgb(255 255 255 / 84%);
+    box-shadow: 0 8px 20px rgb(24 68 115 / 11%);
+    backdrop-filter: blur(8px);
     animation: bubble-pop 280ms cubic-bezier(0.28, 1.55, 0.5, 1) both;
   }
   .speech-wrap:active .comic-bubble {
     transform: translateY(2px) scale(0.985);
-    box-shadow: 0 3px 0 #95caf0;
+    box-shadow: 0 4px 12px rgb(24 68 115 / 11%);
   }
   /* Comic pointer tail pointing left toward the Avatar's face */
   .tail-outer {
@@ -184,7 +201,7 @@
     height: 0;
     border-top: 9px solid transparent;
     border-bottom: 10px solid transparent;
-    border-right: 14px solid #95caf0;
+    border-right: 14px solid rgb(255 255 255 / 94%);
   }
   .tail-inner {
     position: absolute;
@@ -194,12 +211,14 @@
     height: 0;
     border-top: 8px solid transparent;
     border-bottom: 8px solid transparent;
-    border-right: 12px solid #fffdf7;
+    border-right: 12px solid rgb(255 255 255 / 84%);
   }
   .speaker-tag {
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    max-width: 100%;
+    min-width: 0;
     margin-bottom: 4px;
     padding: 2px 8px 2px 6px;
     border: 1.5px solid #fde68a;
@@ -214,12 +233,19 @@
     font-weight: 800;
     color: #92400e;
   }
+  .speaker-name, .recipient {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .dialogue {
     margin: 0;
-    font-size: 13px;
+    font-size: clamp(11px, 3.2vw, 13px);
     font-weight: 800;
     line-height: 1.4;
     color: #1f305e;
+    overflow-wrap: anywhere;
   }
   .tap-hint {
     display: inline-flex;
@@ -248,5 +274,15 @@
     .chara-body, .chara-pet, .comic-bubble {
       animation: none;
     }
+  }
+  @media (max-width: 350px) {
+    .comic-stage { grid-template-columns: 82px minmax(0, 1fr); gap: 5px; padding: 6px; }
+    .chara-stand { width: 82px; height: 104px; }
+    .chara-pet { right: -2px; width: 38px; height: 42px; }
+    .comic-bubble { margin-left: 3px; padding: 9px 8px 7px; border-radius: 18px; }
+    .speaker-tag { gap: 3px; padding-right: 6px; font-size: 9px; }
+    .speaker-tag small { font-size: 8px; }
+    .dialogue { font-size: 11px; }
+    .tap-hint { font-size: 8px; }
   }
 </style>

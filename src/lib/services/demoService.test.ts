@@ -214,6 +214,37 @@ describe('shared demo economy', () => {
     expect(nextRefillIn(next)).toBe(0);
     expect(claimBattlePassReward({ ...next, energy: 20 }, 'free', 0)?.energy).toBe(22);
   });
+  it('configures and charges the six AIS Point energy packs shown in the shop', () => {
+    const player = sample();
+    const packs = player.demo.config.energyPacks;
+    expect(packs).toEqual([
+      { id: 'energy-4', energy: 4, cost: 2 },
+      { id: 'energy-8', energy: 8, cost: 4 },
+      { id: 'energy-12', energy: 12, cost: 6 },
+      { id: 'energy-24', energy: 24, cost: 11 },
+      { id: 'energy-48', energy: 48, cost: 20 },
+      { id: 'energy-120', energy: 120, cost: 45 },
+    ]);
+    for (const pack of packs) {
+      const purchased = refillEnergy(player, pack.energy, pack.cost)!;
+      expect(purchased.energy).toBe(player.energy + pack.energy);
+      expect(purchased.aisPoints).toBe(player.aisPoints - pack.cost);
+    }
+  });
+  it('migrates only the old default energy packs and preserves custom shop packs', () => {
+    const player = sample();
+    player.demo.config.energyPacks = [
+      { id: 'small', energy: 3, cost: 30 },
+      { id: 'large', energy: 8, cost: 70 },
+    ];
+    savePlayer(player);
+    expect(loadPlayer(null).demo.config.energyPacks[0]).toEqual({ id: 'energy-4', energy: 4, cost: 2 });
+
+    const custom = sample();
+    custom.demo.config.energyPacks = [{ id: 'custom', energy: 5, cost: 3 }];
+    savePlayer(custom);
+    expect(loadPlayer(null).demo.config.energyPacks).toEqual([{ id: 'custom', energy: 5, cost: 3 }]);
+  });
   it('uses a natural Energy cap of 15 for everyone and pauses the refill clock during overflow', () => {
     const player = sample();
     expect(player.demo.config.energyMax).toBe(15);

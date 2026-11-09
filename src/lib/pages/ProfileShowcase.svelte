@@ -26,6 +26,7 @@
   import PageTitle from '../components/PageTitle.svelte';
   import RewardIcon from '../components/RewardIcon.svelte';
   import ProfileRoom3D from '../components/ProfileRoom3D.svelte';
+  import { focusDialog, portal } from '../components/dialog';
   import { AVATARS, PETS, PROFILE_BACKGROUNDS, PROFILE_FRAMES, WINGS } from '../data/config';
   import type { PlayerState, ProfileStyle } from '../types';
 
@@ -56,7 +57,7 @@
   });
 
   let style = $derived(editable ? draft : player.demo.profile);
-  let activeFrameId = $derived(previewFrameId ?? frameId ?? player.demo.frameId);
+  let activeFrameId = $derived(editable ? previewFrameId : player.demo.frameId);
   let activeFrameMeta = $derived(activeFrameId ? PROFILE_FRAMES.find((item) => item.id === activeFrameId) ?? null : null);
   let activeAvatarId = $derived(previewAvatarId ?? player.avatarId);
   let avatar = $derived(AVATARS.find((item) => item.id === activeAvatarId) ?? AVATARS[0]);
@@ -148,6 +149,32 @@
     {#snippet icon()}<UserRound size={26} />{/snippet}
   </PageTitle>
 
+  {#if editable}
+    <section class="profile-identity" aria-label="ข้อมูลโปรไฟล์">
+      <div class="min-w-0">
+        <strong>{player.displayName}</strong>
+        <span>LV.{player.level} · {avatar.name}{pet ? ` & ${pet.name}` : ''}</span>
+        {#if style.bio}<small>{style.bio}</small>{/if}
+      </div>
+      {#if activeFrameMeta}<span class="profile-frame-label">{activeFrameMeta.name}</span>{/if}
+    </section>
+    <nav class="profile-tools" aria-label="แถบเครื่องมือแต่งโปรไฟล์">
+      {#each floatingTools as tool (tool.id)}
+        {@const isSelected = activeSheet === tool.id}
+        <button
+          type="button"
+          class="profile-tool"
+          class:active={isSelected}
+          aria-label={tool.ariaLabel}
+          aria-pressed={isSelected}
+          onclick={() => openSheet(tool.id)}
+        >
+          <tool.icon size={18} />
+          <span>{tool.label}</span>
+        </button>
+      {/each}
+    </nav>
+  {:else}
   <!-- 1. 3D Room Showcase + Floating Customization Toolbar + Framed Avatar Identity Card -->
   <section
     class="relative isolate min-h-[405px] overflow-hidden rounded-[26px] border-2.5 border-white shadow-[0_7px_0_#99c9ed,0_14px_26px_rgba(20,60,120,0.18)]"
@@ -226,6 +253,7 @@
       {/if}
     </div>
   </section>
+  {/if}
 
   <!-- 2. Mobile-Friendly Customization Sheet (Opens when tapping Floating Toolbar) -->
   {#if activeSheet}
@@ -235,6 +263,8 @@
       aria-modal="true"
       aria-label="หน้าต่างปรับแต่งโปรไฟล์"
       tabindex="-1"
+      use:portal
+      use:focusDialog={closeSheet}
       onclick={(event) => event.currentTarget === event.target && closeSheet()}
       onkeydown={(event) => event.key === 'Escape' && closeSheet()}
     >
@@ -246,7 +276,7 @@
               <button
                 type="button"
                 class={['flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-black transition-all', activeSheet === tool.id ? 'bg-[#0284c7] text-white shadow-xs' : 'bg-white text-[#365a8a] border border-sky-100']}
-                onclick={() => (activeSheet = tool.id)}
+                onclick={() => { if (activeSheet !== tool.id) openSheet(tool.id); }}
               >
                 <tool.icon size={13} />
                 <span>{tool.label}</span>
@@ -769,6 +799,16 @@
 </div>
 
 <style>
+  .profile-identity { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 2px solid #fff; border-radius: 18px; background: linear-gradient(110deg, #fff 0%, #f5f0ff 62%, #fff8e6 100%); box-shadow: 0 4px 0 #d9c8ee; }
+  .profile-identity > div { display: grid; min-width: 0; gap: 2px; }
+  .profile-identity strong { overflow: hidden; color: #35145f; font-size: 17px; font-weight: 1000; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-identity span { color: #66577d; font-size: 11px; font-weight: 800; }
+  .profile-identity small { overflow: hidden; color: #756587; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-frame-label { flex: 0 0 auto; padding: 4px 8px; border-radius: 99px; color: #75420a !important; background: #fff0bf; font-size: 9px !important; font-weight: 900 !important; }
+  .profile-tools { position: absolute; z-index: 25; top: calc(clamp(82px, 12dvh, 118px) - clamp(300px, 42dvh, 390px) + 18px); left: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .profile-tool { display: grid; width: 48px; min-height: 48px; justify-items: center; align-content: center; gap: 3px; padding: 3px; border: 2px solid #fff; border-radius: 14px; color: #542183; background: rgb(255 255 255 / 91%); box-shadow: 0 3px 0 rgb(57 44 79 / 28%); backdrop-filter: blur(7px); font: inherit; font-size: 8px; font-weight: 900; }
+  .profile-tool.active { color: #fff; background: #7928c7; box-shadow: 0 3px 0 #4d1685; }
+  @media (max-width: 350px) { .profile-tool { width: 43px; min-height: 44px; font-size: 7px; } }
   .toolbar-btn {
     display: flex;
     flex-direction: column;

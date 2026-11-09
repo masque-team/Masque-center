@@ -56,7 +56,7 @@
 
 <div class="space-y-4 pb-6 text-[#2d4161]" data-testid="monthly-pass">
   <!-- 1. Hero Season Banner -->
-  <section class="relative isolate flex min-h-[208px] items-center overflow-hidden rounded-2xl border-2.5 border-white bg-gradient-to-br from-[#dff3ff] via-[#eef8ff] to-[#f8e8ff] px-3.5 py-4 shadow-[0_7px_0_#b5cde6,0_12px_22px_rgba(45,75,130,0.16)]" aria-label="ซีซัน Pass">
+  <section class="relative isolate flex min-h-[246px] items-center overflow-hidden rounded-2xl border-2.5 border-white bg-gradient-to-br from-[#dff3ff] via-[#eef8ff] to-[#f8e8ff] px-3.5 py-4 shadow-[0_7px_0_#b5cde6,0_12px_22px_rgba(45,75,130,0.16)]" aria-label="ซีซัน Pass">
     {#if PASS_ARTWORK.banner}<img class="absolute inset-0 -z-10 h-full w-full object-cover opacity-90" src={PASS_ARTWORK.banner} alt="" />{/if}
     <div class="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-white/55 via-white/15 to-transparent"></div>
     <div class="relative z-10 w-[58%]">
@@ -72,17 +72,33 @@
         <Clock3 size={12} class="text-sky-600" />เหลือ {Math.floor(remaining / 86_400_000)} วัน {Math.floor(remaining / 3_600_000) % 24} ชม.
       </span>
     </div>
-    <div class="pointer-events-none absolute right-1 bottom-6 h-44 w-[44%]">
-      <span class="absolute inset-4 rounded-full bg-amber-200/45 blur-xl"></span>
+    <div class="pointer-events-none absolute right-0 bottom-5 h-56 w-[58%]">
+      <span class="absolute inset-2 rounded-full bg-[radial-gradient(ellipse,_rgba(245,198,255,0.86)_0%,_rgba(255,221,128,0.45)_42%,_transparent_74%)] blur-lg"></span>
       {#if finalAvatar}
         {#if finalWing}<img class="absolute inset-0 h-full w-full scale-125 object-contain" src={finalWing.imagePath} alt="" />{/if}
-        <span class="relative block h-full w-full drop-shadow-[0_6px_10px_rgba(65,35,120,0.28)]"><AssetPortrait src={finalAvatar.imagePath} alt={finalAvatar.name} placeholder={finalAvatar.placeholder} kind="avatar" /></span>
+        <span class="nyx-breathe relative block h-full w-full drop-shadow-[0_10px_18px_rgba(65,35,120,0.42)]"><AssetPortrait src={finalAvatar.imagePath} alt={finalAvatar.name} placeholder={finalAvatar.placeholder} kind="avatar" /></span>
       {:else if finalReward}
         <span class="grid h-full w-full place-items-center"><RewardIcon type={finalReward.type} itemId={finalReward.itemId} size={96} /></span>
       {:else}
         <span class="relative block h-full w-full"><AssetPortrait src={hero.imagePath} alt={hero.name} placeholder={hero.placeholder} kind="avatar" /></span>
       {/if}
     </div>
+
+    <style>
+      .nyx-breathe {
+        animation: nyx-breathe 5s ease-in-out infinite;
+        transform-origin: 50% 70%;
+      }
+
+      @keyframes nyx-breathe {
+        0%, 100% { transform: scale(1.04); }
+        50% { transform: scale(1.09); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .nyx-breathe { animation: none; }
+      }
+    </style>
     <span class="absolute right-2.5 bottom-2 flex max-w-[52%] items-center gap-1 rounded-full border-2 border-white bg-gradient-to-r from-[#fff6d1] to-[#ffdf85] px-2.5 py-0.5 text-[9px] font-black text-[#7d4900] shadow-[0_2px_0_#d49b2a]">
       <Crown size={11} class="shrink-0 text-amber-600" fill="currentColor" />
       <span class="truncate">LV.{season.premium.length} · {finalReward?.title}</span>
@@ -125,7 +141,7 @@
           <p class="text-[10.5px] font-bold text-[#7c5310]">
             {pass.premium
               ? 'กดรับรางวัลสาย Premium และทำภารกิจ XP พิเศษได้ตลอดซีซัน'
-              : 'รับรางวัลแถว Premium ทั้ง 30 เลเวลย้อนหลังตาม XP และเปิดภารกิจ Premium'}
+              : `รับรางวัลแถว Premium ทั้ง ${totalLevels} เลเวลย้อนหลังตาม XP และเปิดภารกิจ Premium`}
           </p>
         </div>
       </div>

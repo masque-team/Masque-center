@@ -2,7 +2,6 @@
   import { Check, Clock3, Crown, Sparkles, TriangleAlert, Zap } from '@lucide/svelte';
   import CurrencyIcon from './CurrencyIcon.svelte';
   import GameButton from './GameButton.svelte';
-  import PassArtwork from './PassArtwork.svelte';
   import { vipOffer } from '../services/passService';
   import type { PlayerState } from '../types';
 
@@ -29,7 +28,7 @@
     <header class="relative isolate overflow-hidden rounded-3xl border-2 border-white bg-gradient-to-br from-[#fff9db] via-[#ffeaa3] to-[#f7d774] p-4 shadow-[0_5px_0_#dfc176]">
       <div class="flex items-center gap-3.5">
         <div class="relative grid size-20 shrink-0 place-items-center rounded-2xl border-2 border-white bg-white/75 p-1.5 shadow-sm">
-          <PassArtwork kind={offer.plan.durationDays >= 3 ? 'crest' : offer.plan.durationDays >= 1 ? 'boost' : 'standard'} />
+          <CurrencyIcon kind="vipCrest" size={58} />
         </div>
         <div class="min-w-0 flex-1">
           <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-white/92 px-2.5 py-0.5 text-[10px] font-black text-[#8f5400]">

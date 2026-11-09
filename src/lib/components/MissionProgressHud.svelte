@@ -1,66 +1,63 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { fly, fade } from 'svelte/transition';
-  import { Check, Sparkles, Target, Trophy, Zap } from '@lucide/svelte';
+  import { Check, Sparkles, Target, Trophy, X, Zap } from '@lucide/svelte';
   import { BADGE_ARTWORK, PASS_ARTWORK } from '../data/config';
 
-  export interface HudNotificationItem {
-    id: string;
-    kind: 'mission' | 'checkin' | 'achievement';
-    title: string;
-    subtitle?: string;
-    before: number;
-    after: number;
-    target: number;
-    xp: number;
-    rewardText?: string;
-    badgeId?: string;
-  }
+  import { hudStartTimes, HUD_DURATION, HUD_LIMIT, type HudNotificationItem } from '../services/missionHud';
 
   let {
     items = [],
     motionReduced = false,
+    hidden = false,
     onDismiss,
   }: {
     items: HudNotificationItem[];
     motionReduced?: boolean;
+    hidden?: boolean;
     onDismiss: (id: string) => void;
   } = $props();
 
   let revealedIds = $state<string[]>([]);
   let filledIds = $state<string[]>([]);
-  const scheduled = new Set<string>();
+  let scheduled = new Map<string, number>();
 
   $effect(() => {
-    items.forEach((item, index) => {
-      if (scheduled.has(item.id)) return;
-      scheduled.add(item.id);
+    const at = Date.now();
+    scheduled = hudStartTimes(items.map((item) => item.id), scheduled, at, motionReduced);
+    const timers: number[] = [];
+    untrack(() => {
+      revealedIds = revealedIds.filter((id) => scheduled.has(id));
+      filledIds = filledIds.filter((id) => scheduled.has(id));
+    });
+    items.forEach((item) => {
+      const enterDelay = Math.max(0, scheduled.get(item.id)! - at);
+      const fillDelay = Math.max(0, scheduled.get(item.id)! + (motionReduced ? 0 : 120) - at);
+      const dismissDelay = Math.max(0, scheduled.get(item.id)! + HUD_DURATION - at);
 
-      const enterDelay = motionReduced ? 0 : index * 520;
-      const fillDelay = enterDelay + (motionReduced ? 0 : 120);
-      const dismissDelay = enterDelay + 3400;
-
-      window.setTimeout(() => {
+      timers.push(window.setTimeout(() => {
         if (!revealedIds.includes(item.id)) {
           revealedIds = [...revealedIds, item.id];
         }
-      }, enterDelay);
+      }, enterDelay));
 
-      window.setTimeout(() => {
+      timers.push(window.setTimeout(() => {
         if (!filledIds.includes(item.id)) {
           filledIds = [...filledIds, item.id];
         }
-      }, fillDelay);
+      }, fillDelay));
 
-      window.setTimeout(() => {
+      timers.push(window.setTimeout(() => {
         onDismiss(item.id);
-      }, dismissDelay);
+      }, dismissDelay));
     });
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
   });
 
-  let visibleItems = $derived(items.filter((item) => revealedIds.includes(item.id)).slice(-3));
+  let visibleItems = $derived(items.filter((item) => revealedIds.includes(item.id)).slice(0, HUD_LIMIT));
 </script>
 
-{#if visibleItems.length > 0}
+{#if visibleItems.length > 0 && !hidden}
   <aside
     class="hud-layer"
     aria-live="polite"
@@ -71,17 +68,16 @@
       {@const startPct = Math.min(100, Math.round((item.before / Math.max(1, item.target)) * 100))}
       {@const endPct = Math.min(100, Math.round((item.after / Math.max(1, item.target)) * 100))}
       {@const displayPct = filledIds.includes(item.id) || motionReduced ? endPct : startPct}
-      <button
-        type="button"
+      <article
         class="hud-card"
         class:is-complete={isComplete}
         class:is-achievement={item.kind === 'achievement'}
         in:fly={{ x: motionReduced ? 0 : -240, duration: motionReduced ? 0 : 300 }}
         out:fade={{ duration: motionReduced ? 0 : 180 }}
-        onclick={() => onDismiss(item.id)}
         aria-label={`${item.title} ${item.before}/${item.target} ถึง ${item.after}/${item.target}`}
       >
-        <div class="hud-icon" class:complete={isComplete}>
+        <button type="button" class="hud-dismiss" aria-label={`ปิดการแจ้งเตือน ${item.title}`} onclick={() => onDismiss(item.id)}><X size={12} /></button>
+        <div class="hud-icon" class:complete={isComplete} class:reduced={motionReduced}>
           {#if item.kind === 'achievement' && item.badgeId}
             <img class="size-7 object-contain" src={BADGE_ARTWORK[item.badgeId] ?? BADGE_ARTWORK['first-finish']} alt="" />
           {:else if item.kind === 'checkin'}
@@ -100,6 +96,7 @@
               {item.before}/{item.target} → <b>{item.after}/{item.target}</b>
             </span>
           </div>
+          {#if item.subtitle}<p class="truncate text-[10px] font-bold text-[#526c9c]">{item.subtitle}</p>{/if}
 
           <div
             class="hud-bar-track"
@@ -132,12 +129,12 @@
               <span class="hud-xp-pill">+{item.xp} XP</span>
             {:else if item.rewardText}
               <span class="hud-xp-pill reward">{item.rewardText}</span>
-            {:else if item.kind === 'achievement'}
+            {:else if item.kind === 'achievement' && isComplete}
               <span class="hud-xp-pill reward"><Trophy size={10} /> เหรียญตราใหม่</span>
             {/if}
           </div>
         </div>
-      </button>
+      </article>
     {/each}
   </aside>
 {/if}
@@ -159,7 +156,8 @@
   }
 
   .hud-card {
-    pointer-events: auto;
+    position: relative;
+    pointer-events: none;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -172,9 +170,24 @@
       0 4px 0 #8ec5ed,
       0 10px 22px rgba(18, 52, 102, 0.22);
     text-align: left;
-    cursor: pointer;
     backdrop-filter: blur(8px);
     -webkit-tap-highlight-color: transparent;
+  }
+
+  .hud-dismiss {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: #e0f2fe;
+    color: #365a8a;
+    pointer-events: auto;
+    cursor: pointer;
   }
 
   .hud-card.is-complete {
@@ -204,6 +217,7 @@
     box-shadow: 0 2px 0 #b45309;
     animation: hudPop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1);
   }
+  .hud-icon.complete.reduced { animation: none; }
 
   .hud-body {
     min-width: 0;

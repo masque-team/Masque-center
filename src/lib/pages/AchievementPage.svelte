@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { BadgeCheck, CalendarCheck, ChevronRight, Flame, Gift, LockKeyhole, Medal, Sparkles, Trophy } from '@lucide/svelte';
+  import { BadgeCheck, CalendarCheck, ChevronRight, Flame, Gift, LockKeyhole, Medal, Sparkles } from '@lucide/svelte';
   import DailyCheckinCard from '../components/DailyCheckinCard.svelte';
   import GameButton from '../components/GameButton.svelte';
-  import PageTitle from '../components/PageTitle.svelte';
   import RewardIcon from '../components/RewardIcon.svelte';
   import { GACHA_ARTWORK } from '../data/config';
   import { ACHIEVEMENT_DEFINITIONS, currentCheckinStreak, getAchievementProgress } from '../services/achievementService';
@@ -45,15 +44,11 @@
 </script>
 
 <div class="page-stack pb-8 text-[#1f305e]">
-  <PageTitle eyebrow="ACHIEVEMENTS & CHECK-IN" title="ความสำเร็จ & เช็กอิน" subtitle="เช็กอินรายวันและสะสมเหรียญตราเกียรติยศ">
-    {#snippet icon()}<Trophy size={26} />{/snippet}
-  </PageTitle>
-
   <!-- 1. Daily Check-in & Day-7 Special Milestone -->
   <section class="card-25d space-y-3 p-3.5" aria-label="Daily check-in and streak">
     <div class="flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2">
-        <span class="grid size-9 place-items-center rounded-xl border-2 border-white bg-[#e0f2fe] text-[#0284c7] shadow-2xs">
+      <div class="flex min-w-0 items-center gap-2">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl border-2 border-white bg-[#e0f2fe] text-[#0284c7] shadow-2xs">
           <CalendarCheck size={19} />
         </span>
         <div>

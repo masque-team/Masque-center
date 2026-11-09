@@ -5,8 +5,12 @@ export const ENERGY_CONFIG = {
   costPerGame: 1,
   refillEveryMs: 30 * 60 * 1000,
   refillPacks: [
-    { id: 'small', energy: 3, cost: 30 },
-    { id: 'large', energy: 8, cost: 70 },
+    { id: 'energy-4', energy: 4, cost: 2 },
+    { id: 'energy-8', energy: 8, cost: 4 },
+    { id: 'energy-12', energy: 12, cost: 6 },
+    { id: 'energy-24', energy: 24, cost: 11 },
+    { id: 'energy-48', energy: 48, cost: 20 },
+    { id: 'energy-120', energy: 120, cost: 45 },
   ],
 } as const;
 

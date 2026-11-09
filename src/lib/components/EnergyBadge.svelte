@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Zap } from '@lucide/svelte';
+  import CurrencyIcon from './CurrencyIcon.svelte';
 
   let { energy, vipActive, countdown = '', onRefill, max = 15 }: {
     energy: number;
@@ -22,7 +22,7 @@
 >
   <span class="dial" aria-hidden="true">
     <span class="inner">
-      <Zap size={12} fill="currentColor" />
+      <CurrencyIcon kind="energyPotion" size={18} />
     </span>
   </span>
   <span class="readout">

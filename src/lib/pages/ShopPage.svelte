@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { ChevronRight, Crown, ShoppingBag, Sparkles } from '@lucide/svelte';
+  import { ChevronRight, Crown, ShoppingBag, Sparkles, Ticket } from '@lucide/svelte';
   import AssetPortrait from '../components/AssetPortrait.svelte';
   import AvatarFrame from '../components/AvatarFrame.svelte';
   import CurrencyIcon from '../components/CurrencyIcon.svelte';
   import GameButton from '../components/GameButton.svelte';
-  import PassArtwork from '../components/PassArtwork.svelte';
   import RarityChip from '../components/RarityChip.svelte';
   import { AVATARS, GACHA_ARTWORK, NAV_ARTWORK, PETS, PROFILE_FRAMES, WINGS } from '../data/config';
   import { energyCapacity } from '../services/energyService';
@@ -18,6 +17,7 @@
     onBuy,
     onRefill,
     onBuyGachaBox,
+    onBuyCampaignTickets,
     onOpenGachaBox,
     onVip,
   }: {
@@ -28,6 +28,7 @@
     onRefill: (id: string) => void;
     countdown: string;
     onBuyGachaBox: (kind: 'avatar' | 'pet') => void;
+    onBuyCampaignTickets: (packId: string) => void;
     onOpenGachaBox: (kind: 'avatar' | 'pet') => void;
     onVip: (id: string) => void;
   } = $props();
@@ -35,6 +36,14 @@
   let category = $state<'all' | 'avatar' | 'pet' | 'wing' | 'frame'>('all');
   let maxEnergy = $derived(energyCapacity(player, vipActive));
   let gachaCost = $derived(player.demo.config.gachaCost);
+  const energyPackArtwork = [
+    'assets/ui-redesign/shop/energy-pack-pedestal.jpg',
+    'assets/ui-redesign/shop/energy-pack-pedestal.jpg',
+    'assets/ui-redesign/shop/energy-pack-pouch.jpg',
+    'assets/points/chest.png',
+    'assets/points/treasure.png',
+    'assets/points/royal.png',
+  ];
 
   const tabs = [
     { id: 'items', label: 'ไอเทม & สุ่ม', kind: 'points' as const },
@@ -74,14 +83,14 @@
 </script>
 
 <div class="space-y-4 pb-8 [overflow-anchor:none]">
-  <!-- Clean Shop Header -->
-  <div class="flex min-h-16 items-center justify-between gap-2 rounded-2xl border-2 border-white bg-gradient-to-r from-white/95 via-[#f7fff0]/95 to-[#e8f4ff]/95 px-3.5 py-2.5 shadow-[0_4px_0_#c8d8ec]">
+  <!-- Shop Header -->
+  <div class="flex min-h-16 items-center justify-between gap-2 rounded-2xl border-2 border-white bg-gradient-to-r from-white/95 via-[#f4edff]/95 to-[#fff3d4]/95 px-3.5 py-2.5 shadow-[0_4px_0_#d6c3ef]">
     <div class="flex items-center gap-2.5">
       <img class="size-11 shrink-0 object-contain drop-shadow-[0_3px_4px_rgba(60,40,120,0.22)]" src={NAV_ARTWORK.shop} alt="" />
       <div>
-        <p class="text-[9.5px] font-black tracking-wider text-[#0284c7]">REWARD & ITEM SHOP</p>
-        <h1 class="text-lg font-black leading-tight text-[#1f305e]">ร้านค้าแลกรางวัล</h1>
-        <small class="block text-[10.5px] font-bold text-[#526c9c]">แตะที่สินค้าเพื่อดูรายละเอียดและแลกรางวัล</small>
+        <p class="text-[9.5px] font-black tracking-wider text-[#7b22cf]">REWARD & ITEM SHOP</p>
+        <h1 class="text-lg font-black leading-tight text-[#35145f]">ร้านค้า</h1>
+        <small class="block text-[10.5px] font-bold text-[#71628c]">พลังงาน · ตัวละคร · VIP Pass</small>
       </div>
     </div>
     <div class="flex items-center gap-1.5 rounded-full border-2 border-[#a8e85c] bg-[#f4fce8] px-3 py-1.5 text-xs font-black text-[#1f4d00] shadow-2xs">
@@ -145,7 +154,7 @@
 
         <!-- Tappable VIP Product Cards -->
         <div class="grid gap-3">
-          {#each player.demo.config.vipPlans as plan, index (plan.id)}
+          {#each player.demo.config.vipPlans as plan (plan.id)}
             <button
               type="button"
               class="vip-product-card group flex w-full items-center gap-3.5 rounded-3xl border-2.5 border-white bg-gradient-to-r from-[#fffef7] via-[#fff6d6] to-[#ffebb3] p-3.5 text-left shadow-[0_5px_0_#dfb75a,0_10px_20px_rgba(160,110,15,0.14)] transition-transform active:translate-y-0.5"
@@ -154,7 +163,7 @@
             >
               <!-- VIP Emblem Artwork -->
               <div class="relative grid size-20 shrink-0 place-items-center rounded-2xl border-2 border-white bg-gradient-to-b from-white to-[#fff1bf] p-1.5 shadow-xs">
-                <PassArtwork kind={index === 2 ? 'crest' : index === 1 ? 'boost' : 'standard'} />
+                <CurrencyIcon kind="vipCrest" size={56} />
                 <span class="absolute -bottom-1.5 rounded-full border border-amber-300 bg-[#593100] px-2 py-0.5 text-[9px] font-black text-[#ffe68a]">
                   {durationText(plan.durationDays)}
                 </span>
@@ -169,12 +178,12 @@
                 <p class="text-xs font-bold text-[#6b4c1b]">
                   เข้าเล่นเกมปกติฟรี · Energy สูงสุด 30 · ภารกิจ VIP
                 </p>
-                <div class="flex items-center justify-between pt-1">
-                  <span class="inline-flex items-center gap-1.5 rounded-full border border-[#a8e85c] bg-[#f4fce8] px-2.5 py-0.5 text-xs font-black text-[#245900]">
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <span class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#a8e85c] bg-[#f4fce8] px-2.5 py-0.5 text-xs font-black text-[#245900]">
                     <CurrencyIcon kind="aisPoints" size={16} />
                     {plan.cost.toLocaleString()} AIS Point
                   </span>
-                  <span class="inline-flex items-center gap-0.5 text-xs font-black text-[#8f5400] group-hover:translate-x-0.5 transition-transform">
+                  <span class="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-black text-[#8f5400] group-hover:translate-x-0.5 transition-transform">
                     ดูรายละเอียด <ChevronRight size={15} />
                   </span>
                 </div>
@@ -185,55 +194,30 @@
       </div>
 
     {:else if tab === 'energy'}
-      <div class="space-y-4">
-        <section class="space-y-3 rounded-2xl border-2 border-white bg-gradient-to-br from-white via-[#f2faff] to-[#e1f3ff] p-4 shadow-[0_5px_0_#bfd8ea]" aria-label="สถานะ Energy">
-          <div class="flex items-center justify-between">
-            <h2 class="flex items-center gap-2 text-base font-black text-[#255275]">
-              <CurrencyIcon kind="energyPotion" size={28} />
-              พลังงานของคุณ
-            </h2>
-            <strong class="rounded-full border border-sky-200 bg-white px-3 py-0.5 text-lg font-black tabular-nums text-sky-700">
-              ⚡ {player.energy}/{maxEnergy}
-            </strong>
+      <div class="space-y-3.5">
+        <section class="energy-summary" aria-label="สถานะ Energy">
+          <div class="summary-line">
+            <h2><CurrencyIcon kind="energyPotion" size={25} /> พลังงาน</h2>
+            <strong><CurrencyIcon kind="energyPotion" size={18} /> {player.energy}/{maxEnergy}</strong>
           </div>
-          <div class="h-3 overflow-hidden rounded-full border border-white bg-sky-100 p-0.5 shadow-inner">
-            <span
-              class="block h-full rounded-full bg-gradient-to-r from-[#38bdf8] via-[#60a5fa] to-[#fbbf24] transition-all duration-300"
-              style={`width:${Math.min(100, (player.energy / maxEnergy) * 100)}%`}
-            ></span>
+          <div class="energy-meter" role="progressbar" aria-label="พลังงานปัจจุบัน" aria-valuemin={0} aria-valuemax={maxEnergy} aria-valuenow={player.energy}>
+            <span style={`width:${Math.min(100, (player.energy / maxEnergy) * 100)}%`}></span>
           </div>
-          {#if player.energy < maxEnergy}
-            <p class="text-xs font-semibold text-[#4d6f82]">
-              ฟื้นฟูอัตโนมัติ +1 ทุก {player.demo.config.regenMinutes} นาที · ครั้งถัดไปใน <strong class="tabular-nums text-sky-700">{countdown}</strong>
-            </p>
-          {:else}
-            <p class="text-xs font-semibold text-[#4d6f82]">
-              พลังงานเต็มหลอดแล้ว · สามารถแลกแพ็กเพิ่มเพื่อสะสมเกินเพดานได้
-            </p>
-          {/if}
+          <div class="summary-foot">
+            <small>{player.energy < maxEnergy ? `+1 ทุก ${player.demo.config.regenMinutes} นาที · ถัดไป ${countdown}` : 'พลังงานเต็มแล้ว · แลกแพ็กเพื่อสะสมเพิ่มได้'}</small>
+            <span><CurrencyIcon kind="aisPoints" size={17} /> {player.aisPoints.toLocaleString()} Point</span>
+          </div>
         </section>
 
-        <h2 class="flex items-center gap-1.5 text-sm font-black text-[#2b2468]">
-          <Sparkles size={16} class="text-amber-500" /> แพ็กเกจขวดเติมพลังงาน
-        </h2>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="energy-note"><Sparkles size={15} /> พลังงานที่ซื้อสะสมต่อได้ แม้พลังงานเต็มแล้ว</div>
+        <h2 class="flex items-center gap-1.5 text-sm font-black text-[#35145f]"><Sparkles size={16} class="text-amber-500" /> แพ็กพลังงาน</h2>
+        <div class="grid grid-cols-2 gap-2.5">
           {#each player.demo.config.energyPacks as pack, idx (pack.id)}
-            <button
-              type="button"
-              class="relative grid min-w-0 justify-items-center gap-2 rounded-2xl border-2 border-white bg-gradient-to-b from-white via-[#f5fbff] to-[#e4f4ff] p-3.5 pt-5 text-center shadow-[0_5px_0_#bdd6e6] transition-transform active:translate-y-0.5"
-              onclick={() => onRefill(pack.id)}
-            >
-              <span class="absolute -top-2.5 rounded-full border border-white bg-gradient-to-r from-sky-500 to-indigo-500 px-2.5 py-0.5 text-[9px] font-extrabold text-white">
-                {idx === 0 ? '⚡ แพ็กพกพา' : '🌟 แพ็กสุดคุ้ม'}
-              </span>
-              <div class="my-1 grid size-20 place-items-center rounded-2xl border border-white bg-radial from-white to-sky-50">
-                <CurrencyIcon kind="energyPotion" size={idx === 0 ? 58 : 70} />
-              </div>
-              <strong class="text-xl font-black text-[#1e4b6e]">+{pack.energy} Energy</strong>
-              <span class="inline-flex items-center gap-1 rounded-full border border-[#a8e85c] bg-[#f4fce8] px-3 py-1 text-xs font-black text-[#245900]">
-                <CurrencyIcon kind="aisPoints" size={16} />
-                {pack.cost} AIS Point
-              </span>
+            <button type="button" class="energy-pack" onclick={() => onRefill(pack.id)} aria-label={`ซื้อพลังงาน ${pack.energy} หน่วย ราคา ${pack.cost} AIS Point`}>
+              <span class="pack-image"><img src={energyPackArtwork[idx] ?? energyPackArtwork.at(-1)} alt="" loading="lazy" /></span>
+              <strong>พลังงาน {pack.energy} หน่วย</strong>
+              <span class="pack-price"><CurrencyIcon kind="aisPoints" size={17} /> {pack.cost.toLocaleString()} AIS Point</span>
+              <span class="pack-buy">ซื้อ</span>
             </button>
           {/each}
         </div>
@@ -241,21 +225,58 @@
 
     {:else}
       <div class="space-y-4">
+        <section class="space-y-2.5" aria-label="บัตรเข้าอีเวนต์">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <CurrencyIcon kind="campaignTicket" size={24} />
+              <div>
+                <h2 class="text-sm font-black text-[#2b2468]">บัตรเข้าอีเวนต์</h2>
+                <p class="text-[10px] font-bold text-[#647b96]">ใช้เข้า Campaign ที่กำหนด · ไม่หัก Energy</p>
+              </div>
+            </div>
+            <span class="shrink-0 rounded-full bg-[#fff3c4] px-2.5 py-1 text-[11px] font-black text-[#8a5200]">
+              มี {player.demo.campaignTickets ?? 0} ใบ
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            {#each player.demo.config.campaignTicketPacks as pack (pack.id)}
+              <button
+                type="button"
+                class="group grid min-h-25 content-center justify-items-center gap-1.5 rounded-2xl border-2 border-white bg-white/92 p-3 text-center shadow-[0_6px_16px_rgb(35_75_130/10%),0_2px_4px_rgb(35_75_130/6%)] transition-transform active:translate-y-0.5"
+                aria-label={`ซื้อ ${pack.quantity} Campaign Tickets · ${pack.cost} AIS Point`}
+                onclick={() => onBuyCampaignTickets(pack.id)}
+              >
+                <span class="flex items-center gap-1 text-xs font-black text-[#244b71]">
+                  <CurrencyIcon kind="campaignTicket" size={18} /> {pack.quantity} ใบ
+                </span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-[#f4fce8] px-2.5 py-1 text-[11px] font-black text-[#245900]">
+                  <CurrencyIcon kind="aisPoints" size={15} /> {pack.cost.toLocaleString()} AIS Point
+                </span>
+                <span class="text-[10px] font-bold text-sky-700 group-hover:text-sky-900">ดูรายละเอียด · แลก</span>
+              </button>
+            {/each}
+          </div>
+        </section>
+
         <section class="space-y-2" aria-label="กล่องสุ่ม Gacha">
           <h2 class="text-sm font-black text-[#2b2468]">Gacha Boxes · กล่องสุ่มคู่หูและตัวละคร</h2>
           <div class="grid grid-cols-2 gap-3">
             {#each [{ kind: 'pet' as const, label: 'Pet Gacha Box', sub: 'สุ่มสัตว์เลี้ยงคู่หู', art: GACHA_ARTWORK.petBox }, { kind: 'avatar' as const, label: 'Avatar Gacha Box', sub: 'สุ่มตัวละครฮีโร่', art: GACHA_ARTWORK.avatarBox }] as box (box.kind)}
               {@const ownedBoxes = player.demo.gachaBoxes?.[box.kind] ?? 0}
-              <article class="grid min-w-0 justify-items-center gap-2 rounded-2xl border-2 border-white bg-gradient-to-b from-white to-[#eef7ff] p-3 text-center shadow-[0_5px_0_#c4d9eb]">
+              <article class="grid min-w-0 justify-items-center gap-2 p-1 text-center">
                 <button
                   type="button"
-                  class="grid w-full justify-items-center gap-1 text-center"
+                  class="grid w-full justify-items-center gap-2 rounded-2xl border-2 border-white bg-white/92 p-3 text-center shadow-[0_6px_16px_rgb(35_75_130/10%),0_2px_4px_rgb(35_75_130/6%)] transition-transform active:translate-y-0.5"
                   onclick={() => onBuyGachaBox(box.kind)}
                 >
-                  <img class="h-16 w-16 object-contain drop-shadow-xs" src={box.art ?? GACHA_ARTWORK.capsule ?? 'assets/gacha/gacha-capsule.png'} alt={box.label} />
-                  <strong class="text-sm font-black text-[#29436b]">{box.label}</strong>
-                  <span class="text-[10.5px] font-bold text-[#526c9c]">{box.sub}</span>
-                  <span class="mt-0.5 inline-flex items-center gap-1 rounded-full border border-[#a8e85c] bg-[#f4fce8] px-2.5 py-0.5 text-xs font-black text-[#245900]">
+                  <div class="grid h-22 w-full place-items-center">
+                    <img class="h-19 w-19 object-contain drop-shadow-[0_6px_10px_rgba(60,40,120,0.2)]" src={box.art ?? GACHA_ARTWORK.capsule ?? 'assets/gacha/gacha-capsule.png'} alt={box.label} />
+                  </div>
+                  <div class="space-y-0.5">
+                    <strong class="block text-sm font-black text-[#29436b]">{box.label}</strong>
+                    <span class="block text-[10.5px] font-bold text-[#526c9c]">{box.sub}</span>
+                  </div>
+                  <span class="inline-flex items-center gap-1 rounded-full border border-[#a8e85c] bg-[#f4fce8] px-2.5 py-0.5 text-xs font-black text-[#245900]">
                     <CurrencyIcon kind="aisPoints" size={15} /> {gachaCost} AIS Point
                   </span>
                 </button>
@@ -300,20 +321,20 @@
           {/each}
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3.5">
           {#each products as item (item.id)}
             {#if item.art}
-              <article class="grid min-w-0 content-start gap-2 rounded-2xl border-2 border-white bg-gradient-to-b from-white via-[#fbfdff] to-[#eef5ff] p-3 shadow-[0_5px_0_#c9d9eb]">
+              <article data-product-id={item.id} class="grid min-w-0 content-start gap-2">
                 <button
                   type="button"
-                  class="grid w-full content-start gap-2 text-left"
+                  class="grid w-full content-start gap-2 rounded-2xl border-2 border-white bg-white/92 p-2.5 text-left shadow-[0_6px_16px_rgb(35_75_130/10%),0_2px_4px_rgb(35_75_130/6%)] transition-transform active:translate-y-0.5"
                   onclick={() => onBuy(item.id)}
                 >
                   <div
-                    class="relative grid h-30 w-full place-items-center overflow-hidden rounded-xl border border-white bg-gradient-to-b from-[#e8f5ff] via-[#f7f4ff] to-[#fff5e4] p-1.5"
+                    class="relative grid h-30 w-full place-items-center overflow-hidden rounded-xl p-1"
                   >
                     {#if item.kind === 'wing'}
-                      <img class="h-full w-full object-contain drop-shadow-[0_4px_6px_rgba(60,40,120,0.2)]" src={item.art.imagePath} alt={item.art.name} />
+                      <img class="h-full w-full object-contain drop-shadow-[0_4px_8px_rgba(60,40,120,0.22)]" src={item.art.imagePath} alt={item.art.name} />
                     {:else if item.kind === 'frame'}
                       <AvatarFrame avatarId={player.avatarId} frameId={item.itemId} size="lg" />
                     {:else}
@@ -347,3 +368,24 @@
     {/if}
   </section>
 </div>
+
+<style>
+  .energy-summary { display: grid; gap: 8px; padding: 12px; border: 2px solid #fff; border-radius: 17px; background: linear-gradient(110deg, #fff 0%, #f8f2ff 58%, #fff8e4 100%); box-shadow: 0 4px 0 #dccded; }
+  .summary-line, .summary-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .summary-line h2, .summary-line strong { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: #38165e; font-size: 15px; font-weight: 1000; }
+  .summary-line strong { padding: 4px 10px; border: 1px solid #dac5f2; border-radius: 99px; background: #fff; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .energy-meter { height: 9px; overflow: hidden; border-radius: 99px; background: #e8def2; }
+  .energy-meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffbb27, #a326ec); transition: width 250ms ease; }
+  .summary-foot { flex-wrap: wrap; color: #74658a; font-size: 9.5px; font-weight: 800; }
+  .summary-foot small { font-size: inherit; }
+  .summary-foot > span { display: inline-flex; align-items: center; gap: 3px; color: #3b2458; white-space: nowrap; }
+  .energy-note { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid #f1d997; border-radius: 99px; color: #573d17; background: #fff8df; font-size: 10px; font-weight: 900; }
+  .energy-pack { display: grid; min-width: 0; justify-items: center; gap: 5px; padding: 7px; border: 2px solid #fff; border-radius: 16px; background: linear-gradient(155deg, #fff 0%, #fbf7ff 72%, #f4edff 100%); box-shadow: 0 4px 0 #d9c8ee, 0 7px 12px rgb(65 40 95 / 8%); text-align: center; transition: transform 120ms ease; }
+  .energy-pack:active { transform: translateY(2px); }
+  .pack-image { display: block; width: 100%; aspect-ratio: 1.35; overflow: hidden; border-radius: 12px; background: #fff; }
+  .pack-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .energy-pack > strong { color: #35145f; font-size: 12px; font-weight: 1000; }
+  .pack-price { display: inline-flex; align-items: center; gap: 3px; max-width: 100%; color: #195814; font-size: 9px; font-weight: 900; white-space: nowrap; }
+  .pack-buy { display: grid; place-items: center; width: 100%; min-height: 28px; border: 1px solid #fff; border-radius: 99px; color: #fff; background: linear-gradient(180deg, #a940ff, #7100d4); box-shadow: 0 2px 0 #4e0a9a; font-size: 11px; font-weight: 1000; }
+  @media (prefers-reduced-motion: reduce) { .energy-meter span, .energy-pack { transition: none; } }
+</style>

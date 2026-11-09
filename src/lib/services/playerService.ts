@@ -83,6 +83,13 @@ export function loadPlayer(queryName: string | null, resetMock = false): PlayerS
   result.demo.config.vipFreeEntry = true;
   result.demo.config.vipEnergyBonus = 15;
   result.demo.config.continueEnergyCost = 1;
+  const previousEnergyPacks = [
+    { id: 'small', energy: 3, cost: 30 },
+    { id: 'large', energy: 8, cost: 70 },
+  ];
+  if (!Array.isArray(result.demo.config.energyPacks) || JSON.stringify(result.demo.config.energyPacks) === JSON.stringify(previousEnergyPacks)) {
+    result.demo.config.energyPacks = ENERGY_CONFIG.refillPacks.map((pack) => ({ ...pack }));
+  }
   result.demo.config.checkinEnergyReward ??= 3;
   result.demo.config.duplicateEnergy ??= 1;
   result.demo.config.rankingEnergyPrize ??= 5;

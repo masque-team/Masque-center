@@ -105,7 +105,6 @@
         {#each player.demo.config.campaignTicketPacks as pack (pack.id)}
           <button
             class="flex items-center justify-between gap-2 rounded-2xl border-2 border-white bg-gradient-to-b from-white to-[#f0f9ff] px-3 py-2.5 text-left shadow-[0_3px_0_#b9dcf4] disabled:opacity-50"
-            disabled={player.aisPoints < pack.cost}
             aria-label={`ซื้อ ${pack.quantity} Campaign Tickets · ${pack.cost} AIS Point`}
             onclick={() => onBuyCampaignTickets(pack.id)}
           >
@@ -186,21 +185,21 @@
 
       {#if campaign.launchMode === 'external' || campaign.entry === 'external'}
         <section class="card-25d space-y-2 p-3.5" aria-label="กิจกรรมภายนอกที่ยังไม่เชื่อมต่อ">
-          <strong class="text-sm font-black text-[#7c4a03]">External Partner Activity · MOCK</strong>
-          <p class="text-xs font-bold text-[#526c9c]">{campaign.externalUrl ? 'ลิงก์กิจกรรมพาร์ตเนอร์พร้อมใช้งานใน Demo' : 'ยังไม่มี URL จริง · แสดงเป็น Placeholder สำหรับกิจกรรมพาร์ตเนอร์'}</p>
+          <strong class="text-sm font-black text-[#7c4a03]">กิจกรรมพิเศษจากพาร์ตเนอร์</strong>
+          <p class="text-xs font-bold text-[#526c9c]">{campaign.externalUrl ? 'ดูรายละเอียดและร่วมสนุกได้ที่หน้ากิจกรรม' : 'ติดตามรายละเอียดและวันเปิดกิจกรรมเร็ว ๆ นี้'}</p>
           <p class="text-[11px] font-bold text-[#64748b]">กิจกรรมนี้ไม่หัก Energy หรือ Campaign Ticket</p>
           {#if campaign.externalUrl}
             <a class="btn-gold-3d inline-flex min-h-10 items-center gap-1.5 px-4 text-xs" href={campaign.externalUrl} target="_blank" rel="noopener noreferrer">
               เปิดหน้ากิจกรรม <ArrowRight size={15} />
             </a>
           {:else}
-            <button class="min-h-10 rounded-xl bg-slate-200 px-3.5 text-xs font-black text-slate-600" disabled>ยังเปิดไม่ได้ · URL pending</button>
+            <button class="min-h-10 rounded-xl bg-slate-200 px-3.5 text-xs font-black text-slate-600" disabled>เร็ว ๆ นี้</button>
           {/if}
         </section>
       {:else if status === 'upcoming'}
         <p class="card-25d p-3.5 text-xs font-black text-[#0369a1]">Campaign ยังไม่เริ่ม · เปิดให้เล่น {new Date(campaign.startAt).toLocaleString('th-TH')}</p>
       {:else if status === 'ended' || player.demo.closedCampaigns?.includes(campaign.id) || player.demo.settledCampaigns?.includes(campaign.id)}
-        <p class="card-25d p-3.5 text-xs font-black text-[#475569]">Campaign สิ้นสุดแล้ว · รางวัลจัดส่งเข้ากระเป๋าอัตโนมัติ ตรวจดูได้ใน History</p>
+        <p class="card-25d p-3.5 text-xs font-black text-[#475569]">Campaign สิ้นสุดแล้ว · ตรวจสอบอันดับและผลรางวัลได้ในประวัติ</p>
       {/if}
 
       {#if campaign.entry === 'ticket'}
@@ -216,7 +215,6 @@
             {#each player.demo.config.campaignTicketPacks as pack (pack.id)}
               <button
                 class="flex min-h-10 items-center justify-between rounded-xl border border-sky-200 bg-white px-2.5 text-xs font-black text-[#1f305e] disabled:opacity-50"
-                disabled={player.aisPoints < pack.cost}
                 onclick={() => onBuyCampaignTickets(pack.id)}
               >
                 <span>{pack.label}</span>
@@ -306,13 +304,12 @@
           {#each campaign.gameIds as gameId (gameId)}
             {@const lacksTicket = campaign.entry === 'ticket' && (player.demo.campaignTickets ?? 0) < campaign.ticketCost}
             <button
-              class="btn-gold-3d flex min-h-12 w-full items-center justify-between px-4 text-xs disabled:opacity-50"
-              disabled={lacksTicket}
+              class="btn-gold-3d flex min-h-12 w-full items-center justify-between px-4 text-xs"
               onclick={() => onPlay(gameId, campaign.id)}
             >
               <span>
                 {lacksTicket
-                  ? 'Campaign Ticket ไม่พอ · ซื้อแพ็กด้านบน'
+                  ? `ดูวิธีเข้าเล่น · ต้องใช้ ${campaign.ticketCost} Ticket`
                   : `เข้าเล่น ${player.demo.config.games.find((game) => game.id === gameId)?.name ?? gameId} ${campaign.entry === 'ticket' ? `(ใช้ ${campaign.ticketCost} Ticket)` : '(เล่นฟรี 0 Energy)'}`}
               </span>
               <ArrowRight size={16} />

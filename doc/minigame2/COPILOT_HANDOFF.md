@@ -1,5 +1,7 @@
 # MiniGame2 Frontend Handoff
 
+**Post-Gemini UX regression:** See [FINAL_UX_REGRESSION.md](./FINAL_UX_REGRESSION.md) for the audit of `4627cf4`, confirmed interaction fixes, actual routes, 95-test validation and mobile browser evidence. The commit/status notes below are historical.
+
 **Status:** Final functional regression completed over Gemini/Argon Round 2 (`3a12476`). Frontend PASS; production integrations and official AIS branding remain pending. See [FINAL_REVIEW.md](./FINAL_REVIEW.md).
 **Implementation commit:** `c484447` (pushed to `main`).
 **Final rules/UI follow-up commit:** `45c9288` (pushed to `main`). AIS Point is purchase-only; game activities do not mint AIS Point. Shop Gacha Boxes, VIP Energy MAX 30 while active, and floating Simulate Finish.

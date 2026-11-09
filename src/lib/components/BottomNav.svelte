@@ -14,7 +14,7 @@
 </script>
 
 <nav
-  class="fixed right-1/2 bottom-0 z-20 grid w-full max-w-[460px] translate-x-1/2 grid-cols-5 rounded-t-[26px] border-t-[3px] border-white bg-[linear-gradient(180deg,rgba(255,255,255,0.97)_0%,rgba(255,251,240,0.98)_55%,rgba(226,243,255,0.99)_100%)] px-2 pt-[6px] pb-[calc(7px+env(safe-area-inset-bottom,0px))] shadow-[0_-8px_24px_rgb(30_70_130_/_18%),inset_0_2px_0_#fff] backdrop-blur-[12px]"
+  class="bottom-nav"
   aria-label="เมนูหลัก"
 >
   {#each TABS as tab (tab.id)}
@@ -26,26 +26,85 @@
       ((page === 'campaigns' || page === 'campaign' || page === 'ranking') && tab.id === 'hub') ||
       (page === 'vip' && tab.id === 'shop')}
     <a
-      class={[
-        'relative grid min-h-14 justify-items-center gap-0.5 pt-px font-extrabold [-webkit-tap-highlight-color:transparent] transition-colors duration-150 focus-visible:rounded-2xl focus-visible:outline-[3px_solid_#2b8fd6] focus-visible:outline-offset-[-3px] motion-reduce:transition-none',
-        isActive ? 'text-[#1e4b7a]' : 'text-[#6c84a3] hover:text-[#2a5485]',
-      ]}
+      class="nav-tab"
+      class:active={isActive}
       href={tab.href}
+      aria-label={tab.label}
       aria-current={isActive ? 'page' : undefined}
     >
-      <span
-        class={[
-          'relative grid h-9.5 w-12.5 place-items-center rounded-[18px] [transition:transform_0.22s_cubic-bezier(0.3,1.6,0.5,1),background_0.15s_ease,box-shadow_0.15s_ease] motion-reduce:transition-none',
-          isActive
-            ? '-translate-y-[6px] border-2 border-white bg-[linear-gradient(165deg,#fff2a1_0%,#ffd24c_46%,#38bdf8_100%)] text-[#1d3b66] shadow-[0_4px_0_#c78916,0_7px_14px_rgb(40_95_165_/_28%)]'
-            : 'border border-transparent bg-white/50 active:scale-[0.92]',
-        ]}
-      >
-        <Icon size={tab.id === 'hub' ? 25 : 20} strokeWidth={tab.id === 'hub' ? 2.8 : 2.5} />
-      </span>
-      <span class={['text-[9px] leading-[1.05] tracking-normal whitespace-nowrap', isActive ? 'font-black text-[#1c3d6e]' : 'font-extrabold']}>
-        {tab.label}
+      <span class="nav-icon" aria-hidden="true">
+        <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
       </span>
     </a>
   {/each}
 </nav>
+
+<style>
+  .bottom-nav {
+    position: fixed;
+    z-index: 20;
+    bottom: 0;
+    left: 50%;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    width: min(100%, 460px);
+    min-height: calc(54px + env(safe-area-inset-bottom, 0px));
+    padding: 3px 5px env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid rgb(226 232 240 / 92%);
+    background: rgb(255 255 255 / 96%);
+    box-shadow: 0 -3px 14px rgb(25 55 95 / 8%);
+    backdrop-filter: blur(16px);
+    transform: translateX(-50%);
+    pointer-events: auto;
+  }
+  .nav-tab {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 48px;
+    padding: 2px;
+    border: 0;
+    border-radius: 12px;
+    color: #475569;
+    background: transparent;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 160ms ease, background-color 160ms ease;
+  }
+  .nav-tab.active {
+    color: #172554;
+  }
+  .nav-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: inherit;
+    transition: transform 160ms ease;
+  }
+  .active .nav-icon {
+    transform: translateY(-1px);
+  }
+  .nav-icon :global(svg) { flex-shrink: 0; width: 20px; height: 20px; }
+  .nav-tab.active::after {
+    position: absolute;
+    right: calc(50% - 3px);
+    bottom: 1px;
+    width: 6px;
+    height: 3px;
+    border-radius: 99px;
+    background: #16233c;
+    content: '';
+  }
+  .nav-tab:focus-visible { outline: 3px solid #0284c7; outline-offset: -2px; }
+  .nav-tab:active .nav-icon { transform: scale(0.9); }
+  @media (hover: hover) {
+    .nav-tab:hover:not(.active) {
+      color: #0284c7;
+      background: #f8fafc;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) { .nav-tab, .nav-icon { transition: none; } }
+</style>

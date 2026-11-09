@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { Check, CheckCheck, Crown, Gift, LocateFixed, LockKeyhole } from '@lucide/svelte';
   import GameButton from './GameButton.svelte';
   import RewardIcon from './RewardIcon.svelte';
@@ -16,15 +15,11 @@
   let toolbar = $state<HTMLDivElement>();
   let progress = $derived(passProgress(xp));
   function behavior(): ScrollBehavior { return matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'; }
-  function current(smooth = true) {
+  function current() {
     const target = path?.querySelector<HTMLElement>('[data-current="true"]');
     if (!target) return;
-    window.scrollTo({ top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - 142 - (toolbar?.getBoundingClientRect().height ?? 100)), behavior: smooth ? behavior() : 'instant' });
+    window.scrollTo({ top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - 142 - (toolbar?.getBoundingClientRect().height ?? 100)), behavior: behavior() });
   }
-  onMount(() => {
-    const frame = requestAnimationFrame(() => { if (level > 1) current(false); });
-    return () => cancelAnimationFrame(frame);
-  });
 </script>
 
 <section class="relative min-w-0" aria-label="เส้นทางรางวัล Pass">

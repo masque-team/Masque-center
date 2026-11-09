@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "test": "vitest run --exclude apps/**",
+    "test:ux": "node scripts/verify-ux-redesign.mjs",
     "dev": "vite --host 0.0.0.0",
     "dev:mv": "npm run dev --workspace=masque-vease",
     "test:mv": "npm run test --workspace=masque-vease",
@@ -29,6 +30,7 @@
     "three": "^0.184.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tailwindcss/vite": "^4.0.0",
     "@tsconfig/svelte": "^5.0.8",

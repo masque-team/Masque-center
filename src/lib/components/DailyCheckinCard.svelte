@@ -79,7 +79,7 @@
         <h3>เช็กอินรายวัน</h3>
         <span class="streak"><Sparkles size={11} />{doneCount}/7 วัน</span>
       </div>
-      <p>รับฟรี <b><CurrencyIcon kind="energyPotion" size={14} />+{reward} Energy</b> ทุกวัน · ครบ 7 วันรับกล่องสุ่มคู่หู</p>
+      <p>รับทุกวัน <b><CurrencyIcon kind="energyPotion" size={14} />+{reward} Energy</b></p>
     </div>
     <GameButton variant={claimed ? 'ghost' : 'gold'} size="sm" disabled={claimed} onclick={onClaim}>
       {#if claimed}<Check size={15} strokeWidth={3.5} />รับแล้ว{:else}เช็กอิน{/if}
@@ -90,7 +90,7 @@
     {#each days as day, index (day.label)}
       {@const isDay7 = index === 6}
       <li class:done={day.done} class:today={day.today} class:ready={day.today && !day.done} class:day7={isDay7} style={`--day-delay:${index * 55}ms`}>
-        <small class="lbl">{isDay7 ? 'วันที่ 7' : day.label}</small>
+        <small class="lbl">{isDay7 ? '7 วัน' : day.label}</small>
         <span class="stamp">
           {#if day.done}
             <Check size={14} strokeWidth={3.6} />
@@ -110,7 +110,8 @@
 <style>
   .checkin { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; padding: 11px 11px 10px; overflow: hidden; border: 2.5px solid #fff; border-radius: 22px; background: linear-gradient(155deg, #fffdf6 0%, #eef8ff 52%, #fff1e9 100%); box-shadow: 0 7px 0 -3px #a8d7e5, 0 12px 18px rgb(55 112 139 / 14%); isolation: isolate; }
   .shine { position: absolute; z-index: -1; top: -36px; right: -24px; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, rgb(255 235 160 / 60%), transparent 70%); pointer-events: none; }
-  .head { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .head { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; }
+  .head > :global(button) { grid-column: 1 / -1; width: 100%; }
   .copy { min-width: 0; flex: 1; display: grid; gap: 2px; }
   .title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   h3 { margin: 0; color: #315a73; font-size: 15.5px; font-weight: 900; line-height: 1.15; }
@@ -118,7 +119,7 @@
   p { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 0; color: #607e8b; font-size: 11.5px; font-weight: 700; }
   p b { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 99px; color: #9a5f00; background: #fff0bf; font-weight: 900; }
 
-  .gift { position: relative; width: 46px; height: 46px; flex: 0 0 auto; }
+  .gift { position: relative; width: 40px; height: 40px; flex: 0 0 auto; }
   .box { position: absolute; right: 3px; bottom: 2px; left: 3px; height: 26px; border: 2px solid #fff; border-radius: 6px 6px 8px 8px; background: linear-gradient(160deg, #ff9db8, #ff5f8f); box-shadow: 0 3px 0 #d63d6f; }
   .lid { position: absolute; z-index: 2; right: 1px; bottom: 24px; left: 1px; height: 12px; border: 2px solid #fff; border-radius: 6px; background: linear-gradient(160deg, #ffb4c8, #ff6f9c); box-shadow: 0 2px 0 #d63d6f; transition: transform 0.4s cubic-bezier(0.3, 1.5, 0.5, 1); transform-origin: left bottom; }
   .ribbon { position: absolute; z-index: 3; bottom: 2px; left: 50%; width: 9px; height: 35px; transform: translateX(-50%); background: linear-gradient(180deg, #ffe58a, #ffb92e); box-shadow: 0 0 0 1.5px #fff; }
@@ -131,7 +132,7 @@
   li { display: grid; justify-items: center; gap: 2px; padding: 5px 2px 4px; border: 1.5px solid #e4ece8; border-radius: 13px; background: rgb(255 255 255 / 78%); transition: transform 0.2s ease; }
   li.day7 { border-color: #f59e0b; background: linear-gradient(180deg, #fffdf0, #fde68a); }
   li.day7 .lbl, li.day7 .amt { color: #92400e; font-weight: 900; }
-  .lbl { color: #7a889b; font-size: 9.5px; font-weight: 800; line-height: 1; }
+  .lbl { color: #7a889b; font-size: 9.5px; font-weight: 800; line-height: 1; white-space: nowrap; }
   .stamp { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #b58826; background: #fff3cc; border: 1.5px solid #ffe299; }
   .amt { color: #8c96a9; font-size: 9px; font-weight: 800; line-height: 1; }
 
@@ -154,5 +155,6 @@
   @keyframes pulse-tile { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
   @keyframes checkin-pop { 0% { transform: scale(0.72); } 72% { transform: scale(1.12); } 100% { transform: scale(1); } }
   @media (prefers-reduced-motion: reduce) { .gift, .gift i, li.ready, .checkin-sparkle, .compact-day, .compact-day.compact-ready, .compact-day.compact-done, li.done .stamp { animation: none; } .lid { transition: none; } }
-  @media (max-width: 340px) { .head { gap: 6px; } .gift { width: 40px; height: 40px; } .stamp { width: 21px; height: 21px; } h3 { font-size: 14.5px; } .amt { font-size: 8.5px; } }
+  @media (min-width: 400px) { .head { grid-template-columns: 40px minmax(0, 1fr) auto; } .head > :global(button) { grid-column: auto; } }
+  @media (max-width: 340px) { .head { gap: 6px; } .stamp { width: 21px; height: 21px; } h3 { font-size: 14.5px; } .amt { font-size: 8.5px; } }
 </style>
