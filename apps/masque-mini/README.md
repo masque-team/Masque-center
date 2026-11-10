@@ -28,7 +28,7 @@ Run the build, then upload the contents of `apps/masque-mini/dist/` to the serve
 ## Scope
 
 - Entry: myAIS-style home, More sheet, required player-name confirmation, then Game Zone. Unrelated service buttons are disabled. The Game Zone name can be edited directly, AIS Point opens the local balance, and Start is the only entry into Masque Play.
-- First game visit: select one of four characters after pressing Start in Game Zone. Confirm before entering Home. Returning players keep their saved character and profile.
+- Every entry from Game Zone opens the two-character selection screen before Home, with the saved character preselected. Confirmation preserves the player's name, points, energy, portrait, and history. Only the blue-haired boy and blonde girl are selectable; older red/green choices migrate to the blue-haired boy without resetting the player.
 - Only two main navigation items: Home and Shop. The content sheet collapses before the next sheet appears, with the character stage behind it. Reduced-motion preferences are respected.
 - Home: numeric energy balance, 12 energy indicators, refill countdown, and four game entries.
 - Shop: 5 / 12 / 30 energy for 5 / 10 / 20 AIS Point. Confirmation is required; purchased energy can exceed the regeneration cap.
@@ -46,7 +46,7 @@ Run the build, then upload the contents of `apps/masque-mini/dist/` to the serve
 - Regeneration: 1 energy per 30 minutes up to 12, including elapsed offline time. Overflow purchases are preserved. Exiting a started round does not refund its energy and does not record a result.
 - Rankings combine per-game sample competitors with this device's recorded scores. Play counts use this device's recorded rounds only; neither is a live shared leaderboard.
 - Original hosted URLs are configured in `src/catalog.ts`. A verified score-return bridge is required before automatic results, local history, and personal rankings can update from those games. Existing locally saved prototype scores are not automatically deleted.
-- Characters use the four background-removed PNGs from archive 65, stored in `art-source/mini-characters/`. Runtime transparent WebP characters, portraits, and four separately themed stage backgrounds are in `public/assets/characters/`. Regenerate from the repository root with `node scripts/generate-mini-characters.mjs` and `node scripts/generate-mini-stage.mjs`. The selected character and portrait survive reloads without resetting player data.
+- Characters use background-removed PNGs from archive 65, stored in `art-source/mini-characters/`. Runtime transparent WebP characters, portraits, and themed stage backgrounds are in `public/assets/characters/`. The red/green source assets are retained for later use but are not selectable. Regenerate from the repository root with `node scripts/generate-mini-characters.mjs` and `node scripts/generate-mini-stage.mjs`.
 - Kanit is loaded from Google Fonts; the interface falls back to sans-serif offline. Hosted games and their logo images require internet access.
 
 ## Verification

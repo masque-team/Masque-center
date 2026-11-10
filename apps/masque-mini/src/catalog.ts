@@ -35,7 +35,7 @@ export function demoRankings(id: GameId) {
   }));
 }
 
-export const characterNames: Record<Character, string> = { aqua: 'ผมฟ้า', flora: 'ผมทอง', blaze: 'ผมแดง', mint: 'ผมเขียว' };
+export const characterNames: Record<Character, string> = { aqua: 'ผมฟ้า', flora: 'ผมทอง' };
 export function characterImage(id: string) { return `assets/characters/${id}.webp`; }
 export function characterBackground(id: Character) { return `assets/characters/${id}-stage.webp`; }
 export function portraitImage(portrait: string) {

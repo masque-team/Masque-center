@@ -7,7 +7,7 @@ export const packs = [
   { energy: 30, price: 20 },
 ] as const;
 
-export const CHARACTERS = ['aqua', 'flora', 'blaze', 'mint'] as const;
+export const CHARACTERS = ['aqua', 'flora'] as const;
 export type Character = typeof CHARACTERS[number];
 export type GameId = 'mole' | 'memory' | 'fruit' | 'duck';
 export interface Round { game: GameId; score: number; at: number }
@@ -58,7 +58,7 @@ export function loadPlayer(raw: string | null, now = Date.now()): Player {
       name: typeof saved.name === 'string' ? saved.name.slice(0, 20) : fresh.name,
       character: CHARACTERS.includes(saved.character) ? saved.character : 'aqua',
       selected: saved.selected === true,
-      portrait: typeof saved.portrait === 'string' && /^(cat|aqua|flora|blaze|mint|data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)$/.test(saved.portrait) && saved.portrait.length < 1500000 ? saved.portrait : 'cat',
+      portrait: saved.portrait === 'blaze' || saved.portrait === 'mint' ? 'aqua' : typeof saved.portrait === 'string' && /^(cat|aqua|flora|data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)$/.test(saved.portrait) && saved.portrait.length < 1500000 ? saved.portrait : 'cat',
       energy: Number.isSafeInteger(saved.energy) && saved.energy >= 0 ? saved.energy : fresh.energy,
       points: Number.isSafeInteger(saved.points) && saved.points >= 0 ? saved.points : fresh.points,
       refillAt: Number.isFinite(saved.refillAt) ? Math.min(saved.refillAt, now + REFILL_MS) : fresh.refillAt,

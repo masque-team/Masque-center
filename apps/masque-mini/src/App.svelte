@@ -102,6 +102,14 @@
     }, reduced ? 0 : 190);
   }
 
+  function enterFromMyAis() {
+    characterDraft = player.character;
+    choosing = true;
+    page = 'home';
+    inMyAis = false;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
   function selectCharacter() {
     player = { ...player, character: characterDraft, selected: true };
     choosing = false;
@@ -186,14 +194,14 @@
   {#if !ready}
     <div class="grid min-h-dvh place-content-center text-violet">Masque Play</div>
   {:else if inMyAis}
-    <MyAis name={player.name} portrait={portraitImage(player.portrait)} points={player.points} onsavename={(name) => { player = { ...player, name }; }} onstart={() => { inMyAis = false; }} />
+    <MyAis name={player.name} portrait={portraitImage(player.portrait)} points={player.points} onsavename={(name) => { player = { ...player, name }; }} onstart={enterFromMyAis} />
   {:else if choosing}
-    <main class="selection-bg relative flex min-h-dvh flex-col items-center overflow-hidden px-6 pb-7 pt-10">
-      <Star class="mb-[-12px] z-10 fill-[#ffda32] text-[#eba600] drop-shadow-lg" size={47} />
-      <h1 class="selection-title w-full max-w-[350px] py-3 text-center text-[32px] font-bold">เลือกตัวละคร</h1>
-      <p class="mt-4 flex items-center gap-2 text-xl font-semibold text-[#541591]"><Star size={18} class="fill-[#ffdb36] text-[#e2a000]" />เลือกสไตล์ที่เป็นคุณ<Star size={18} class="fill-[#ffdb36] text-[#e2a000]" /></p>
-      <div class="selection-character relative -my-2 w-full flex-1"><Stage character={characterDraft} full pale /></div>
-      <div class="z-10 -mt-2 grid w-full max-w-[360px] grid-cols-4 gap-3" aria-label="เลือกตัวละคร">
+    <main class="character-selection selection-bg relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 pb-6 pt-6">
+      <Star class="relative z-10 -mb-2 fill-[#ffda32] text-[#eba600] drop-shadow-lg" size={36} />
+      <h1 class="selection-title w-full max-w-[330px] py-2 text-center text-[28px] font-bold">เลือกตัวละคร</h1>
+      <p class="mt-3 flex items-center gap-2 text-base font-semibold text-[#541591]"><Star size={16} class="fill-[#ffdb36] text-[#e2a000]" />เลือกสไตล์ที่เป็นคุณ<Star size={16} class="fill-[#ffdb36] text-[#e2a000]" /></p>
+      <div class="selection-character relative my-2 w-full shrink-0"><Stage character={characterDraft} full pale /></div>
+      <div class="z-10 grid w-full max-w-[220px] grid-cols-2 gap-4" aria-label="เลือกตัวละคร">
         {#each characters as character (character)}
           <button class="choice aspect-square w-full min-w-0" class:choice-selected={characterDraft === character} aria-label={characterNames[character]} aria-pressed={characterDraft === character} onclick={() => { characterDraft = character; }}>
             <img class="h-full w-full rounded-[12px] object-cover" src={portraitImage(character)} alt={characterNames[character]} />
@@ -201,8 +209,8 @@
           </button>
         {/each}
       </div>
-      <p class="my-5 flex items-center gap-2 text-sm text-[#784b9b]"><UserRound size={20} />ตัวละครจะแสดงบนหน้าโปรไฟล์</p>
-      <button class="gloss w-full max-w-[360px] text-2xl" onclick={selectCharacter}><Star size={20} class="fill-[#ffe35a] text-[#ffe35a]" />ยืนยันตัวละคร<Star size={20} class="fill-[#ffe35a] text-[#ffe35a]" /></button>
+      <p class="my-3 flex items-center gap-2 text-xs text-[#784b9b]"><UserRound size={17} />ตัวละครจะแสดงบนหน้าโปรไฟล์</p>
+      <button class="gloss w-full max-w-[336px] text-xl" onclick={selectCharacter}><Check size={23} strokeWidth={3} />ยืนยันตัวละคร</button>
     </main>
   {:else}
     {#if !playing}
@@ -226,7 +234,7 @@
       {#if page === 'home' || page === 'shop' || page === 'profile' || page === 'edit'}
         <div class:main-stage={page === 'home' || page === 'shop'} class:profile-stage={fullStage} class:edit-stage={editStage}><Stage character={displayCharacter} full={fullStage} backdrop={page === 'home' || page === 'shop'} /></div>
         {#if page === 'profile'}
-          <main class="relative z-[3] -mt-10 flex min-h-[24dvh] flex-col items-center gap-5 bg-[#070d3a] px-8 pb-8" class:sheet-leaving={leaving}>
+          <main class="profile-content relative z-[3] flex flex-col items-center justify-end gap-5 px-8" class:sheet-leaving={leaving}>
             <button class="soft-button border-0 bg-[#e9ceff] text-lg font-semibold" onclick={copyId}>ID: M8Q7K2<Copy size={18} /></button>
             <button class="gloss w-full text-2xl" onclick={openEditor}><Pencil size={23} class="fill-white" />แก้ไขโปรไฟล์</button>
           </main>
@@ -283,7 +291,7 @@
                 <div role="tabpanel" id="profile-panel" aria-labelledby={editTab === 'character' ? 'character-tab' : 'portrait-tab'}>
                   <h1 class="mb-5 mt-5 text-center text-sm font-medium text-[#7139a5]">{editTab === 'character' ? 'เลือกตัวละครที่แสดงบนหน้าโปรไฟล์' : 'เลือกรูปที่ต้องการใช้'}</h1>
                   {#if editTab === 'character'}
-                    <div class="grid grid-cols-4 gap-2">
+                    <div class="mx-auto grid max-w-[240px] grid-cols-2 gap-4">
                       {#each characters as character (character)}
                         <button class="choice min-w-0 overflow-hidden" class:choice-selected={characterDraft === character} aria-label={characterNames[character]} aria-pressed={characterDraft === character} onclick={() => { characterDraft = character; }}>
                           <img src={portraitImage(character)} alt="" class="aspect-square w-full object-cover" />
@@ -432,6 +440,11 @@
 <style>
   .app-shell.tab-switching { height: 100dvh; overflow: hidden; }
   .main-stage { position: relative; height: 274px; }
+  .profile-stage { position: absolute; inset: 0; }
+  .profile-stage :global(.stage) { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; }
+  .profile-stage :global(.stage-art) { object-fit: cover; object-position: center; }
+  .profile-stage :global(.actor) { height: min(calc(80% - 82px), calc(100% - 240px)); }
+  .profile-content { min-height: 100dvh; padding-bottom: max(28px, env(safe-area-inset-bottom)); background: transparent; }
   .sheet.tab-lowered { transform: translateY(28px); opacity: 0; pointer-events: none; transition: transform .13s ease-in, opacity .13s ease-in; }
   .sheet.tab-rising { animation: tab-rise .19s cubic-bezier(.2, .75, .3, 1) both; }
   .main-nav button:disabled { opacity: 1; }
@@ -453,9 +466,10 @@
   .podium-name { background: #fff5dc; }
   .podium-score { color: white; background: linear-gradient(#c875f5, #8b13ce); box-shadow: inset 0 1px 1px #ffffff90; }
   .podium-first .podium-score { font-size: 19px; }
-  .selection-character :global(.stage) { height: min(49dvh, 480px); min-height: 260px; }
-  .selection-character :global(.actor) { top: 5%; height: 75%; width: 82%; object-fit: contain; object-position: center bottom; }
-  .selection-character :global(.platform) { bottom: 5%; }
+  .selection-character :global(.stage) { height: clamp(220px, 43dvh, 400px); min-height: 0; background: transparent; }
+  .selection-character :global(.stage-art) { opacity: .3; mask-image: radial-gradient(ellipse 70% 65% at 50% 50%, #000 25%, transparent 75%); }
+  .selection-character :global(.actor) { top: 2%; height: 92%; width: 86%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 10px 9px #69419830); }
+  @media (max-height: 700px) { .character-selection { padding-top: 14px; padding-bottom: 14px; } .selection-character :global(.stage) { height: clamp(185px, 36dvh, 250px); } }
   .edit-stage :global(.stage) { height: 310px; }
   .edit-stage :global(.actor) { top: 65px; height: 230px; width: 65%; object-fit: contain; object-position: center bottom; }
   .edit-stage :global(.platform) { opacity: 1; bottom: 8px; width: 62%; left: 19%; }

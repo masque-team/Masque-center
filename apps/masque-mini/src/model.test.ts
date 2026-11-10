@@ -6,7 +6,8 @@ describe('mini energy economy', () => {
     expect(newPlayer(0).name).toBe('');
     expect(loadPlayer(JSON.stringify({ ...newPlayer(0), name: 'masque' }), 0).name).toBe('masque');
   });
-  it('preserves all four character and portrait choices across reloads', () => {
+  it('offers only the blue and blonde characters and preserves their choices', () => {
+    expect(CHARACTERS).toEqual(['aqua', 'flora']);
     for (const character of CHARACTERS) {
       const saved = { ...newPlayer(0), character, portrait: character, selected: true };
       const restored = loadPlayer(JSON.stringify(saved), 0);
@@ -14,6 +15,12 @@ describe('mini energy economy', () => {
       expect(restored.portrait).toBe(character);
       expect(restored.selected).toBe(true);
       expect(restored.energy).toBe(saved.energy);
+    }
+  });
+  it('migrates inactive character choices without losing player data', () => {
+    for (const character of ['blaze', 'mint']) {
+      const saved = { ...newPlayer(0), name: 'masque', character, portrait: character, energy: 3, points: 55, selected: true, history: [{ game: 'mole', score: 100, at: 0 }] };
+      expect(loadPlayer(JSON.stringify(saved), 0)).toMatchObject({ ...saved, character: 'aqua', portrait: 'aqua' });
     }
   });
   it('charges only a started round and rejects an empty balance', () => {
