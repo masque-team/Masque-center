@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-const destination = fileURLToPath(new URL('../public/assets/wings/', import.meta.url));
+const destination = fileURLToPath(new URL('../apps/masque-center/public/assets/wings/', import.meta.url));
 await mkdir(destination, { recursive: true });
 const palettes = [
   { id: 'sky-feather', light: '#ffffff', main: '#a4e4ff', edge: '#498db8', gem: '#48c4ed' },

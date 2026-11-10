@@ -1,0 +1,19 @@
+{
+  "name": "masque-center",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "build": "npm run check && vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.57.0",
+    "@masque/vease-protocol": "file:../../packages/vease-protocol",
+    "svelte": "^5.0.0",
+    "three": "^0.184.0"
+  }
+}

@@ -3,7 +3,7 @@ import { mkdir, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const output = resolve(root, 'public/assets/world');
+const output = resolve(root, 'apps/masque-center/public/assets/world');
 await mkdir(resolve(output, 'actors'), { recursive: true });
 
 const palettes = [
@@ -27,9 +27,9 @@ const paving = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"
 await sharp(Buffer.from(paving)).webp({ quality: 88 }).toFile(resolve(output, 'paving.webp'));
 
 for (const kind of ['avatars', 'pets']) {
-  for (const file of await readdir(resolve(root, 'public/assets', kind))) {
+  for (const file of await readdir(resolve(root, 'apps/masque-center/public/assets', kind))) {
     if (!file.endsWith('.webp')) continue;
-    await sharp(resolve(root, 'public/assets', kind, file)).trim({ threshold: 12 }).resize({ height: 512 }).extend({ top: 4, bottom: 4, left: 4, right: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 86 }).toFile(resolve(output, 'actors', `${kind}-${file}`));
+    await sharp(resolve(root, 'apps/masque-center/public/assets', kind, file)).trim({ threshold: 12 }).resize({ height: 512 }).extend({ top: 4, bottom: 4, left: 4, right: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 86 }).toFile(resolve(output, 'actors', `${kind}-${file}`));
   }
 }
 console.log('Generated Masque Vease facades, tiled roofs, house postcards, paving and trimmed 2D actors.');

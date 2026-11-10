@@ -4,24 +4,25 @@
   "version": "1.0.0",
   "type": "module",
   "workspaces": [
+    "apps/masque-center",
     "apps/masque-vease",
     "packages/vease-protocol"
   ],
   "scripts": {
-    "test": "vitest run --exclude apps/**",
+    "test": "npm run test --workspace=masque-center",
     "test:ux": "node scripts/verify-ux-redesign.mjs",
-    "dev": "vite --host 0.0.0.0",
+    "dev": "npm run dev --workspace=masque-center",
     "dev:mv": "npm run dev --workspace=masque-vease",
     "test:mv": "npm run test --workspace=masque-vease",
     "check:mv": "npm run check --workspace=masque-vease",
     "build:mv": "npm run build --workspace=masque-vease",
-    "build": "svelte-check && vite build",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "build": "npm run build --workspace=masque-center",
+    "check": "npm run check --workspace=masque-center",
     "art": "node scripts/optimize-art.mjs",
     "art:world": "node scripts/generate-world-art.mjs",
     "art:cosmetics": "node scripts/generate-cosmetics.mjs",
     "art:points": "node scripts/generate-point-art.mjs",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "npm run preview --workspace=masque-center"
   },
   "dependencies": {
     "@lucide/svelte": "^1.57.0",

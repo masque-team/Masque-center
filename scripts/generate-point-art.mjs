@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-const destination = fileURLToPath(new URL('../public/assets/points/', import.meta.url));
+const destination = fileURLToPath(new URL('../apps/masque-center/public/assets/points/', import.meta.url));
 await mkdir(destination, { recursive: true });
 const names = ['pocket', 'pouch', 'chest', 'treasure', 'tower', 'royal'];
 function crystal(x, y, scale, rotation) {

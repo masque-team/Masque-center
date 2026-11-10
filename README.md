@@ -1,4 +1,42 @@
-# MasqueGame
+# Masque Apps
+
+One Git repository with separate applications under `apps/`.
+
+| Application | Folder | Purpose |
+| --- | --- | --- |
+| Masque Center | [apps/masque-center](apps/masque-center/README.md) | Original full-feature game center: VIP, missions, pass, inventory, pets, gacha, wallet, shop, and rankings |
+| Masque Mini | [apps/masque-mini](apps/masque-mini/README.md) | New myAIS entry, four characters, Home, energy Shop, profile, and original hosted games |
+| Masque Vease | [apps/masque-vease](apps/masque-vease/README.md) | 3D world frontend |
+
+Center, Vease, and `packages/vease-protocol` share the root npm workspace lockfile. Mini retains its own package and lockfile. All applications use this repository's Git history; there are no separate Git repositories inside the app folders.
+
+## Commands
+
+Use Node.js 22.12+ and npm. On Windows PowerShell, use `npm.cmd` if `npm.ps1` is blocked.
+
+From the repository root:
+
+```sh
+npm install
+npm run dev
+npm run check
+npm test
+npm run build
+```
+
+These commands run the original Center app. Its default development URL remains `http://localhost:5173/maque-center/`; production output is now `apps/masque-center/dist/`, not the old root `dist/` folder. Local Center environment overrides belong in `apps/masque-center/` alongside `.env.example`.
+
+For Mini:
+
+```sh
+npm --prefix apps/masque-mini ci
+npm --prefix apps/masque-mini run dev
+npm --prefix apps/masque-mini run build
+```
+
+Mini defaults to `http://localhost:5175/`. Vease uses `npm run dev:mv`, `npm run check:mv`, `npm run test:mv`, and `npm run build:mv`.
+
+Artwork sources stay in `art-source/`; generation tools stay in `scripts/`. Center artwork tools now write into `apps/masque-center/public/`. Mini character and background tools write into `apps/masque-mini/public/assets/characters/`.# MasqueGame
 
 เกมมือถือสำหรับ myAIS WebView รวม 7 เกม เล่นฟรีด้วย Energy หรือปลดล็อก VIP Benefits, Battle Pass rewards, Masque Points และ Avatar & Pets
 

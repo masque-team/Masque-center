@@ -3,7 +3,7 @@ import { mkdir, copyFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const publicAssets = resolve(root, 'public/assets');
+const publicAssets = resolve(root, 'apps/masque-center/public/assets');
 const artSource = resolve(root, 'art-source');
 
 await mkdir(resolve(publicAssets, 'currency'), { recursive: true });

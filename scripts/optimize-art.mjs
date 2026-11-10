@@ -10,7 +10,7 @@ const ORDER = {
 
 for (const [kind, ids] of Object.entries(ORDER)) {
   const sourceDir = join('art-source', kind);
-  const outputDir = join('public', 'assets', kind);
+  const outputDir = join('apps', 'masque-center', 'public', 'assets', kind);
   await mkdir(outputDir, { recursive: true });
   for (const file of (await readdir(sourceDir)).filter((name) => name.endsWith('.png'))) {
     const index = Number(/-(\d+)\.png$/.exec(file)?.[1]) - 1;
