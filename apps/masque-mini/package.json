@@ -7,7 +7,8 @@
     "dev": "vite --host 0.0.0.0 --port 5175",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run src/model.test.ts",
-    "build": "npm run check && vite build",
+    "verify:assets": "node scripts/verify-assets.mjs",
+    "build": "npm run verify:assets && npm run check && vite build && npm run verify:assets -- --built",
     "preview": "vite preview --host 0.0.0.0 --port 4175"
   },
   "dependencies": {

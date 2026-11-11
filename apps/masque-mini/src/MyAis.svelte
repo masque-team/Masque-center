@@ -1,15 +1,16 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { ArrowLeft, ArrowLeftRight, Bell, Search, UserRound, Grid2X2, House, Gift, QrCode, Package, Store, Smartphone, Globe, CreditCard, Wallet, Shield, CircleHelp, Tv, Gamepad2, Pencil, ChevronRight, X, Signal, ReceiptText, Send, Coins, Check } from '@lucide/svelte';
   import Popup from './Popup.svelte';
-  import { games } from './catalog';
 
-  let { name, portrait, points, onsavename, onstart }: { name: string; portrait: string; points: number; onsavename: (name: string) => void; onstart: () => void } = $props();
-  let screen = $state<'home' | 'zone'>('home');
+  let { name, portrait, points, onsavename, onstart, initialScreen = 'home' }: { name: string; portrait: string; points: number; onsavename: (name: string) => void; onstart: () => void; initialScreen?: 'home' | 'zone' } = $props();
+  let screen = $state<'home' | 'zone'>(untrack(() => initialScreen));
   let more = $state(false);
   let nameDialog = $state<'entry' | 'edit' | null>(null);
   let nameDraft = $state('');
   let pointsDialog = $state(false);
   let moreDialog = $state<HTMLDialogElement>();
+  const zoneImages = ['assets/myais/game-zone-banner.webp', 'assets/myais/free-games-banner.webp', 'assets/myais/minigame-entry.webp'];
 
   $effect(() => {
     if (more && moreDialog && !moreDialog.open) moreDialog.showModal();
@@ -47,6 +48,12 @@
   }
 </script>
 
+<svelte:head>
+  {#if more || nameDialog === 'entry' || screen === 'zone'}
+    {#each zoneImages as source (source)}<link rel="preload" as="image" href={source} />{/each}
+  {/if}
+</svelte:head>
+
 <main class="ais-shell" class:ais-zone={screen === 'zone'}>
   {#if screen === 'home'}
     <header class="ais-greeting">
@@ -60,7 +67,7 @@
       <div class="ais-bill"><div>599.00 บาท<small>กำหนดชำระ: 15 พ.ย. 2569</small></div><button disabled class="ais-lime">จ่ายบิล</button></div>
       <div class="ais-clix"><Send size={20} /><strong>CLIX</strong><span>CLIX Bank<br /><small>ธนาคารที่รู้ใจคุณ</small></span><ChevronRight size={18} /></div>
     </section>
-    <section class="ais-promo" aria-label="สิทธิพิเศษ"><small>สิทธิพิเศษสำหรับลูกค้า AIS</small><strong>ความสุขที่เลือกได้<br /><span>ให้ทุกวันพิเศษกว่าเดิม</span></strong><div class="ais-promo-art"><img src="assets/myais/phone-promotion.jpg" alt="สมาร์ตโฟน" /></div><span>AIS Privileges</span></section>
+    <section class="ais-promo" aria-label="สิทธิพิเศษ"><small>สิทธิพิเศษสำหรับลูกค้า AIS</small><strong>ความสุขที่เลือกได้<br /><span>ให้ทุกวันพิเศษกว่าเดิม</span></strong><div class="ais-promo-art"><img src="assets/myais/phone-promotion.webp" alt="สมาร์ตโฟน" width="400" height="400" decoding="async" /></div><span>AIS Privileges</span></section>
     <div class="ais-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <section class="ais-tiles ais-home-tiles" aria-label="บริการ">
       {#each homeTiles as tile (tile.label)}<button disabled><tile.icon size={29} strokeWidth={1.3} /><span>{tile.label}</span></button>{/each}
@@ -72,17 +79,17 @@
       {#each [{ label: 'หน้าหลัก', icon: House }, { label: 'สิทธิพิเศษ', icon: Gift }, { label: 'สแกน', icon: QrCode }, { label: 'แพ็กเกจ', icon: Package }, { label: 'โปรไฟล์', icon: UserRound }] as item (item.label)}<button disabled class:ais-active={item.label === 'หน้าหลัก'} class:ais-scan={item.label === 'สแกน'}><item.icon size={24} strokeWidth={1.6} /><span>{item.label}</span></button>{/each}
     </nav>
   {:else}
-    <header class="ais-zone-header"><button class="ais-back" aria-label="กลับหน้า myAIS" title="กลับหน้า myAIS" onclick={() => { screen = 'home'; }}><ArrowLeft size={21} /></button><h1>เกมโซน</h1><button class="ais-points" onclick={() => { pointsDialog = true; }} aria-label="ดู AIS Point"><img src="assets/currency/ais-point.png" alt="" />{points.toLocaleString()} AIS Point</button></header>
+    <header class="ais-zone-header"><button class="ais-back" aria-label="กลับหน้า myAIS" title="กลับหน้า myAIS" onclick={() => { screen = 'home'; }}><ArrowLeft size={21} /></button><h1>เกมโซน</h1><button class="ais-points" onclick={() => { pointsDialog = true; }} aria-label="ดู AIS Point"><img src="assets/currency/ais-point.webp" alt="" />{points.toLocaleString()} AIS Point</button></header>
     <div class="ais-zone-account"><span class="ais-fibre">AIS<br /><b>FIBRE</b></span><strong>880-XXX-5824</strong></div>
-    <section class="ais-zone-banner" aria-label="กิจกรรมเกม"><img src="assets/ui-redesign/header/header-banner.jpg" alt="" /><div><span>AIS GAMING</span><strong>สนุกได้ทุกวัน</strong></div></section>
+    <section class="ais-zone-banner" aria-label="กิจกรรมเกม"><img src={zoneImages[0]} alt="" width="960" height="536" decoding="async" fetchpriority="high" /><div><span>AIS GAMING</span><strong>สนุกได้ทุกวัน</strong></div></section>
     <div class="ais-dots" aria-hidden="true"><i></i><i></i><i></i></div>
     <section class="ais-game-section" aria-labelledby="free-games-heading">
       <div class="ais-section-label"><h2 id="free-games-heading"><Gamepad2 size={22} />เล่นเกมฟรี</h2><CircleHelp size={15} /><span class="ais-coins"><Coins size={15} />0 คอยน์</span></div>
-      <div class="ais-free-art" aria-hidden="true">{#each [...games, ...games] as game, index (index)}<img src={game.cover} alt="" />{/each}<strong>เล่นเกมเพื่อน<br /><span>มากกว่า 40 เกมส์</span></strong></div>
+      <div class="ais-free-art"><img src={zoneImages[1]} alt="เล่นเกมไม่อั้น มากกว่า 40 เกมส์" width="960" height="340" decoding="async" /></div>
       <div class="ais-name-bar"><button onclick={() => openName('edit')} aria-label="เปลี่ยนชื่อผู้เล่น"><img src={portrait} alt="" /><strong>{name}</strong><Pencil size={16} /></button><button disabled class="ais-checkin">เช็กอินและเล่นเกม</button></div>
     </section>
     <section class="ais-game-section ais-mini-section" aria-label="minigame2">
-      <img class="ais-entry-image" src="assets/myais/minigame-entry.png" alt="minigame2 สนุกกับมินิเกม ตีตุ่น จับคู่ ฟันผลไม้ และยิงเป็ด" width="852" height="557" />
+      <img class="ais-entry-image" src={zoneImages[2]} alt="minigame2 สนุกกับมินิเกม ตีตุ่น จับคู่ ฟันผลไม้ และยิงเป็ด" width="852" height="557" decoding="async" />
       <button class="ais-entry-start" onclick={onstart} aria-label="เริ่มเล่นเกม" title="เริ่มเล่นเกม"></button>
     </section>
   {/if}
@@ -108,7 +115,7 @@
   </Popup>
 {/if}
 {#if pointsDialog}
-  <Popup title="AIS Point" onclose={() => { pointsDialog = false; }}><img src="assets/currency/ais-point.png" alt="" class="mx-auto h-16 w-16" /><h2 class="mt-3 text-center text-xl font-semibold">AIS Point</h2><strong class="my-5 block text-center text-4xl text-violet">{points.toLocaleString()}</strong><button class="gloss w-full" onclick={() => { pointsDialog = false; }}>ตกลง</button></Popup>
+  <Popup title="AIS Point" onclose={() => { pointsDialog = false; }}><img src="assets/currency/ais-point.webp" alt="" class="mx-auto h-16 w-16" /><h2 class="mt-3 text-center text-xl font-semibold">AIS Point</h2><strong class="my-5 block text-center text-4xl text-violet">{points.toLocaleString()}</strong><button class="gloss w-full" onclick={() => { pointsDialog = false; }}>ตกลง</button></Popup>
 {/if}
 
 <style>
@@ -191,10 +198,8 @@
   .ais-section-label { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
   .ais-section-label h2 { display: flex; align-items: center; gap: 4px; color: white; font-size: 17px; font-weight: 600; text-shadow: 0 2px #6c16f6, 2px 0 #6c16f6, -2px 0 #6c16f6, 0 -2px #6c16f6; }
   .ais-coins { display: flex; align-items: center; gap: 3px; margin-left: auto; padding: 5px 7px; border-radius: 5px; background: #b08c16; color: #211b05; font-size: 11px; }
-  .ais-free-art { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); height: 138px; overflow: hidden; border: 3px solid #987aff; border-radius: 13px 13px 0 0; background: #3ab6e8; }
-  .ais-free-art img { width: 100%; height: 67px; object-fit: cover; }
-  .ais-free-art > strong { position: absolute; top: 45px; left: 50%; width: 180px; transform: translateX(-50%); border-radius: 8px; padding: 2px; background: #ffffffed; color: #1d9cff; font-size: 22px; line-height: 1.1; text-align: center; text-shadow: 1px 1px white; }
-  .ais-free-art > strong span { color: #fa7b09; font-size: 16px; }
+  .ais-free-art { width: 100%; overflow: hidden; border-radius: 13px 13px 0 0; }
+  .ais-free-art img { display: block; width: 100%; height: auto; }
   .ais-name-bar { display: flex; gap: 5px; align-items: center; min-height: 47px; padding: 5px; border: 3px solid #987aff; border-top: 0; border-radius: 0 0 12px 12px; background: white; color: #333; }
   .ais-name-bar > button:first-child { display: flex; min-width: 0; flex: 1; align-items: center; gap: 6px; padding: 0 3px; text-align: left; }
   .ais-name-bar img { width: 31px; height: 31px; flex-shrink: 0; border-radius: 50%; object-fit: cover; object-position: top; }
